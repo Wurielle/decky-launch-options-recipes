@@ -1,11 +1,16 @@
 {
-  "name": "Example Plugin",
-  "author": "John Doe",
-  "flags": ["debug", "_root"],
+  "name": "Launch Options Recipes",
+  "author": "Wurielle",
+  "flags": [
+    "debug"
+  ],
   "api_version": 1,
   "publish": {
-    "tags": ["template", "root"],
-    "description": "Decky example plugin.",
-    "image": "https://opengraph.githubassets.com/1/SteamDeckHomebrew/PluginLoader"
+    "tags": [
+      "launch options recipes",
+      "quality of life"
+    ],
+    "description": "Recipes for the Decky Launch Options plugin.",
+    "image": "https://raw.githubusercontent.com/Wurielle/decky-launch-options/main/assets/screenshot.png"
   }
 }
