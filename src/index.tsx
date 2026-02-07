@@ -1,115 +1,150 @@
 import {
-  ButtonItem,
-  PanelSection,
-  PanelSectionRow,
-  Navigation,
-  staticClasses
+    ButtonItem,
+    DialogBody,
+    DialogButton,
+    ModalRoot,
+    PanelSection,
+    PanelSectionRow,
+    showModal,
+    Spinner,
+    staticClasses,
+    TextField,
 } from "@decky/ui";
-import {
-  addEventListener,
-  removeEventListener,
-  callable,
-  definePlugin,
-  toaster,
-  // routerHook
-} from "@decky/api"
-import { useState } from "react";
-import { FaShip } from "react-icons/fa";
+import {definePlugin} from "@decky/api"
+import {FaList} from "react-icons/fa";
+import {QueryClientProvider} from "@tanstack/react-query";
+import {queryClient, useGetRecipesQuery} from "./query";
+import {useCallback, useState} from "react";
+import {v4 as uuid} from 'uuid';
+import {Store, StoreOptions, useStore} from '@tanstack/react-store'
+import {produce} from "immer";
 
-// import logo from "../assets/logo.png";
+const defaultRecipesSource = 'https://raw.githubusercontent.com/Wurielle/decky-launch-options-recipes/refs/heads/dev/recipes.json'
 
-// This function calls the python function "add", which takes in two numbers and returns their sum (as a number)
-// Note the type annotations:
-//  the first one: [first: number, second: number] is for the arguments
-//  the second one: number is for the return value
-const add = callable<[first: number, second: number], number>("add");
+function createStore<S>(state: S, options: StoreOptions<S, (state: S) => void> = {}) {
+    return new Store<S, (state: S) => void>(state, {
+        updateFn: (state) => (updater) => produce(state, updater),
+        ...options
+    });
+}
 
-// This function calls the python function "start_timer", which takes in no arguments and returns nothing.
-// It starts a (python) timer which eventually emits the event 'timer_event'
-const startTimer = callable<[], void>("start_timer");
+const localStorageKey = 'decky-launch-options-recipes-store'
+const storageStoreValue = localStorage.getItem(localStorageKey)
+const recipesStore = createStore({
+    recipesSource: defaultRecipesSource,
+    ...(storageStoreValue ? JSON.parse(storageStoreValue) : {})
+});
+recipesStore.subscribe(({currentVal}) => {
+    localStorage.setItem(localStorageKey, JSON.stringify(currentVal))
+})
+
+function RecipesSourceFormModal(props: { onCancel: () => void }) {
+    const {onCancel} = props;
+    const recipesSource = useStore(recipesStore, (s) => s.recipesSource)
+    const setRecipesSource = useCallback((value: string) => {
+        recipesStore.setState((state) => {
+            state.recipesSource = value
+        })
+    }, [])
+    return (
+        <ModalRoot onCancel={onCancel}>
+            <DialogBody>
+                <TextField style={{marginBottom: 0}} label={'Recipes source'}
+                           value={recipesSource}
+                           onChange={(e) => setRecipesSource(e.target.value)}/>
+
+                <div style={{display: 'flex', flexDirection: 'column', gap: '10px'}}>
+                    <DialogButton
+                        onClick={() => navigator.clipboard.readText().then((value) => setRecipesSource(value))}
+                    >
+                        Paste value from clipboard
+                    </DialogButton>
+                    <DialogButton
+                        onClick={() => setRecipesSource(defaultRecipesSource)}
+                    >
+                        Reset
+                    </DialogButton>
+                </div>
+            </DialogBody>
+        </ModalRoot>
+    )
+}
 
 function Content() {
-  const [result, setResult] = useState<number | undefined>();
-
-  const onClick = async () => {
-    const result = await add(Math.random(), Math.random());
-    setResult(result);
-  };
-
-  return (
-    <PanelSection title="Panel Section">
-      <PanelSectionRow>
-        <ButtonItem
-          layout="below"
-          onClick={onClick}
-        >
-          {result ?? "Add two numbers via Python"}
-        </ButtonItem>
-      </PanelSectionRow>
-      <PanelSectionRow>
-        <ButtonItem
-          layout="below"
-          onClick={() => startTimer()}
-        >
-          {"Start Python timer"}
-        </ButtonItem>
-      </PanelSectionRow>
-
-      {/* <PanelSectionRow>
-        <div style={{ display: "flex", justifyContent: "center" }}>
-          <img src={logo} />
-        </div>
-      </PanelSectionRow> */}
-
-      {/*<PanelSectionRow>
-        <ButtonItem
-          layout="below"
-          onClick={() => {
-            Navigation.Navigate("/decky-plugin-test");
-            Navigation.CloseSideMenus();
-          }}
-        >
-          Router
-        </ButtonItem>
-      </PanelSectionRow>*/}
-    </PanelSection>
-  );
-};
+    const [id, setId] = useState(uuid())
+    const recipesSource = useStore(recipesStore, (s) => s.recipesSource)
+    const {data, isLoading} = useGetRecipesQuery(`${recipesSource}?id=${id}`)
+    return (
+        <>
+            <PanelSection>
+                <PanelSectionRow>
+                    <ButtonItem
+                        layout="below"
+                        onClick={() => {
+                            const modalResult = showModal(
+                                <RecipesSourceFormModal
+                                    onCancel={() => modalResult.Close()}
+                                />
+                            )
+                        }}
+                    >
+                        Manage recipes source
+                    </ButtonItem>
+                </PanelSectionRow>
+            </PanelSection>
+            <PanelSection title={'Recipes'}>
+                <PanelSectionRow>
+                    <ButtonItem
+                        layout="below"
+                        onClick={() => setId(uuid())}
+                    >
+                        Refetch recipes
+                    </ButtonItem>
+                </PanelSectionRow>
+                {
+                    isLoading ? (
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            marginTop: '10px'
+                        }}>
+                            <Spinner
+                                width={24}
+                                height={24}
+                            />
+                        </div>
+                    ) : data && Boolean(data.length) ? data.map((recipe) => (
+                        <PanelSectionRow key={recipe.name}>
+                            <ButtonItem
+                                layout="below"
+                                onClick={() => {
+                                    window.dispatchEvent(new CustomEvent('dlo-add-launch-options', {
+                                        detail: recipe.launchOptions
+                                    }));
+                                }}
+                            >
+                                {recipe.name}
+                            </ButtonItem>
+                        </PanelSectionRow>
+                    )) : (<p style={{textAlign: 'center'}}>No recipes found</p>)
+                }
+            </PanelSection>
+        </>
+    );
+}
 
 export default definePlugin(() => {
-  console.log("Template plugin initializing, this is called once on frontend startup")
-
-  // serverApi.routerHook.addRoute("/decky-plugin-test", DeckyPluginRouterTest, {
-  //   exact: true,
-  // });
-
-  // Add an event listener to the "timer_event" event from the backend
-  const listener = addEventListener<[
-    test1: string,
-    test2: boolean,
-    test3: number
-  ]>("timer_event", (test1, test2, test3) => {
-    console.log("Template got timer_event with:", test1, test2, test3)
-    toaster.toast({
-      title: "template got timer_event",
-      body: `${test1}, ${test2}, ${test3}`
-    });
-  });
-
-  return {
-    // The name shown in various decky menus
-    name: "Test Plugin",
-    // The element displayed at the top of your plugin's menu
-    titleView: <div className={staticClasses.Title}>Decky Example Plugin</div>,
-    // The content of your plugin's menu
-    content: <Content />,
-    // The icon displayed in the plugin list
-    icon: <FaShip />,
-    // The function triggered when your plugin unloads
-    onDismount() {
-      console.log("Unloading")
-      removeEventListener("timer_event", listener);
-      // serverApi.routerHook.removeRoute("/decky-plugin-test");
-    },
-  };
+    return {
+        name: "Launch Options Recipes",
+        titleView: <div className={staticClasses.Title}>Launch Options Recipes</div>,
+        content:
+            <QueryClientProvider client={queryClient}>
+                <Content/>
+            </QueryClientProvider>,
+        icon: <FaList/>,
+        onDismount() {
+            localStorage.removeItem(localStorageKey)
+        },
+    };
 });
