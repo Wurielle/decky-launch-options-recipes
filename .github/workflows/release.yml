@@ -83,7 +83,7 @@ jobs:
           curl -L -o $(pwd)/cli/decky "https://github.com/SteamDeckHomebrew/cli/releases/latest/download/decky-linux-x86_64"
           chmod +x $(pwd)/cli/decky
           $(pwd)/cli/decky plugin build $(pwd)
-          mv "out/Launch Options.zip" "out/deck-launch-options.zip"
+          mv "out/Launch Options Recipes.zip" "out/deck-launch-options-recipes.zip"
 
       - name: Upload artifacts to Release
         uses: alexellis/upload-assets@0.4.1
