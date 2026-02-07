@@ -1,0 +1,24 @@
+[
+  {
+    "name": "OptiScaler",
+    "launchOptions": [
+      {
+        "name": "OptiScaler"
+        "on": "~/fgmod %command%",
+        "off": "~/fgmod/fgmod-uninstaller.sh %command%",
+        "enableGlobally": false,
+      }
+    ]
+  },
+  {
+    "name": "Lossless Scaling",
+    "launchOptions": [
+      {
+        "name": "Lossless Scaling"
+        "on": "~/lsfg %command%",
+        "off": "",
+        "enableGlobally": false,
+      }
+    ]
+  }
+]
