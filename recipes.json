@@ -5,7 +5,7 @@
       {
         "id": "optiscaler",
         "name": "OptiScaler",
-        "on": "~/fgmod %command%",
+        "on": "~/fgmod/fgmod %command%",
         "off": "~/fgmod/fgmod-uninstaller.sh %command%",
         "enableGlobally": false
       }
