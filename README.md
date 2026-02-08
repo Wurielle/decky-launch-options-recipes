@@ -5,8 +5,8 @@ the [Decky Launch Options](https://github.com/Wurielle/decky-launch-options) plu
 
 This plugin is mainly made for debugging purposes but can be used to allow easy installation of launch options in coordination with [Decky Launch Options](https://github.com/Wurielle/decky-launch-options).
 
-By default, the source of the recipes is the `recipes.json` file in this repo. You can point the recipe collection to a
-different file hosted anywhere so you can easily create your own launch options collection.
+By default, the source of the recipes is the `recipes.json` file in this repo. You can point the recipes source to a
+different file hosted anywhere so you can easily create your own set of launch options recipes.
 
 > Make sure you **TRUST** the source of the recipes if you point to a different file. Decky Launch Options will ask you
 > to review any launch option added but to be safe, only point to a `recipes.json` file you trust or that you can host
