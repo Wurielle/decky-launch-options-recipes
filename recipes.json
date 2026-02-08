@@ -8,7 +8,21 @@
         "on": "~/fgmod/fgmod %command%",
         "off": "~/fgmod/fgmod-uninstaller.sh %command%",
         "enableGlobally": false
-      }
+      },
+      {
+        "id": "optiscaler-dx11-upscaler",
+        "name": "OptiScaler Dx11 FSR4",
+        "on": "OPTI_Upscalers_Dx11Upscaler=fsr31_12",
+        "off": "",
+        "enableGlobally": true
+      },
+      {
+        "id": "optiscaler-dx12-upscaler",
+        "name": "OptiScaler Dx12 FSR4",
+        "on": "OPTI_Upscalers_Dx12Upscaler=fsr31",
+        "off": "",
+        "enableGlobally": true
+      },
     ]
   },
   {
