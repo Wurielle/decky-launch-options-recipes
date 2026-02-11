@@ -55,7 +55,7 @@
         "on": "FrameGen_Enabled=true FGInput=nukems FGOutput=fsrfg",
         "off": "",
         "enableGlobally": false
-      },
+      }
     ]
   },
   {
