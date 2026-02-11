@@ -36,33 +36,26 @@
         "enableGlobally": false
       },
       {
-        "id": "optiscaler-dx12-upscaler",
+        "id": "optiscaler-test-long",
         "name": "OptiScaler Dx12 FSR4",
         "on": "OptiScaler_Upscalers_Dx12Upscaler=fsr31",
         "off": "",
         "enableGlobally": false
       },
       {
-        "id": "optiscaler-dx12-upscaler-short",
-        "name": "OptiScaler Dx12 FSR4",
-        "on": "Upscalers_Dx12Upscaler=fsr31",
+        "id": "optiscaler-test-short1",
+        "name": "OptiScaler FG XeFG",
+        "on": "FrameGen_Enabled=true FGInput=nukems FGOutput=xefg",
         "off": "",
         "enableGlobally": false
       },
       {
-        "id": "optiscaler-dx12-upscaler-shortest",
-        "name": "OptiScaler Dx12 FSR4",
-        "on": "Dx12Upscaler=fsr31",
+        "id": "optiscaler-test-short2",
+        "name": "OptiScaler FG FSR",
+        "on": "FrameGen_Enabled=true FGInput=nukems FGOutput=fsrfg",
         "off": "",
         "enableGlobally": false
       },
-      {
-        "id": "optiscaler-framegen-fgoutput-shortest",
-        "name": "OptiScaler FGOutput XeFG",
-        "on": "FGOutput=fsr31",
-        "off": "",
-        "enableGlobally": false
-      }
     ]
   },
   {
