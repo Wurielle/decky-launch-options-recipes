@@ -26,6 +26,46 @@
     ]
   },
   {
+    "name": "OptiScaler Env Test",
+    "launchOptions": [
+      {
+        "id": "optiscaler",
+        "name": "OptiScaler",
+        "on": "~/fgmod/fgmod %command%",
+        "off": "~/fgmod/fgmod-uninstaller.sh %command%",
+        "enableGlobally": false
+      },
+      {
+        "id": "optiscaler-dx12-upscaler",
+        "name": "OptiScaler Dx12 FSR4",
+        "on": "OptiScaler_Upscalers_Dx12Upscaler=fsr31",
+        "off": "",
+        "enableGlobally": false
+      },
+      {
+        "id": "optiscaler-dx12-upscaler-short",
+        "name": "OptiScaler Dx12 FSR4",
+        "on": "Upscalers_Dx12Upscaler=fsr31",
+        "off": "",
+        "enableGlobally": false
+      },
+      {
+        "id": "optiscaler-dx12-upscaler-shortest",
+        "name": "OptiScaler Dx12 FSR4",
+        "on": "Dx12Upscaler=fsr31",
+        "off": "",
+        "enableGlobally": false
+      },
+      {
+        "id": "optiscaler-framegen-fgoutput-shortest",
+        "name": "OptiScaler FGOutput XeFG",
+        "on": "FGOutput=fsr31",
+        "off": "",
+        "enableGlobally": false
+      }
+    ]
+  },
+  {
     "name": "Lossless Scaling",
     "launchOptions": [
       {
