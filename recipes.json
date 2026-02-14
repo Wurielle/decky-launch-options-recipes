@@ -60,7 +60,7 @@
         "on": "OptiScaler_Upscalers_Dx12Upscaler=fsr31",
         "off": "",
         "enableGlobally": true
-      }
+      },
       {
         "id": "optiscaler-framegen",
         "name": "OptiScaler FrameGen",
