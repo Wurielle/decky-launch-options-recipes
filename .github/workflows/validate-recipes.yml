@@ -1,0 +1,66 @@
+name: Validate and Fix recipes.json
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+    branches:
+      - '**'
+
+permissions:
+  contents: write
+
+jobs:
+  validate-and-fix:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Validate and format recipes.json
+        id: format
+        run: |
+          echo "Validating recipes.json..."
+
+          # Check if file exists
+          if [ ! -f "recipes.json" ]; then
+            echo "Error: recipes.json not found"
+            exit 1
+          fi
+
+          # Validate JSON and reformat it
+          if jq --indent 2 '.' recipes.json > recipes.json.tmp; then
+            echo "JSON is valid"
+
+            # Check if formatting changed
+            if ! cmp -s recipes.json recipes.json.tmp; then
+              mv recipes.json.tmp recipes.json
+              echo "changed=true" >> $GITHUB_OUTPUT
+              echo "Formatting was fixed"
+            else
+              rm recipes.json.tmp
+              echo "changed=false" >> $GITHUB_OUTPUT
+              echo "File is already properly formatted"
+            fi
+          else
+            echo "Error: Invalid JSON in recipes.json"
+            rm -f recipes.json.tmp
+            exit 1
+          fi
+
+      - name: Commit and push if changed
+        if: steps.format.outputs.changed == 'true'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add recipes.json
+          git commit -m "chore: auto-format recipes.json"
+          git push
