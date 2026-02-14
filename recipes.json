@@ -10,51 +10,18 @@
         "enableGlobally": false
       },
       {
-        "id": "optiscaler-dx11-upscaler",
+        "id": "optiscaler-upscalers-dx11-fsr4",
         "name": "OptiScaler Dx11 FSR4",
         "on": "OptiScaler_Upscalers_Dx11Upscaler=fsr31_12",
         "off": "",
         "enableGlobally": true
       },
       {
-        "id": "optiscaler-dx12-upscaler",
+        "id": "optiscaler-upscalers-dx12-fsr4",
         "name": "OptiScaler Dx12 FSR4",
         "on": "OptiScaler_Upscalers_Dx12Upscaler=fsr31",
         "off": "",
         "enableGlobally": true
-      }
-    ]
-  },
-  {
-    "name": "OptiScaler Env Test",
-    "launchOptions": [
-      {
-        "id": "optiscaler",
-        "name": "OptiScaler",
-        "on": "~/fgmod/fgmod %command%",
-        "off": "~/fgmod/fgmod-uninstaller.sh %command%",
-        "enableGlobally": false
-      },
-      {
-        "id": "optiscaler-test-long",
-        "name": "OptiScaler Dx12 FSR4",
-        "on": "OptiScaler_Upscalers_Dx12Upscaler=fsr31",
-        "off": "",
-        "enableGlobally": false
-      },
-      {
-        "id": "optiscaler-test-short1",
-        "name": "OptiScaler FG XeFG",
-        "on": "FrameGen_Enabled=true FGInput=fsrfg FGOutput=xefg",
-        "off": "",
-        "enableGlobally": false
-      },
-      {
-        "id": "optiscaler-test-short2",
-        "name": "OptiScaler FG FSR",
-        "on": "FrameGen_Enabled=true FGInput=fsrfg30 FGOutput=fsrfg",
-        "off": "",
-        "enableGlobally": false
       }
     ]
   },
@@ -65,6 +32,53 @@
         "id": "lossless-scaling",
         "name": "Lossless Scaling",
         "on": "~/lsfg %command%",
+        "off": "",
+        "enableGlobally": false
+      }
+    ]
+  },
+  {
+    "name": "Debug",
+    "launchOptions": [
+      {
+        "id": "optiscaler",
+        "name": "OptiScaler",
+        "on": "~/fgmod/fgmod %command%",
+        "off": "~/fgmod/fgmod-uninstaller.sh %command%",
+        "enableGlobally": false
+      },
+      {
+        "id": "optiscaler-upscalers-dx11-fsr4",
+        "name": "OptiScaler Dx11 FSR4",
+        "on": "OptiScaler_Upscalers_Dx11Upscaler=fsr31_12",
+        "off": "",
+        "enableGlobally": true
+      },
+      {
+        "id": "optiscaler-upscalers-dx12-fsr4",
+        "name": "OptiScaler Dx12 FSR4",
+        "on": "OptiScaler_Upscalers_Dx12Upscaler=fsr31",
+        "off": "",
+        "enableGlobally": true
+      }
+      {
+        "id": "optiscaler-framegen",
+        "name": "OptiScaler FrameGen",
+        "on": "OptiScaler_FrameGen_Enabled=true",
+        "off": "",
+        "enableGlobally": false
+      },
+      {
+        "id": "optiscaler-framegen-xefg",
+        "name": "OptiScaler FrameGen XeFG",
+        "on": "FGInput=fsrfg FGOutput=xefg",
+        "off": "",
+        "enableGlobally": false
+      },
+      {
+        "id": "optiscaler-framegen-fsr",
+        "name": "OptiScaler FrameGen FSR",
+        "on": "FGInput=fsrfg FGOutput=fsrfg",
         "off": "",
         "enableGlobally": false
       }
