@@ -22,6 +22,7 @@ Here's what recipes look like:
     "launchOptions": [
       {
         "id": "optiscaler",
+        "group": "OptiScaler",
         "name": "OptiScaler",
         "on": "~/fgmod/fgmod %command%",
         "off": "~/fgmod/fgmod-uninstaller.sh %command%",
@@ -29,6 +30,7 @@ Here's what recipes look like:
       },
       {
         "id": "optiscaler-dx11-upscaler",
+        "group": "OptiScaler",
         "name": "OptiScaler Dx11 FSR4",
         "on": "OptiScaler_Upscalers_Dx11Upscaler=fsr31_12",
         "off": "",
@@ -36,6 +38,7 @@ Here's what recipes look like:
       },
       {
         "id": "optiscaler-dx12-upscaler",
+        "group": "OptiScaler",
         "name": "OptiScaler Dx12 FSR4",
         "on": "OptiScaler_Upscalers_Dx12Upscaler=fsr31",
         "off": "",
