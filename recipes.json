@@ -4,6 +4,7 @@
     "launchOptions": [
       {
         "id": "optiscaler",
+        "group": "OptiScaler",
         "name": "OptiScaler",
         "on": "~/fgmod/fgmod %command%",
         "off": "~/fgmod/fgmod-uninstaller.sh %command%",
@@ -11,6 +12,7 @@
       },
       {
         "id": "optiscaler-upscalers-dx11-fsr4",
+        "group": "OptiScaler",
         "name": "OptiScaler Dx11 FSR4",
         "on": "OptiScaler_Upscalers_Dx11Upscaler=fsr31_12",
         "off": "",
@@ -18,6 +20,7 @@
       },
       {
         "id": "optiscaler-upscalers-dx12-fsr4",
+        "group": "OptiScaler",
         "name": "OptiScaler Dx12 FSR4",
         "on": "OptiScaler_Upscalers_Dx12Upscaler=fsr31",
         "off": "",
