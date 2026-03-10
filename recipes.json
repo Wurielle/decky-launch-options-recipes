@@ -4,7 +4,7 @@
     "launchOptions": [
       {
         "id": "optiscaler",
-        "group": "OptiScaler",
+        "group": "",
         "name": "OptiScaler",
         "on": "~/fgmod/fgmod %command%",
         "off": "~/fgmod/fgmod-uninstaller.sh %command%",
