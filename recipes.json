@@ -29,7 +29,7 @@
         "off": "",
         "enableGlobally": false,
         "valueId": "optiscaler-upscalers-dx11",
-        "valueName": "FSR 2.2"
+        "valueName": "FSR 2.2 (native)"
       },
       {
         "id": "optiscaler-upscalers-dx11-fsr31",
@@ -39,7 +39,7 @@
         "off": "",
         "enableGlobally": false,
         "valueId": "optiscaler-upscalers-dx11",
-        "valueName": "FSR 3.1"
+        "valueName": "FSR 3.1 (native)"
       },
       {
         "id": "optiscaler-upscalers-dx11-xess",
@@ -49,7 +49,7 @@
         "off": "",
         "enableGlobally": false,
         "valueId": "optiscaler-upscalers-dx11",
-        "valueName": "XeSS"
+        "valueName": "XeSS (native, Arc only)"
       },
       {
         "id": "optiscaler-upscalers-dx11-xess12",
@@ -59,7 +59,7 @@
         "off": "",
         "enableGlobally": false,
         "valueId": "optiscaler-upscalers-dx11",
-        "valueName": "XeSS"
+        "valueName": "XeSS (DX11on12)"
       },
       {
         "id": "optiscaler-upscalers-dx11-fsr21-12",
@@ -69,7 +69,7 @@
         "off": "",
         "enableGlobally": false,
         "valueId": "optiscaler-upscalers-dx11",
-        "valueName": "FSR 2.1"
+        "valueName": "FSR 2.1 (DX11on12)"
       },
       {
         "id": "optiscaler-upscalers-dx11-fsr22-12",
@@ -79,7 +79,7 @@
         "off": "",
         "enableGlobally": false,
         "valueId": "optiscaler-upscalers-dx11",
-        "valueName": "FSR 2.2"
+        "valueName": "FSR 2.2 (DX11on12)"
       },
       {
         "id": "optiscaler-upscalers-dx11-fsr31-12",
@@ -89,7 +89,7 @@
         "off": "",
         "enableGlobally": false,
         "valueId": "optiscaler-upscalers-dx11",
-        "valueName": "FSR 3.1 / FSR4"
+        "valueName": "FSR 3.1 / FSR4 (DX11on12)"
       },
       {
         "id": "optiscaler-upscalers-dx11-dlss",
@@ -181,7 +181,7 @@
         "off": "",
         "enableGlobally": false,
         "valueId": "optiscaler-upscalers-vk",
-        "valueName": "FSR 2.1"
+        "valueName": "FSR 2.1 (native)"
       },
       {
         "id": "optiscaler-upscalers-vk-fsr22",
@@ -191,7 +191,7 @@
         "off": "",
         "enableGlobally": false,
         "valueId": "optiscaler-upscalers-vk",
-        "valueName": "FSR 2.2"
+        "valueName": "FSR 2.2 (native)"
       },
       {
         "id": "optiscaler-upscalers-vk-fsr31",
@@ -201,7 +201,7 @@
         "off": "",
         "enableGlobally": false,
         "valueId": "optiscaler-upscalers-vk",
-        "valueName": "FSR 3.1"
+        "valueName": "FSR 3.1 (native)"
       },
       {
         "id": "optiscaler-upscalers-vk-xess",
@@ -211,7 +211,7 @@
         "off": "",
         "enableGlobally": false,
         "valueId": "optiscaler-upscalers-vk",
-        "valueName": "XeSS"
+        "valueName": "XeSS (native)"
       },
       {
         "id": "optiscaler-upscalers-vk-fsr21-12",
@@ -221,7 +221,7 @@
         "off": "",
         "enableGlobally": false,
         "valueId": "optiscaler-upscalers-vk",
-        "valueName": "FSR 2.1"
+        "valueName": "FSR 2.1 (VKon12)"
       },
       {
         "id": "optiscaler-upscalers-vk-fsr31-12",
@@ -231,7 +231,7 @@
         "off": "",
         "enableGlobally": false,
         "valueId": "optiscaler-upscalers-vk",
-        "valueName": "FSR 3.1 / FSR4"
+        "valueName": "FSR 3.1 / FSR4 (VKon12)"
       },
       {
         "id": "optiscaler-upscalers-vk-dlss",
