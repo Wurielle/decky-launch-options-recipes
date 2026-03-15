@@ -331,5 +331,86 @@
       }
     ]
   },
+  {
+    "name": "Proton",
+    "launchOptions": [
+      {
+        "id": "proton-log",
+        "group": "Proton",
+        "name": "Proton Log",
+        "on": "PROTON_LOG=1",
+        "off": "",
+        "enableGlobally": false
+      },
+      {
+        "id": "proton-renderer-default",
+        "group": "Proton",
+        "name": "Proton Renderer",
+        "on": "",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "proton-renderer",
+        "valueName": "Default",
+        "fallbackValue": true
+      },
+      {
+        "id": "proton-renderer-wined3d",
+        "group": "Proton",
+        "name": "Proton Renderer",
+        "on": "PROTON_USE_WINED3D=1",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "proton-renderer",
+        "valueName": "wined3d (OpenGL)"
+      },
+      {
+        "id": "proton-no-esync",
+        "group": "Proton",
+        "name": "Disable Esync",
+        "on": "PROTON_NO_ESYNC=1",
+        "off": "",
+        "enableGlobally": false
+      },
+      {
+        "id": "proton-no-fsync",
+        "group": "Proton",
+        "name": "Disable Fsync",
+        "on": "PROTON_NO_FSYNC=1",
+        "off": "",
+        "enableGlobally": false
+      },
+      {
+        "id": "proton-disable-nvapi",
+        "group": "Proton",
+        "name": "Disable NVAPI",
+        "on": "PROTON_DISABLE_NVAPI=1",
+        "off": "",
+        "enableGlobally": false
+      },
+      {
+        "id": "proton-hide-nvidia-gpu",
+        "group": "Proton",
+        "name": "Hide Nvidia GPU",
+        "on": "PROTON_HIDE_NVIDIA_GPU=1",
+        "off": "",
+        "enableGlobally": false
+      },
+      {
+        "id": "proton-integer-scaling",
+        "group": "Proton",
+        "name": "Integer Scaling",
+        "on": "WINE_FULLSCREEN_INTEGER_SCALING=1",
+        "off": "",
+        "enableGlobally": false
+      },
+      {
+        "id": "proton-set-game-drive",
+        "group": "Proton",
+        "name": "Set Game Drive",
+        "on": "PROTON_SET_GAME_DRIVE=1",
+        "off": "",
+        "enableGlobally": false
+      }
+    ]
   }
 ]
