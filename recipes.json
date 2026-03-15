@@ -258,50 +258,78 @@
     ]
   },
   {
-    "name": "Debug",
+    "name": "MangoHud",
     "launchOptions": [
       {
-        "id": "optiscaler",
-        "name": "OptiScaler",
-        "on": "~/fgmod/fgmod %command%",
-        "off": "~/fgmod/fgmod-uninstaller.sh %command%",
-        "enableGlobally": false
-      },
-      {
-        "id": "optiscaler-upscalers-dx11-fsr4",
-        "name": "OptiScaler Dx11 FSR4",
-        "on": "OptiScaler_Upscalers_Dx11Upscaler=fsr31_12",
-        "off": "",
-        "enableGlobally": true
-      },
-      {
-        "id": "optiscaler-upscalers-dx12-fsr4",
-        "name": "OptiScaler Dx12 FSR4",
-        "on": "OptiScaler_Upscalers_Dx12Upscaler=fsr31",
-        "off": "",
-        "enableGlobally": true
-      },
-      {
-        "id": "optiscaler-framegen",
-        "name": "OptiScaler FrameGen",
-        "on": "OptiScaler_FrameGen_Enabled=true",
+        "id": "mangohud",
+        "group": "MangoHud",
+        "name": "MangoHud",
+        "on": "mangohud %command%",
         "off": "",
         "enableGlobally": false
       },
       {
-        "id": "optiscaler-framegen-xefg",
-        "name": "OptiScaler FrameGen XeFG",
-        "on": "FGInput=fsrfg FGOutput=xefg",
+        "id": "mangohud-config-preset-none",
+        "group": "MangoHud",
+        "name": "MangoHud Preset",
+        "on": "",
         "off": "",
-        "enableGlobally": false
+        "enableGlobally": false,
+        "valueId": "mangohud-config-preset",
+        "valueName": "None",
+        "fallbackValue": true
       },
       {
-        "id": "optiscaler-framegen-fsr",
-        "name": "OptiScaler FrameGen FSR",
-        "on": "FGInput=fsrfg FGOutput=fsrfg",
+        "id": "mangohud-config-preset-0",
+        "group": "MangoHud",
+        "name": "MangoHud Preset",
+        "on": "MANGOHUD_CONFIG=\"preset=0\"",
         "off": "",
-        "enableGlobally": false
+        "enableGlobally": false,
+        "valueId": "mangohud-config-preset",
+        "valueName": "No Hud"
+      },
+      {
+        "id": "mangohud-config-preset-1",
+        "group": "MangoHud",
+        "name": "MangoHud Preset",
+        "on": "MANGOHUD_CONFIG=\"preset=1\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "mangohud-config-preset",
+        "valueName": "FPS Only"
+      },
+      {
+        "id": "mangohud-config-preset-2",
+        "group": "MangoHud",
+        "name": "MangoHud Preset",
+        "on": "MANGOHUD_CONFIG=\"preset=2\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "mangohud-config-preset",
+        "valueName": "Horizontal"
+      },
+      {
+        "id": "mangohud-config-preset-3",
+        "group": "MangoHud",
+        "name": "MangoHud Preset",
+        "on": "MANGOHUD_CONFIG=\"preset=3\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "mangohud-config-preset",
+        "valueName": "Extended"
+      },
+      {
+        "id": "mangohud-config-preset-4",
+        "group": "MangoHud",
+        "name": "MangoHud Preset",
+        "on": "MANGOHUD_CONFIG=\"preset=4\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "mangohud-config-preset",
+        "valueName": "Detailed"
       }
     ]
+  },
   }
 ]
