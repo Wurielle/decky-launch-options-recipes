@@ -428,6 +428,30 @@
         "enableGlobally": false
       },
       {
+        "id": "proton-enable-wayland",
+        "group": "Proton",
+        "name": "Enable Wayland",
+        "on": "PROTON_ENABLE_WAYLAND=1",
+        "off": "",
+        "enableGlobally": false
+      },
+      {
+        "id": "proton-enable-hdr",
+        "group": "Proton",
+        "name": "Enable HDR",
+        "on": "PROTON_ENABLE_HDR=1",
+        "off": "",
+        "enableGlobally": false
+      },
+      {
+        "id": "proton-fsr4-upgrade",
+        "group": "Proton",
+        "name": "FSR 4 Upgrade",
+        "on": "PROTON_FSR4_UPGRADE=1",
+        "off": "",
+        "enableGlobally": false
+      },
+      {
         "id": "proton-heap-delay-free",
         "group": "Proton",
         "name": "Heap Delay Free",
