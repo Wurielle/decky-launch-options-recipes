@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "rollup -c",
+    "recipes:build": "tsc -p tsconfig.recipes.json && node .generated/recipes-build/scripts/build-recipes.js",
+    "recipes:check": "pnpm recipes:build && git diff --exit-code -- recipes.json",
     "watch": "rollup -c -w",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

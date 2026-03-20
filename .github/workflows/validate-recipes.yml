@@ -1,18 +1,30 @@
-name: Validate and Fix recipes.json
+name: Build recipes.json
 
 on:
   push:
     branches:
       - '**'
+    paths:
+      - 'recipes/**/*.ts'
+      - 'scripts/build-recipes.ts'
+      - 'tsconfig.recipes.json'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
   pull_request:
     branches:
       - '**'
+    paths:
+      - 'recipes/**/*.ts'
+      - 'scripts/build-recipes.ts'
+      - 'tsconfig.recipes.json'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
 
 permissions:
   contents: write
 
 jobs:
-  validate-and-fix:
+  build-recipes:
     runs-on: ubuntu-latest
 
     steps:
@@ -22,45 +34,35 @@ jobs:
           ref: ${{ github.head_ref || github.ref }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install jq
-        run: sudo apt-get update && sudo apt-get install -y jq
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
 
-      - name: Validate and format recipes.json
-        id: format
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build recipes.json
+        run: pnpm recipes:build
+
+      - name: Commit and push generated recipes.json
+        if: github.event_name == 'push'
         run: |
-          echo "Validating recipes.json..."
-
-          # Check if file exists
-          if [ ! -f "recipes.json" ]; then
-            echo "Error: recipes.json not found"
-            exit 1
+          if git diff --quiet -- recipes.json; then
+            echo "recipes.json is already up to date"
+            exit 0
           fi
 
-          # Validate JSON and reformat it
-          if jq --indent 2 '.' recipes.json > recipes.json.tmp; then
-            echo "JSON is valid"
-
-            # Check if formatting changed
-            if ! cmp -s recipes.json recipes.json.tmp; then
-              mv recipes.json.tmp recipes.json
-              echo "changed=true" >> $GITHUB_OUTPUT
-              echo "Formatting was fixed"
-            else
-              rm recipes.json.tmp
-              echo "changed=false" >> $GITHUB_OUTPUT
-              echo "File is already properly formatted"
-            fi
-          else
-            echo "Error: Invalid JSON in recipes.json"
-            rm -f recipes.json.tmp
-            exit 1
-          fi
-
-      - name: Commit and push if changed
-        if: steps.format.outputs.changed == 'true'
-        run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add recipes.json
-          git commit -m "chore: auto-format recipes.json"
+          git commit -m "chore: rebuild recipes.json"
           git push
+
+      - name: Verify generated recipes.json is committed
+        if: github.event_name == 'pull_request'
+        run: git diff --exit-code -- recipes.json

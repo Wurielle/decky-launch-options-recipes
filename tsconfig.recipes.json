@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "outDir": ".generated/recipes-build",
+    "module": "NodeNext",
+    "target": "ES2020",
+    "declaration": false,
+    "moduleResolution": "NodeNext",
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "esModuleInterop": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "noImplicitAny": true,
+    "strict": true,
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true
+  },
+  "include": ["recipes/**/*.ts", "scripts/build-recipes.ts"],
+  "exclude": ["node_modules", ".generated"]
+}

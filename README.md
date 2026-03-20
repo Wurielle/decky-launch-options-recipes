@@ -3,17 +3,21 @@
 Decky Launch Options Recipes is a collection of launch options recipes for
 the [Decky Launch Options](https://github.com/Wurielle/decky-launch-options) plugin.
 
-This plugin is mainly made for debugging purposes but can be used to allow easy installation of launch options in coordination with [Decky Launch Options](https://github.com/Wurielle/decky-launch-options).
+This plugin is mainly made for debugging purposes but can be used to allow easy installation of launch options in
+coordination with [Decky Launch Options](https://github.com/Wurielle/decky-launch-options).
 
-By default, the source of the recipes is the `recipes.json` file in this repo. You can point the recipes source to a
-different file hosted anywhere so you can easily create your own set of launch options recipes.
+By default, the source of the recipes is the generated `recipes.json` file in this repo. You can point the recipes
+source to a different file hosted anywhere so you can easily create your own set of launch options recipes.
 
 > Make sure you **TRUST** the source of the recipes if you point to a different file. Decky Launch Options will ask you
 > to review any launch option added but to be safe, only point to a `recipes.json` file you trust or that you can host
 > and
 > review yourself.
 
-Here's what recipes look like:
+Recipe sources live in `recipes/*.ts` and each file exports exactly one typed recipe. `recipes.json` is generated from
+those files automatically, so there is no registry file to maintain.
+
+Here's what the generated recipes look like:
 
 ```json
 [
@@ -74,3 +78,10 @@ example above to a gist and point the recipes source to it inside the plugin.
 * Or copy the link to `decky-launch-options-recipes.zip` and import it in Decky Loader
 
 > **Note:** You might need to enable `Developer mode` in the Decky Loader settings
+
+## Contributing
+
+I welcome contributions!
+
+If you want to create a recipe, add a file in `recipes/` named `<my-recipe-name>.ts` that exports a single object that
+satifies the `Recipe` type.

@@ -1,9 +1,11 @@
 import {QueryClient, useQuery} from '@tanstack/react-query'
 
+import type {Recipe} from '../recipes/types'
+
 export const queryClient = new QueryClient()
 
 export const useGetRecipesQuery = (url: string) => {
-    return useQuery({
+    return useQuery<Recipe[]>({
         queryKey: ['recipes', url],
         queryFn: async () => {
             try {
@@ -11,7 +13,8 @@ export const useGetRecipesQuery = (url: string) => {
                 const data = await response.json();
                 if (Array.isArray(data)) return data
             } catch (e) {
-                console.error('Error fetching recipes', e.message || '')
+                const message = e instanceof Error ? e.message : ''
+                console.error('Error fetching recipes', message)
             }
             return [];
         },
