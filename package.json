@@ -2,6 +2,7 @@
   "name": "decky-launch-options-recipes",
   "version": "0.0.1",
   "description": "Recipes for the Decky Launch Options plugin.",
+  "packageManager": "pnpm@10.28.2",
   "type": "module",
   "scripts": {
     "build": "rollup -c",
