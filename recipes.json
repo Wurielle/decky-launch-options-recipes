@@ -452,6 +452,14 @@
         "enableGlobally": false
       },
       {
+        "id": "proton-fsr4-rdna3-upgrade",
+        "group": "Proton",
+        "name": "FSR 4 Upgrade (RDNA 3)",
+        "on": "PROTON_FSR4_RDNA3_UPGRADE=1",
+        "off": "",
+        "enableGlobally": false
+      },
+      {
         "id": "proton-heap-delay-free",
         "group": "Proton",
         "name": "Heap Delay Free",
