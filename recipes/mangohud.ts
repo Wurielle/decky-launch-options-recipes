@@ -75,7 +75,7 @@ const recipe = {
         {
             "id": "mangohud-fps-limit-none",
             "group": "MangoHud",
-            "name": "FPS Limit",
+            "name": "MangoHud FPS Limit",
             "on": "",
             "off": "",
             "enableGlobally": false,
@@ -86,7 +86,7 @@ const recipe = {
         {
             "id": "mangohud-fps-limit-30",
             "group": "MangoHud",
-            "name": "FPS Limit",
+            "name": "MangoHud FPS Limit",
             "on": "MANGOHUD_CONFIG=\"fps_limit=30\"",
             "off": "",
             "enableGlobally": false,
@@ -96,7 +96,7 @@ const recipe = {
         {
             "id": "mangohud-fps-limit-60",
             "group": "MangoHud",
-            "name": "FPS Limit",
+            "name": "MangoHud FPS Limit",
             "on": "MANGOHUD_CONFIG=\"fps_limit=60\"",
             "off": "",
             "enableGlobally": false,
@@ -106,7 +106,7 @@ const recipe = {
         {
             "id": "mangohud-fps-limit-72",
             "group": "MangoHud",
-            "name": "FPS Limit",
+            "name": "MangoHud FPS Limit",
             "on": "MANGOHUD_CONFIG=\"fps_limit=72\"",
             "off": "",
             "enableGlobally": false,
@@ -116,7 +116,7 @@ const recipe = {
         {
             "id": "mangohud-fps-limit-82",
             "group": "MangoHud",
-            "name": "FPS Limit",
+            "name": "MangoHud FPS Limit",
             "on": "MANGOHUD_CONFIG=\"fps_limit=82\"",
             "off": "",
             "enableGlobally": false,
@@ -126,7 +126,7 @@ const recipe = {
         {
             "id": "mangohud-fps-limit-90",
             "group": "MangoHud",
-            "name": "FPS Limit",
+            "name": "MangoHud FPS Limit",
             "on": "MANGOHUD_CONFIG=\"fps_limit=90\"",
             "off": "",
             "enableGlobally": false,
@@ -136,7 +136,7 @@ const recipe = {
         {
             "id": "mangohud-fps-limit-120",
             "group": "MangoHud",
-            "name": "FPS Limit",
+            "name": "MangoHud FPS Limit",
             "on": "MANGOHUD_CONFIG=\"fps_limit=120\"",
             "off": "",
             "enableGlobally": false,
@@ -146,7 +146,7 @@ const recipe = {
         {
             "id": "mangohud-fps-limit-144",
             "group": "MangoHud",
-            "name": "FPS Limit",
+            "name": "MangoHud FPS Limit",
             "on": "MANGOHUD_CONFIG=\"fps_limit=144\"",
             "off": "",
             "enableGlobally": false,
@@ -156,7 +156,7 @@ const recipe = {
         {
             "id": "mangohud-fps-limit-165",
             "group": "MangoHud",
-            "name": "FPS Limit",
+            "name": "MangoHud FPS Limit",
             "on": "MANGOHUD_CONFIG=\"fps_limit=165\"",
             "off": "",
             "enableGlobally": false,
@@ -166,7 +166,7 @@ const recipe = {
         {
             "id": "mangohud-fps-limit-180",
             "group": "MangoHud",
-            "name": "FPS Limit",
+            "name": "MangoHud FPS Limit",
             "on": "MANGOHUD_CONFIG=\"fps_limit=180\"",
             "off": "",
             "enableGlobally": false,
@@ -176,7 +176,7 @@ const recipe = {
         {
             "id": "mangohud-fps-limit-240",
             "group": "MangoHud",
-            "name": "FPS Limit",
+            "name": "MangoHud FPS Limit",
             "on": "MANGOHUD_CONFIG=\"fps_limit=240\"",
             "off": "",
             "enableGlobally": false,
@@ -186,7 +186,7 @@ const recipe = {
         {
             "id": "mangohud-fps-limit-360",
             "group": "MangoHud",
-            "name": "FPS Limit",
+            "name": "MangoHud FPS Limit",
             "on": "MANGOHUD_CONFIG=\"fps_limit=360\"",
             "off": "",
             "enableGlobally": false,
@@ -196,7 +196,7 @@ const recipe = {
         {
             "id": "mangohud-fps-limit-480",
             "group": "MangoHud",
-            "name": "FPS Limit",
+            "name": "MangoHud FPS Limit",
             "on": "MANGOHUD_CONFIG=\"fps_limit=480\"",
             "off": "",
             "enableGlobally": false,
