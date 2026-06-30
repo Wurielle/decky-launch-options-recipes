@@ -670,5 +670,1413 @@
         "valueName": "Disable"
       }
     ]
+  },
+  {
+    "name": "Wine",
+    "launchOptions": [
+      {
+        "id": "wine-dll-override-winhttp-none",
+        "group": "Wine",
+        "name": "winhttp.dll Override",
+        "on": "",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-winhttp",
+        "valueName": "None",
+        "fallbackValue": true
+      },
+      {
+        "id": "wine-dll-override-winhttp-native",
+        "group": "Wine",
+        "name": "winhttp.dll Override",
+        "on": "WINEDLLOVERRIDES=\"winhttp=n\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-winhttp",
+        "valueName": "Native"
+      },
+      {
+        "id": "wine-dll-override-winhttp-builtin",
+        "group": "Wine",
+        "name": "winhttp.dll Override",
+        "on": "WINEDLLOVERRIDES=\"winhttp=b\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-winhttp",
+        "valueName": "Builtin"
+      },
+      {
+        "id": "wine-dll-override-winhttp-native-builtin",
+        "group": "Wine",
+        "name": "winhttp.dll Override",
+        "on": "WINEDLLOVERRIDES=\"winhttp=n,b\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-winhttp",
+        "valueName": "Native, Builtin"
+      },
+      {
+        "id": "wine-dll-override-winhttp-builtin-native",
+        "group": "Wine",
+        "name": "winhttp.dll Override",
+        "on": "WINEDLLOVERRIDES=\"winhttp=b,n\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-winhttp",
+        "valueName": "Builtin, Native"
+      },
+      {
+        "id": "wine-dll-override-winhttp-disabled",
+        "group": "Wine",
+        "name": "winhttp.dll Override",
+        "on": "WINEDLLOVERRIDES=\"winhttp=\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-winhttp",
+        "valueName": "Disabled"
+      },
+      {
+        "id": "wine-dll-override-version-none",
+        "group": "Wine",
+        "name": "version.dll Override",
+        "on": "",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-version",
+        "valueName": "None",
+        "fallbackValue": true
+      },
+      {
+        "id": "wine-dll-override-version-native",
+        "group": "Wine",
+        "name": "version.dll Override",
+        "on": "WINEDLLOVERRIDES=\"version=n\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-version",
+        "valueName": "Native"
+      },
+      {
+        "id": "wine-dll-override-version-builtin",
+        "group": "Wine",
+        "name": "version.dll Override",
+        "on": "WINEDLLOVERRIDES=\"version=b\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-version",
+        "valueName": "Builtin"
+      },
+      {
+        "id": "wine-dll-override-version-native-builtin",
+        "group": "Wine",
+        "name": "version.dll Override",
+        "on": "WINEDLLOVERRIDES=\"version=n,b\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-version",
+        "valueName": "Native, Builtin"
+      },
+      {
+        "id": "wine-dll-override-version-builtin-native",
+        "group": "Wine",
+        "name": "version.dll Override",
+        "on": "WINEDLLOVERRIDES=\"version=b,n\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-version",
+        "valueName": "Builtin, Native"
+      },
+      {
+        "id": "wine-dll-override-version-disabled",
+        "group": "Wine",
+        "name": "version.dll Override",
+        "on": "WINEDLLOVERRIDES=\"version=\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-version",
+        "valueName": "Disabled"
+      },
+      {
+        "id": "wine-dll-override-dinput8-none",
+        "group": "Wine",
+        "name": "dinput8.dll Override",
+        "on": "",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-dinput8",
+        "valueName": "None",
+        "fallbackValue": true
+      },
+      {
+        "id": "wine-dll-override-dinput8-native",
+        "group": "Wine",
+        "name": "dinput8.dll Override",
+        "on": "WINEDLLOVERRIDES=\"dinput8=n\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-dinput8",
+        "valueName": "Native"
+      },
+      {
+        "id": "wine-dll-override-dinput8-builtin",
+        "group": "Wine",
+        "name": "dinput8.dll Override",
+        "on": "WINEDLLOVERRIDES=\"dinput8=b\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-dinput8",
+        "valueName": "Builtin"
+      },
+      {
+        "id": "wine-dll-override-dinput8-native-builtin",
+        "group": "Wine",
+        "name": "dinput8.dll Override",
+        "on": "WINEDLLOVERRIDES=\"dinput8=n,b\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-dinput8",
+        "valueName": "Native, Builtin"
+      },
+      {
+        "id": "wine-dll-override-dinput8-builtin-native",
+        "group": "Wine",
+        "name": "dinput8.dll Override",
+        "on": "WINEDLLOVERRIDES=\"dinput8=b,n\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-dinput8",
+        "valueName": "Builtin, Native"
+      },
+      {
+        "id": "wine-dll-override-dinput8-disabled",
+        "group": "Wine",
+        "name": "dinput8.dll Override",
+        "on": "WINEDLLOVERRIDES=\"dinput8=\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-dinput8",
+        "valueName": "Disabled"
+      },
+      {
+        "id": "wine-dll-override-dxgi-none",
+        "group": "Wine",
+        "name": "dxgi.dll Override",
+        "on": "",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-dxgi",
+        "valueName": "None",
+        "fallbackValue": true
+      },
+      {
+        "id": "wine-dll-override-dxgi-native",
+        "group": "Wine",
+        "name": "dxgi.dll Override",
+        "on": "WINEDLLOVERRIDES=\"dxgi=n\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-dxgi",
+        "valueName": "Native"
+      },
+      {
+        "id": "wine-dll-override-dxgi-builtin",
+        "group": "Wine",
+        "name": "dxgi.dll Override",
+        "on": "WINEDLLOVERRIDES=\"dxgi=b\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-dxgi",
+        "valueName": "Builtin"
+      },
+      {
+        "id": "wine-dll-override-dxgi-native-builtin",
+        "group": "Wine",
+        "name": "dxgi.dll Override",
+        "on": "WINEDLLOVERRIDES=\"dxgi=n,b\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-dxgi",
+        "valueName": "Native, Builtin"
+      },
+      {
+        "id": "wine-dll-override-dxgi-builtin-native",
+        "group": "Wine",
+        "name": "dxgi.dll Override",
+        "on": "WINEDLLOVERRIDES=\"dxgi=b,n\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-dxgi",
+        "valueName": "Builtin, Native"
+      },
+      {
+        "id": "wine-dll-override-dxgi-disabled",
+        "group": "Wine",
+        "name": "dxgi.dll Override",
+        "on": "WINEDLLOVERRIDES=\"dxgi=\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-dxgi",
+        "valueName": "Disabled"
+      },
+      {
+        "id": "wine-dll-override-d3d9-none",
+        "group": "Wine",
+        "name": "d3d9.dll Override",
+        "on": "",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-d3d9",
+        "valueName": "None",
+        "fallbackValue": true
+      },
+      {
+        "id": "wine-dll-override-d3d9-native",
+        "group": "Wine",
+        "name": "d3d9.dll Override",
+        "on": "WINEDLLOVERRIDES=\"d3d9=n\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-d3d9",
+        "valueName": "Native"
+      },
+      {
+        "id": "wine-dll-override-d3d9-builtin",
+        "group": "Wine",
+        "name": "d3d9.dll Override",
+        "on": "WINEDLLOVERRIDES=\"d3d9=b\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-d3d9",
+        "valueName": "Builtin"
+      },
+      {
+        "id": "wine-dll-override-d3d9-native-builtin",
+        "group": "Wine",
+        "name": "d3d9.dll Override",
+        "on": "WINEDLLOVERRIDES=\"d3d9=n,b\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-d3d9",
+        "valueName": "Native, Builtin"
+      },
+      {
+        "id": "wine-dll-override-d3d9-builtin-native",
+        "group": "Wine",
+        "name": "d3d9.dll Override",
+        "on": "WINEDLLOVERRIDES=\"d3d9=b,n\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-d3d9",
+        "valueName": "Builtin, Native"
+      },
+      {
+        "id": "wine-dll-override-d3d9-disabled",
+        "group": "Wine",
+        "name": "d3d9.dll Override",
+        "on": "WINEDLLOVERRIDES=\"d3d9=\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-d3d9",
+        "valueName": "Disabled"
+      },
+      {
+        "id": "wine-dll-override-d3d10-none",
+        "group": "Wine",
+        "name": "d3d10.dll Override",
+        "on": "",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-d3d10",
+        "valueName": "None",
+        "fallbackValue": true
+      },
+      {
+        "id": "wine-dll-override-d3d10-native",
+        "group": "Wine",
+        "name": "d3d10.dll Override",
+        "on": "WINEDLLOVERRIDES=\"d3d10=n\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-d3d10",
+        "valueName": "Native"
+      },
+      {
+        "id": "wine-dll-override-d3d10-builtin",
+        "group": "Wine",
+        "name": "d3d10.dll Override",
+        "on": "WINEDLLOVERRIDES=\"d3d10=b\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-d3d10",
+        "valueName": "Builtin"
+      },
+      {
+        "id": "wine-dll-override-d3d10-native-builtin",
+        "group": "Wine",
+        "name": "d3d10.dll Override",
+        "on": "WINEDLLOVERRIDES=\"d3d10=n,b\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-d3d10",
+        "valueName": "Native, Builtin"
+      },
+      {
+        "id": "wine-dll-override-d3d10-builtin-native",
+        "group": "Wine",
+        "name": "d3d10.dll Override",
+        "on": "WINEDLLOVERRIDES=\"d3d10=b,n\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-d3d10",
+        "valueName": "Builtin, Native"
+      },
+      {
+        "id": "wine-dll-override-d3d10-disabled",
+        "group": "Wine",
+        "name": "d3d10.dll Override",
+        "on": "WINEDLLOVERRIDES=\"d3d10=\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-d3d10",
+        "valueName": "Disabled"
+      },
+      {
+        "id": "wine-dll-override-d3d10-1-none",
+        "group": "Wine",
+        "name": "d3d10_1.dll Override",
+        "on": "",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-d3d10-1",
+        "valueName": "None",
+        "fallbackValue": true
+      },
+      {
+        "id": "wine-dll-override-d3d10-1-native",
+        "group": "Wine",
+        "name": "d3d10_1.dll Override",
+        "on": "WINEDLLOVERRIDES=\"d3d10_1=n\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-d3d10-1",
+        "valueName": "Native"
+      },
+      {
+        "id": "wine-dll-override-d3d10-1-builtin",
+        "group": "Wine",
+        "name": "d3d10_1.dll Override",
+        "on": "WINEDLLOVERRIDES=\"d3d10_1=b\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-d3d10-1",
+        "valueName": "Builtin"
+      },
+      {
+        "id": "wine-dll-override-d3d10-1-native-builtin",
+        "group": "Wine",
+        "name": "d3d10_1.dll Override",
+        "on": "WINEDLLOVERRIDES=\"d3d10_1=n,b\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-d3d10-1",
+        "valueName": "Native, Builtin"
+      },
+      {
+        "id": "wine-dll-override-d3d10-1-builtin-native",
+        "group": "Wine",
+        "name": "d3d10_1.dll Override",
+        "on": "WINEDLLOVERRIDES=\"d3d10_1=b,n\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-d3d10-1",
+        "valueName": "Builtin, Native"
+      },
+      {
+        "id": "wine-dll-override-d3d10-1-disabled",
+        "group": "Wine",
+        "name": "d3d10_1.dll Override",
+        "on": "WINEDLLOVERRIDES=\"d3d10_1=\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-d3d10-1",
+        "valueName": "Disabled"
+      },
+      {
+        "id": "wine-dll-override-d3d11-none",
+        "group": "Wine",
+        "name": "d3d11.dll Override",
+        "on": "",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-d3d11",
+        "valueName": "None",
+        "fallbackValue": true
+      },
+      {
+        "id": "wine-dll-override-d3d11-native",
+        "group": "Wine",
+        "name": "d3d11.dll Override",
+        "on": "WINEDLLOVERRIDES=\"d3d11=n\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-d3d11",
+        "valueName": "Native"
+      },
+      {
+        "id": "wine-dll-override-d3d11-builtin",
+        "group": "Wine",
+        "name": "d3d11.dll Override",
+        "on": "WINEDLLOVERRIDES=\"d3d11=b\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-d3d11",
+        "valueName": "Builtin"
+      },
+      {
+        "id": "wine-dll-override-d3d11-native-builtin",
+        "group": "Wine",
+        "name": "d3d11.dll Override",
+        "on": "WINEDLLOVERRIDES=\"d3d11=n,b\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-d3d11",
+        "valueName": "Native, Builtin"
+      },
+      {
+        "id": "wine-dll-override-d3d11-builtin-native",
+        "group": "Wine",
+        "name": "d3d11.dll Override",
+        "on": "WINEDLLOVERRIDES=\"d3d11=b,n\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-d3d11",
+        "valueName": "Builtin, Native"
+      },
+      {
+        "id": "wine-dll-override-d3d11-disabled",
+        "group": "Wine",
+        "name": "d3d11.dll Override",
+        "on": "WINEDLLOVERRIDES=\"d3d11=\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-d3d11",
+        "valueName": "Disabled"
+      },
+      {
+        "id": "wine-dll-override-d3d12-none",
+        "group": "Wine",
+        "name": "d3d12.dll Override",
+        "on": "",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-d3d12",
+        "valueName": "None",
+        "fallbackValue": true
+      },
+      {
+        "id": "wine-dll-override-d3d12-native",
+        "group": "Wine",
+        "name": "d3d12.dll Override",
+        "on": "WINEDLLOVERRIDES=\"d3d12=n\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-d3d12",
+        "valueName": "Native"
+      },
+      {
+        "id": "wine-dll-override-d3d12-builtin",
+        "group": "Wine",
+        "name": "d3d12.dll Override",
+        "on": "WINEDLLOVERRIDES=\"d3d12=b\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-d3d12",
+        "valueName": "Builtin"
+      },
+      {
+        "id": "wine-dll-override-d3d12-native-builtin",
+        "group": "Wine",
+        "name": "d3d12.dll Override",
+        "on": "WINEDLLOVERRIDES=\"d3d12=n,b\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-d3d12",
+        "valueName": "Native, Builtin"
+      },
+      {
+        "id": "wine-dll-override-d3d12-builtin-native",
+        "group": "Wine",
+        "name": "d3d12.dll Override",
+        "on": "WINEDLLOVERRIDES=\"d3d12=b,n\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-d3d12",
+        "valueName": "Builtin, Native"
+      },
+      {
+        "id": "wine-dll-override-d3d12-disabled",
+        "group": "Wine",
+        "name": "d3d12.dll Override",
+        "on": "WINEDLLOVERRIDES=\"d3d12=\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-d3d12",
+        "valueName": "Disabled"
+      },
+      {
+        "id": "wine-dll-override-d3dcompiler-43-none",
+        "group": "Wine",
+        "name": "d3dcompiler_43.dll Override",
+        "on": "",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-d3dcompiler-43",
+        "valueName": "None",
+        "fallbackValue": true
+      },
+      {
+        "id": "wine-dll-override-d3dcompiler-43-native",
+        "group": "Wine",
+        "name": "d3dcompiler_43.dll Override",
+        "on": "WINEDLLOVERRIDES=\"d3dcompiler_43=n\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-d3dcompiler-43",
+        "valueName": "Native"
+      },
+      {
+        "id": "wine-dll-override-d3dcompiler-43-builtin",
+        "group": "Wine",
+        "name": "d3dcompiler_43.dll Override",
+        "on": "WINEDLLOVERRIDES=\"d3dcompiler_43=b\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-d3dcompiler-43",
+        "valueName": "Builtin"
+      },
+      {
+        "id": "wine-dll-override-d3dcompiler-43-native-builtin",
+        "group": "Wine",
+        "name": "d3dcompiler_43.dll Override",
+        "on": "WINEDLLOVERRIDES=\"d3dcompiler_43=n,b\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-d3dcompiler-43",
+        "valueName": "Native, Builtin"
+      },
+      {
+        "id": "wine-dll-override-d3dcompiler-43-builtin-native",
+        "group": "Wine",
+        "name": "d3dcompiler_43.dll Override",
+        "on": "WINEDLLOVERRIDES=\"d3dcompiler_43=b,n\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-d3dcompiler-43",
+        "valueName": "Builtin, Native"
+      },
+      {
+        "id": "wine-dll-override-d3dcompiler-43-disabled",
+        "group": "Wine",
+        "name": "d3dcompiler_43.dll Override",
+        "on": "WINEDLLOVERRIDES=\"d3dcompiler_43=\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-d3dcompiler-43",
+        "valueName": "Disabled"
+      },
+      {
+        "id": "wine-dll-override-d3dcompiler-47-none",
+        "group": "Wine",
+        "name": "d3dcompiler_47.dll Override",
+        "on": "",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-d3dcompiler-47",
+        "valueName": "None",
+        "fallbackValue": true
+      },
+      {
+        "id": "wine-dll-override-d3dcompiler-47-native",
+        "group": "Wine",
+        "name": "d3dcompiler_47.dll Override",
+        "on": "WINEDLLOVERRIDES=\"d3dcompiler_47=n\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-d3dcompiler-47",
+        "valueName": "Native"
+      },
+      {
+        "id": "wine-dll-override-d3dcompiler-47-builtin",
+        "group": "Wine",
+        "name": "d3dcompiler_47.dll Override",
+        "on": "WINEDLLOVERRIDES=\"d3dcompiler_47=b\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-d3dcompiler-47",
+        "valueName": "Builtin"
+      },
+      {
+        "id": "wine-dll-override-d3dcompiler-47-native-builtin",
+        "group": "Wine",
+        "name": "d3dcompiler_47.dll Override",
+        "on": "WINEDLLOVERRIDES=\"d3dcompiler_47=n,b\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-d3dcompiler-47",
+        "valueName": "Native, Builtin"
+      },
+      {
+        "id": "wine-dll-override-d3dcompiler-47-builtin-native",
+        "group": "Wine",
+        "name": "d3dcompiler_47.dll Override",
+        "on": "WINEDLLOVERRIDES=\"d3dcompiler_47=b,n\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-d3dcompiler-47",
+        "valueName": "Builtin, Native"
+      },
+      {
+        "id": "wine-dll-override-d3dcompiler-47-disabled",
+        "group": "Wine",
+        "name": "d3dcompiler_47.dll Override",
+        "on": "WINEDLLOVERRIDES=\"d3dcompiler_47=\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-d3dcompiler-47",
+        "valueName": "Disabled"
+      },
+      {
+        "id": "wine-dll-override-xinput1-3-none",
+        "group": "Wine",
+        "name": "xinput1_3.dll Override",
+        "on": "",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-xinput1-3",
+        "valueName": "None",
+        "fallbackValue": true
+      },
+      {
+        "id": "wine-dll-override-xinput1-3-native",
+        "group": "Wine",
+        "name": "xinput1_3.dll Override",
+        "on": "WINEDLLOVERRIDES=\"xinput1_3=n\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-xinput1-3",
+        "valueName": "Native"
+      },
+      {
+        "id": "wine-dll-override-xinput1-3-builtin",
+        "group": "Wine",
+        "name": "xinput1_3.dll Override",
+        "on": "WINEDLLOVERRIDES=\"xinput1_3=b\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-xinput1-3",
+        "valueName": "Builtin"
+      },
+      {
+        "id": "wine-dll-override-xinput1-3-native-builtin",
+        "group": "Wine",
+        "name": "xinput1_3.dll Override",
+        "on": "WINEDLLOVERRIDES=\"xinput1_3=n,b\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-xinput1-3",
+        "valueName": "Native, Builtin"
+      },
+      {
+        "id": "wine-dll-override-xinput1-3-builtin-native",
+        "group": "Wine",
+        "name": "xinput1_3.dll Override",
+        "on": "WINEDLLOVERRIDES=\"xinput1_3=b,n\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-xinput1-3",
+        "valueName": "Builtin, Native"
+      },
+      {
+        "id": "wine-dll-override-xinput1-3-disabled",
+        "group": "Wine",
+        "name": "xinput1_3.dll Override",
+        "on": "WINEDLLOVERRIDES=\"xinput1_3=\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-xinput1-3",
+        "valueName": "Disabled"
+      },
+      {
+        "id": "wine-dll-override-xinput1-4-none",
+        "group": "Wine",
+        "name": "xinput1_4.dll Override",
+        "on": "",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-xinput1-4",
+        "valueName": "None",
+        "fallbackValue": true
+      },
+      {
+        "id": "wine-dll-override-xinput1-4-native",
+        "group": "Wine",
+        "name": "xinput1_4.dll Override",
+        "on": "WINEDLLOVERRIDES=\"xinput1_4=n\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-xinput1-4",
+        "valueName": "Native"
+      },
+      {
+        "id": "wine-dll-override-xinput1-4-builtin",
+        "group": "Wine",
+        "name": "xinput1_4.dll Override",
+        "on": "WINEDLLOVERRIDES=\"xinput1_4=b\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-xinput1-4",
+        "valueName": "Builtin"
+      },
+      {
+        "id": "wine-dll-override-xinput1-4-native-builtin",
+        "group": "Wine",
+        "name": "xinput1_4.dll Override",
+        "on": "WINEDLLOVERRIDES=\"xinput1_4=n,b\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-xinput1-4",
+        "valueName": "Native, Builtin"
+      },
+      {
+        "id": "wine-dll-override-xinput1-4-builtin-native",
+        "group": "Wine",
+        "name": "xinput1_4.dll Override",
+        "on": "WINEDLLOVERRIDES=\"xinput1_4=b,n\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-xinput1-4",
+        "valueName": "Builtin, Native"
+      },
+      {
+        "id": "wine-dll-override-xinput1-4-disabled",
+        "group": "Wine",
+        "name": "xinput1_4.dll Override",
+        "on": "WINEDLLOVERRIDES=\"xinput1_4=\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-xinput1-4",
+        "valueName": "Disabled"
+      },
+      {
+        "id": "wine-dll-override-xinput9-1-0-none",
+        "group": "Wine",
+        "name": "xinput9_1_0.dll Override",
+        "on": "",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-xinput9-1-0",
+        "valueName": "None",
+        "fallbackValue": true
+      },
+      {
+        "id": "wine-dll-override-xinput9-1-0-native",
+        "group": "Wine",
+        "name": "xinput9_1_0.dll Override",
+        "on": "WINEDLLOVERRIDES=\"xinput9_1_0=n\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-xinput9-1-0",
+        "valueName": "Native"
+      },
+      {
+        "id": "wine-dll-override-xinput9-1-0-builtin",
+        "group": "Wine",
+        "name": "xinput9_1_0.dll Override",
+        "on": "WINEDLLOVERRIDES=\"xinput9_1_0=b\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-xinput9-1-0",
+        "valueName": "Builtin"
+      },
+      {
+        "id": "wine-dll-override-xinput9-1-0-native-builtin",
+        "group": "Wine",
+        "name": "xinput9_1_0.dll Override",
+        "on": "WINEDLLOVERRIDES=\"xinput9_1_0=n,b\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-xinput9-1-0",
+        "valueName": "Native, Builtin"
+      },
+      {
+        "id": "wine-dll-override-xinput9-1-0-builtin-native",
+        "group": "Wine",
+        "name": "xinput9_1_0.dll Override",
+        "on": "WINEDLLOVERRIDES=\"xinput9_1_0=b,n\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-xinput9-1-0",
+        "valueName": "Builtin, Native"
+      },
+      {
+        "id": "wine-dll-override-xinput9-1-0-disabled",
+        "group": "Wine",
+        "name": "xinput9_1_0.dll Override",
+        "on": "WINEDLLOVERRIDES=\"xinput9_1_0=\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-xinput9-1-0",
+        "valueName": "Disabled"
+      },
+      {
+        "id": "wine-dll-override-dsound-none",
+        "group": "Wine",
+        "name": "dsound.dll Override",
+        "on": "",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-dsound",
+        "valueName": "None",
+        "fallbackValue": true
+      },
+      {
+        "id": "wine-dll-override-dsound-native",
+        "group": "Wine",
+        "name": "dsound.dll Override",
+        "on": "WINEDLLOVERRIDES=\"dsound=n\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-dsound",
+        "valueName": "Native"
+      },
+      {
+        "id": "wine-dll-override-dsound-builtin",
+        "group": "Wine",
+        "name": "dsound.dll Override",
+        "on": "WINEDLLOVERRIDES=\"dsound=b\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-dsound",
+        "valueName": "Builtin"
+      },
+      {
+        "id": "wine-dll-override-dsound-native-builtin",
+        "group": "Wine",
+        "name": "dsound.dll Override",
+        "on": "WINEDLLOVERRIDES=\"dsound=n,b\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-dsound",
+        "valueName": "Native, Builtin"
+      },
+      {
+        "id": "wine-dll-override-dsound-builtin-native",
+        "group": "Wine",
+        "name": "dsound.dll Override",
+        "on": "WINEDLLOVERRIDES=\"dsound=b,n\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-dsound",
+        "valueName": "Builtin, Native"
+      },
+      {
+        "id": "wine-dll-override-dsound-disabled",
+        "group": "Wine",
+        "name": "dsound.dll Override",
+        "on": "WINEDLLOVERRIDES=\"dsound=\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-dsound",
+        "valueName": "Disabled"
+      },
+      {
+        "id": "wine-dll-override-xaudio2-7-none",
+        "group": "Wine",
+        "name": "xaudio2_7.dll Override",
+        "on": "",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-xaudio2-7",
+        "valueName": "None",
+        "fallbackValue": true
+      },
+      {
+        "id": "wine-dll-override-xaudio2-7-native",
+        "group": "Wine",
+        "name": "xaudio2_7.dll Override",
+        "on": "WINEDLLOVERRIDES=\"xaudio2_7=n\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-xaudio2-7",
+        "valueName": "Native"
+      },
+      {
+        "id": "wine-dll-override-xaudio2-7-builtin",
+        "group": "Wine",
+        "name": "xaudio2_7.dll Override",
+        "on": "WINEDLLOVERRIDES=\"xaudio2_7=b\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-xaudio2-7",
+        "valueName": "Builtin"
+      },
+      {
+        "id": "wine-dll-override-xaudio2-7-native-builtin",
+        "group": "Wine",
+        "name": "xaudio2_7.dll Override",
+        "on": "WINEDLLOVERRIDES=\"xaudio2_7=n,b\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-xaudio2-7",
+        "valueName": "Native, Builtin"
+      },
+      {
+        "id": "wine-dll-override-xaudio2-7-builtin-native",
+        "group": "Wine",
+        "name": "xaudio2_7.dll Override",
+        "on": "WINEDLLOVERRIDES=\"xaudio2_7=b,n\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-xaudio2-7",
+        "valueName": "Builtin, Native"
+      },
+      {
+        "id": "wine-dll-override-xaudio2-7-disabled",
+        "group": "Wine",
+        "name": "xaudio2_7.dll Override",
+        "on": "WINEDLLOVERRIDES=\"xaudio2_7=\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-xaudio2-7",
+        "valueName": "Disabled"
+      },
+      {
+        "id": "wine-dll-override-xaudio2-8-none",
+        "group": "Wine",
+        "name": "xaudio2_8.dll Override",
+        "on": "",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-xaudio2-8",
+        "valueName": "None",
+        "fallbackValue": true
+      },
+      {
+        "id": "wine-dll-override-xaudio2-8-native",
+        "group": "Wine",
+        "name": "xaudio2_8.dll Override",
+        "on": "WINEDLLOVERRIDES=\"xaudio2_8=n\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-xaudio2-8",
+        "valueName": "Native"
+      },
+      {
+        "id": "wine-dll-override-xaudio2-8-builtin",
+        "group": "Wine",
+        "name": "xaudio2_8.dll Override",
+        "on": "WINEDLLOVERRIDES=\"xaudio2_8=b\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-xaudio2-8",
+        "valueName": "Builtin"
+      },
+      {
+        "id": "wine-dll-override-xaudio2-8-native-builtin",
+        "group": "Wine",
+        "name": "xaudio2_8.dll Override",
+        "on": "WINEDLLOVERRIDES=\"xaudio2_8=n,b\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-xaudio2-8",
+        "valueName": "Native, Builtin"
+      },
+      {
+        "id": "wine-dll-override-xaudio2-8-builtin-native",
+        "group": "Wine",
+        "name": "xaudio2_8.dll Override",
+        "on": "WINEDLLOVERRIDES=\"xaudio2_8=b,n\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-xaudio2-8",
+        "valueName": "Builtin, Native"
+      },
+      {
+        "id": "wine-dll-override-xaudio2-8-disabled",
+        "group": "Wine",
+        "name": "xaudio2_8.dll Override",
+        "on": "WINEDLLOVERRIDES=\"xaudio2_8=\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-xaudio2-8",
+        "valueName": "Disabled"
+      },
+      {
+        "id": "wine-dll-override-xaudio2-9-none",
+        "group": "Wine",
+        "name": "xaudio2_9.dll Override",
+        "on": "",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-xaudio2-9",
+        "valueName": "None",
+        "fallbackValue": true
+      },
+      {
+        "id": "wine-dll-override-xaudio2-9-native",
+        "group": "Wine",
+        "name": "xaudio2_9.dll Override",
+        "on": "WINEDLLOVERRIDES=\"xaudio2_9=n\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-xaudio2-9",
+        "valueName": "Native"
+      },
+      {
+        "id": "wine-dll-override-xaudio2-9-builtin",
+        "group": "Wine",
+        "name": "xaudio2_9.dll Override",
+        "on": "WINEDLLOVERRIDES=\"xaudio2_9=b\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-xaudio2-9",
+        "valueName": "Builtin"
+      },
+      {
+        "id": "wine-dll-override-xaudio2-9-native-builtin",
+        "group": "Wine",
+        "name": "xaudio2_9.dll Override",
+        "on": "WINEDLLOVERRIDES=\"xaudio2_9=n,b\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-xaudio2-9",
+        "valueName": "Native, Builtin"
+      },
+      {
+        "id": "wine-dll-override-xaudio2-9-builtin-native",
+        "group": "Wine",
+        "name": "xaudio2_9.dll Override",
+        "on": "WINEDLLOVERRIDES=\"xaudio2_9=b,n\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-xaudio2-9",
+        "valueName": "Builtin, Native"
+      },
+      {
+        "id": "wine-dll-override-xaudio2-9-disabled",
+        "group": "Wine",
+        "name": "xaudio2_9.dll Override",
+        "on": "WINEDLLOVERRIDES=\"xaudio2_9=\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-xaudio2-9",
+        "valueName": "Disabled"
+      },
+      {
+        "id": "wine-dll-override-openal32-none",
+        "group": "Wine",
+        "name": "openal32.dll Override",
+        "on": "",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-openal32",
+        "valueName": "None",
+        "fallbackValue": true
+      },
+      {
+        "id": "wine-dll-override-openal32-native",
+        "group": "Wine",
+        "name": "openal32.dll Override",
+        "on": "WINEDLLOVERRIDES=\"openal32=n\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-openal32",
+        "valueName": "Native"
+      },
+      {
+        "id": "wine-dll-override-openal32-builtin",
+        "group": "Wine",
+        "name": "openal32.dll Override",
+        "on": "WINEDLLOVERRIDES=\"openal32=b\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-openal32",
+        "valueName": "Builtin"
+      },
+      {
+        "id": "wine-dll-override-openal32-native-builtin",
+        "group": "Wine",
+        "name": "openal32.dll Override",
+        "on": "WINEDLLOVERRIDES=\"openal32=n,b\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-openal32",
+        "valueName": "Native, Builtin"
+      },
+      {
+        "id": "wine-dll-override-openal32-builtin-native",
+        "group": "Wine",
+        "name": "openal32.dll Override",
+        "on": "WINEDLLOVERRIDES=\"openal32=b,n\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-openal32",
+        "valueName": "Builtin, Native"
+      },
+      {
+        "id": "wine-dll-override-openal32-disabled",
+        "group": "Wine",
+        "name": "openal32.dll Override",
+        "on": "WINEDLLOVERRIDES=\"openal32=\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-openal32",
+        "valueName": "Disabled"
+      },
+      {
+        "id": "wine-dll-override-binkw32-none",
+        "group": "Wine",
+        "name": "binkw32.dll Override",
+        "on": "",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-binkw32",
+        "valueName": "None",
+        "fallbackValue": true
+      },
+      {
+        "id": "wine-dll-override-binkw32-native",
+        "group": "Wine",
+        "name": "binkw32.dll Override",
+        "on": "WINEDLLOVERRIDES=\"binkw32=n\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-binkw32",
+        "valueName": "Native"
+      },
+      {
+        "id": "wine-dll-override-binkw32-builtin",
+        "group": "Wine",
+        "name": "binkw32.dll Override",
+        "on": "WINEDLLOVERRIDES=\"binkw32=b\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-binkw32",
+        "valueName": "Builtin"
+      },
+      {
+        "id": "wine-dll-override-binkw32-native-builtin",
+        "group": "Wine",
+        "name": "binkw32.dll Override",
+        "on": "WINEDLLOVERRIDES=\"binkw32=n,b\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-binkw32",
+        "valueName": "Native, Builtin"
+      },
+      {
+        "id": "wine-dll-override-binkw32-builtin-native",
+        "group": "Wine",
+        "name": "binkw32.dll Override",
+        "on": "WINEDLLOVERRIDES=\"binkw32=b,n\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-binkw32",
+        "valueName": "Builtin, Native"
+      },
+      {
+        "id": "wine-dll-override-binkw32-disabled",
+        "group": "Wine",
+        "name": "binkw32.dll Override",
+        "on": "WINEDLLOVERRIDES=\"binkw32=\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-binkw32",
+        "valueName": "Disabled"
+      },
+      {
+        "id": "wine-dll-override-bink2w64-none",
+        "group": "Wine",
+        "name": "bink2w64.dll Override",
+        "on": "",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-bink2w64",
+        "valueName": "None",
+        "fallbackValue": true
+      },
+      {
+        "id": "wine-dll-override-bink2w64-native",
+        "group": "Wine",
+        "name": "bink2w64.dll Override",
+        "on": "WINEDLLOVERRIDES=\"bink2w64=n\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-bink2w64",
+        "valueName": "Native"
+      },
+      {
+        "id": "wine-dll-override-bink2w64-builtin",
+        "group": "Wine",
+        "name": "bink2w64.dll Override",
+        "on": "WINEDLLOVERRIDES=\"bink2w64=b\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-bink2w64",
+        "valueName": "Builtin"
+      },
+      {
+        "id": "wine-dll-override-bink2w64-native-builtin",
+        "group": "Wine",
+        "name": "bink2w64.dll Override",
+        "on": "WINEDLLOVERRIDES=\"bink2w64=n,b\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-bink2w64",
+        "valueName": "Native, Builtin"
+      },
+      {
+        "id": "wine-dll-override-bink2w64-builtin-native",
+        "group": "Wine",
+        "name": "bink2w64.dll Override",
+        "on": "WINEDLLOVERRIDES=\"bink2w64=b,n\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-bink2w64",
+        "valueName": "Builtin, Native"
+      },
+      {
+        "id": "wine-dll-override-bink2w64-disabled",
+        "group": "Wine",
+        "name": "bink2w64.dll Override",
+        "on": "WINEDLLOVERRIDES=\"bink2w64=\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-bink2w64",
+        "valueName": "Disabled"
+      },
+      {
+        "id": "wine-dll-override-steam-api-none",
+        "group": "Wine",
+        "name": "steam_api.dll Override",
+        "on": "",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-steam-api",
+        "valueName": "None",
+        "fallbackValue": true
+      },
+      {
+        "id": "wine-dll-override-steam-api-native",
+        "group": "Wine",
+        "name": "steam_api.dll Override",
+        "on": "WINEDLLOVERRIDES=\"steam_api=n\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-steam-api",
+        "valueName": "Native"
+      },
+      {
+        "id": "wine-dll-override-steam-api-builtin",
+        "group": "Wine",
+        "name": "steam_api.dll Override",
+        "on": "WINEDLLOVERRIDES=\"steam_api=b\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-steam-api",
+        "valueName": "Builtin"
+      },
+      {
+        "id": "wine-dll-override-steam-api-native-builtin",
+        "group": "Wine",
+        "name": "steam_api.dll Override",
+        "on": "WINEDLLOVERRIDES=\"steam_api=n,b\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-steam-api",
+        "valueName": "Native, Builtin"
+      },
+      {
+        "id": "wine-dll-override-steam-api-builtin-native",
+        "group": "Wine",
+        "name": "steam_api.dll Override",
+        "on": "WINEDLLOVERRIDES=\"steam_api=b,n\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-steam-api",
+        "valueName": "Builtin, Native"
+      },
+      {
+        "id": "wine-dll-override-steam-api-disabled",
+        "group": "Wine",
+        "name": "steam_api.dll Override",
+        "on": "WINEDLLOVERRIDES=\"steam_api=\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-steam-api",
+        "valueName": "Disabled"
+      },
+      {
+        "id": "wine-dll-override-steam-api64-none",
+        "group": "Wine",
+        "name": "steam_api64.dll Override",
+        "on": "",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-steam-api64",
+        "valueName": "None",
+        "fallbackValue": true
+      },
+      {
+        "id": "wine-dll-override-steam-api64-native",
+        "group": "Wine",
+        "name": "steam_api64.dll Override",
+        "on": "WINEDLLOVERRIDES=\"steam_api64=n\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-steam-api64",
+        "valueName": "Native"
+      },
+      {
+        "id": "wine-dll-override-steam-api64-builtin",
+        "group": "Wine",
+        "name": "steam_api64.dll Override",
+        "on": "WINEDLLOVERRIDES=\"steam_api64=b\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-steam-api64",
+        "valueName": "Builtin"
+      },
+      {
+        "id": "wine-dll-override-steam-api64-native-builtin",
+        "group": "Wine",
+        "name": "steam_api64.dll Override",
+        "on": "WINEDLLOVERRIDES=\"steam_api64=n,b\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-steam-api64",
+        "valueName": "Native, Builtin"
+      },
+      {
+        "id": "wine-dll-override-steam-api64-builtin-native",
+        "group": "Wine",
+        "name": "steam_api64.dll Override",
+        "on": "WINEDLLOVERRIDES=\"steam_api64=b,n\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-steam-api64",
+        "valueName": "Builtin, Native"
+      },
+      {
+        "id": "wine-dll-override-steam-api64-disabled",
+        "group": "Wine",
+        "name": "steam_api64.dll Override",
+        "on": "WINEDLLOVERRIDES=\"steam_api64=\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "wine-dll-override-steam-api64",
+        "valueName": "Disabled"
+      }
+    ]
   }
 ]
