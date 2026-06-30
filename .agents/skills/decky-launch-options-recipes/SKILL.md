@@ -1,0 +1,119 @@
+---
+name: decky-launch-options-recipes
+description: Create or update Decky Launch Options recipe files for the Wurielle/decky-launch-options plugin. Use when asked to add launch options, recipe entries, dropdown launch options, or generated recipes.json data for Decky Launch Options, especially in repositories with recipes/*.ts and a Recipe type.
+---
+
+# Decky Launch Options Recipes
+
+Use this skill to add or update recipes for the Decky Launch Options plugin.
+
+## Workflow
+
+1. Inspect the repository before editing:
+   - Read `README.md`, `recipes/types.ts`, `package.json`, and similar existing recipe files.
+   - Treat `recipes.json` as generated unless the repo clearly documents manual edits.
+   - Prefer matching the best existing local example. In `decky-launch-options-recipes`, `recipes/mangohud.ts` is the model for dropdowns.
+
+2. Create or update one source recipe file under `recipes/`.
+   - Use a hyphen-case file name, for example `mangohud.ts` or `lossless-scaling.ts`.
+   - Export exactly one default object satisfying `Recipe`.
+   - Import the type with the existing repo style, commonly:
+
+```ts
+import type { Recipe } from './types.js'
+
+const recipe = {
+    name: 'Tool Name',
+    launchOptions: [
+        {
+            id: 'tool-name',
+            group: 'Tool Name',
+            name: 'Tool Name',
+            on: 'tool-wrapper %command%',
+            off: '',
+            enableGlobally: false,
+        },
+    ],
+} satisfies Recipe
+
+export default recipe
+```
+
+3. Build or check recipes using the repo script, usually `pnpm recipes:build` or `pnpm recipes:check`.
+   - If the build generates `recipes.json`, include that generated diff.
+   - Do not manually reorder generated recipes unless the build script expects it.
+
+## Launch Option Fields
+
+Use these fields according to the local `LaunchOption` type:
+
+- `id`: Stable identifier used to update an imported option. Always include it.
+- `group`: UI grouping/tab label. Use for related options.
+- `name`: Display name. Dropdown choices with the same `valueId` should share the same `name`.
+- `on`: Launch option string applied when enabled.
+- `off`: Launch option string applied when disabled. Use `''` when no disabled command is needed.
+- `enableGlobally`: Whether the option is enabled by default for all games.
+- `valueId`: Shared dropdown identifier.
+- `valueName`: Dropdown choice label.
+- `fallbackValue`: Mark the default dropdown choice.
+
+## Command Rules
+
+- Include `%command%` when an option wraps or modifies the game launch command.
+- Put environment variables before `%command%`, for example `MANGOHUD_CONFIG="preset=1"`.
+- Put wrapper commands before `%command%`, for example `mangohud %command%`.
+- Put game arguments after `%command%` when the option is a game argument.
+- Keep `on` and `off` shell-safe for Steam launch options. Preserve quotes where values contain `=` or spaces.
+
+## ID Convention
+
+Use predictable, hyphen-case IDs.
+
+- Regular launch option: include the feature/tool name only, for example `mangohud`, `lossless-scaling`, or `proton-ge`.
+- Dropdown option: include the feature/tool name, the modified option/config name, and the value.
+  - Pattern: `<tool>-<option-or-config-name>-<value>`
+  - MangoHud examples:
+    - `mangohud-config-preset-none`
+    - `mangohud-config-preset-0`
+    - `mangohud-fps-limit-60`
+- Keep all options in a dropdown on the same `valueId`.
+- Give the default dropdown entry an empty `on`, empty `off`, and `fallbackValue: true` when "None" or default behavior means no launch option should be applied.
+
+## Dropdown Pattern
+
+For mutually exclusive choices, model the recipe after MangoHud:
+
+```ts
+{
+    id: 'tool-config-mode-none',
+    group: 'Tool',
+    name: 'Tool Mode',
+    on: '',
+    off: '',
+    enableGlobally: false,
+    valueId: 'tool-config-mode',
+    valueName: 'None',
+    fallbackValue: true,
+},
+{
+    id: 'tool-config-mode-fast',
+    group: 'Tool',
+    name: 'Tool Mode',
+    on: 'TOOL_MODE=fast',
+    off: '',
+    enableGlobally: false,
+    valueId: 'tool-config-mode',
+    valueName: 'Fast',
+},
+```
+
+## Review Checklist
+
+Before finishing:
+
+- Confirm the recipe compiles against `Recipe`.
+- Confirm every launch option has a stable `id`.
+- Confirm dropdown IDs include tool, option/config name, and value.
+- Confirm each dropdown has one fallback/default choice when appropriate.
+- Confirm `%command%` is present for wrappers and absent for pure environment-variable options.
+- Run the repo's recipe build/check command and report any failure clearly.
