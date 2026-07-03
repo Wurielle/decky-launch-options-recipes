@@ -11,14 +11,6 @@ type OptiScalerDropdownValue = {
     fallbackValue?: boolean
 }
 
-type OptiScalerCustomDropdownValue = {
-    id: string
-    name: string
-    on: string
-    enableGlobally?: boolean
-    fallbackValue?: boolean
-}
-
 const optiScalerGroup = 'OptiScaler'
 const optiScalerEnv = (option: string, value: string | number | boolean) => `OptiScaler_${option}="${value}"`
 
