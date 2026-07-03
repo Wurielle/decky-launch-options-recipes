@@ -375,7 +375,7 @@ const launchOptions: LaunchOption[] = [
         name: 'OptiScaler FrameGen',
         on: optiScalerEnv('FrameGen_Enabled', 'true'),
         off: optiScalerEnv('FrameGen_Enabled', 'false'),
-        enableGlobally: false,
+        enableGlobally: true,
     },
     ...optiScalerDropdown(
         'optiscaler-framegen-input',
@@ -402,6 +402,7 @@ const launchOptions: LaunchOption[] = [
                 name: 'Auto',
                 value: 'auto',
                 fallbackValue: true,
+                enableGlobally: true,
             },
             {
                 id: 'disabled',
@@ -414,26 +415,6 @@ const launchOptions: LaunchOption[] = [
                 value: framerateLimit,
             })),
         ],
-    ),
-    ...optiScalerCustomDropdown(
-        'optiscaler-latency-provider',
-        'OptiScaler Latency Provider',
-        'optiscaler-latency-provider',
-        latencyProviderValues,
-    ),
-    ...optiScalerDropdown(
-        'optiscaler-latencyflex-mode',
-        'OptiScaler LatencyFlex Mode',
-        'optiscaler-latencyflex-mode',
-        'fakenvapi_LatencyFlexMode',
-        latencyFlexModeValues,
-    ),
-    ...optiScalerDropdown(
-        'optiscaler-reflex-override',
-        'OptiScaler Reflex Override',
-        'optiscaler-reflex-override',
-        'fakenvapi_ForceReflex',
-        reflexOverrideValues,
     ),
     ...optiScalerDropdown(
         'optiscaler-upscalers-dx11',
