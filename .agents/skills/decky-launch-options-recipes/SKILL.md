@@ -44,6 +44,7 @@ export default recipe
    - Keep source arrays compact and ordered the same way the UI should display values, then use `map` or `flatMap` to produce `LaunchOption[]`.
    - Use small helper functions for repeated command fragments, such as quoted environment-variable assignments.
    - Do not generate IDs from user-facing labels when values need stable compatibility; define explicit `id` values for non-trivial choices.
+   - Add a top-of-file dropdown fallback policy comment when a recipe intentionally uses a default other than `None`.
 
 3. Build or check recipes using the repo script, usually `pnpm recipes:build` or `pnpm recipes:check`.
    - The build type-checks recipe entries before writing generated recipe output.
@@ -88,7 +89,23 @@ Use predictable, hyphen-case IDs.
     - `mangohud-config-preset-0`
     - `mangohud-fps-limit-60`
 - Keep all options in a dropdown on the same `valueId`.
-- Give the default dropdown entry an empty `on`, empty `off`, and `fallbackValue: true` when "None" or default behavior means no launch option should be applied.
+
+## Dropdown Defaults
+
+Every dropdown should include one fallback/default choice.
+
+- Default to a `None` option with empty `on`, empty `off`, and `fallbackValue: true`.
+- Use a non-`None` fallback only when that label corresponds to a tool-specific reset/default mechanism.
+- A non-`None` fallback must emit the reset/default launch option in `on` or `off`; do not rename `None` while leaving both `on` and `off` empty.
+- When using a non-`None` fallback, add this comment template at the top of the recipe file before imports:
+
+```ts
+// Dropdown fallback policy: use "<Fallback label>" instead of "None" because
+// <specific launch option mechanism> resets <tool state>, while empty launch
+// options would leave <existing tool/config state> unchanged.
+```
+
+Use `recipes/optiscaler.ts` as the model: its dropdown fallbacks use `Auto` because `OptiScaler_<Section>_<Option>="auto"` actively resets values that may otherwise persist in `OptiScaler.ini`.
 
 ## Dropdown Pattern
 

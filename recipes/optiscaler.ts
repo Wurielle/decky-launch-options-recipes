@@ -1,3 +1,6 @@
+// Dropdown fallback policy: use "Auto" instead of "None" because empty launch
+// options would leave existing OptiScaler.ini values unchanged instead of
+// resetting them to OptiScaler defaults.
 import type { LaunchOption, Recipe } from './types.js'
 
 type OptiScalerDropdownValue = {
