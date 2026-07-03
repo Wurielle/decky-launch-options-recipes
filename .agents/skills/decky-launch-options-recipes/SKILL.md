@@ -39,6 +39,12 @@ const recipe = {
 export default recipe
 ```
 
+   - Prefer programmatic generation for repeated or patterned launch options, especially dropdowns with numeric values, DLL lists, presets, backends, or other structured choices.
+   - Import `LaunchOption` along with `Recipe` when building `launchOptions` from arrays or helper functions.
+   - Keep source arrays compact and ordered the same way the UI should display values, then use `map` or `flatMap` to produce `LaunchOption[]`.
+   - Use small helper functions for repeated command fragments, such as quoted environment-variable assignments.
+   - Do not generate IDs from user-facing labels when values need stable compatibility; define explicit `id` values for non-trivial choices.
+
 3. Build or check recipes using the repo script, usually `pnpm recipes:build` or `pnpm recipes:check`.
    - The build type-checks recipe entries before writing generated recipe output.
    - If the build generates `recipes.json`, include that generated diff.
@@ -86,31 +92,39 @@ Use predictable, hyphen-case IDs.
 
 ## Dropdown Pattern
 
-For mutually exclusive choices, model the recipe after MangoHud:
+For mutually exclusive choices, prefer a compact value array plus a typed `map`:
 
 ```ts
-{
-    id: 'tool-config-mode-none',
+import type { LaunchOption, Recipe } from './types.js'
+
+const toolModeValues = [
+    {
+        id: 'none',
+        name: 'None',
+        value: null,
+        fallbackValue: true,
+    },
+    {
+        id: 'fast',
+        name: 'Fast',
+        value: 'fast',
+    },
+] as const
+
+const toolModeOptions: LaunchOption[] = toolModeValues.map((mode): LaunchOption => ({
+    id: `tool-config-mode-${mode.id}`,
     group: 'Tool',
     name: 'Tool Mode',
-    on: '',
+    on: mode.value === null ? '' : `TOOL_MODE="${mode.value}"`,
     off: '',
     enableGlobally: false,
     valueId: 'tool-config-mode',
-    valueName: 'None',
-    fallbackValue: true,
-},
-{
-    id: 'tool-config-mode-fast',
-    group: 'Tool',
-    name: 'Tool Mode',
-    on: 'TOOL_MODE=fast',
-    off: '',
-    enableGlobally: false,
-    valueId: 'tool-config-mode',
-    valueName: 'Fast',
-},
+    valueName: mode.name,
+    ...('fallbackValue' in mode && mode.fallbackValue === true ? {fallbackValue: true} : {}),
+}))
 ```
+
+For one-off dropdowns with only a couple of values, inline entries are acceptable. Once the third or fourth nearly identical option appears, switch to arrays and helpers like `recipes/wine.ts`, `recipes/mangohud.ts`, or `recipes/optiscaler.ts`.
 
 ## Review Checklist
 
