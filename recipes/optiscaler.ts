@@ -37,7 +37,6 @@ const frameGenInputValues = [
         id: 'auto',
         name: 'Auto',
         value: 'auto',
-        enableGlobally: true,
         fallbackValue: true,
     },
     {
@@ -77,7 +76,6 @@ const frameGenOutputValues = [
         id: 'auto',
         name: 'Auto',
         value: 'auto',
-        enableGlobally: true,
         fallbackValue: true,
     },
     {
@@ -266,7 +264,6 @@ const launchOptions: LaunchOption[] = [
         name: 'OptiScaler',
         on: '~/fgmod/fgmod %command%',
         off: '~/fgmod/fgmod-uninstaller.sh %command%',
-        enableGlobally: false,
     },
     {
         id: 'optiscaler-framegen-enabled',
@@ -274,7 +271,6 @@ const launchOptions: LaunchOption[] = [
         name: 'OptiScaler FrameGen',
         on: optiScalerEnv('FrameGen_Enabled', 'true'),
         off: optiScalerEnv('FrameGen_Enabled', 'false'),
-        enableGlobally: true,
     },
     ...optiScalerDropdown(
         'optiscaler-framegen-input',
@@ -301,7 +297,6 @@ const launchOptions: LaunchOption[] = [
                 name: 'Auto',
                 value: 'auto',
                 fallbackValue: true,
-                enableGlobally: true,
             },
             {
                 id: 'disabled',
