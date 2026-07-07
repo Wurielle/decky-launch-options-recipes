@@ -7,16 +7,14 @@
         "group": "",
         "name": "OptiScaler",
         "on": "~/fgmod/fgmod %command%",
-        "off": "~/fgmod/fgmod-uninstaller.sh %command%",
-        "enableGlobally": false
+        "off": "~/fgmod/fgmod-uninstaller.sh %command%"
       },
       {
         "id": "optiscaler-framegen-enabled",
         "group": "OptiScaler",
         "name": "OptiScaler FrameGen",
         "on": "OptiScaler_FrameGen_Enabled=\"true\"",
-        "off": "OptiScaler_FrameGen_Enabled=\"false\"",
-        "enableGlobally": true
+        "off": "OptiScaler_FrameGen_Enabled=\"false\""
       },
       {
         "id": "optiscaler-framegen-input-auto",
@@ -24,7 +22,7 @@
         "name": "OptiScaler FrameGen Input",
         "on": "OptiScaler_FrameGen_FGInput=\"auto\"",
         "off": "",
-        "enableGlobally": true,
+        "enableGlobally": false,
         "valueId": "optiscaler-framegen-input",
         "valueName": "Auto",
         "fallbackValue": true
@@ -95,7 +93,7 @@
         "name": "OptiScaler FrameGen Output",
         "on": "OptiScaler_FrameGen_FGOutput=\"auto\"",
         "off": "",
-        "enableGlobally": true,
+        "enableGlobally": false,
         "valueId": "optiscaler-framegen-output",
         "valueName": "Auto",
         "fallbackValue": true
@@ -166,7 +164,7 @@
         "name": "OptiScaler Framerate Limit",
         "on": "OptiScaler_Framerate_FramerateLimit=\"auto\"",
         "off": "",
-        "enableGlobally": true,
+        "enableGlobally": false,
         "valueId": "optiscaler-framerate-limit",
         "valueName": "Auto",
         "fallbackValue": true
