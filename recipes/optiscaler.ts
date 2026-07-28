@@ -67,32 +67,32 @@ const frameGenInputValues = [
     },
     {
         id: 'nofg',
-        name: 'No FrameGen',
+        name: 'No Frame Generation',
         value: 'nofg',
     },
     {
         id: 'dlssg',
-        name: 'DLSSG',
+        name: 'DLSSG via Streamline',
         value: 'dlssg',
     },
     {
         id: 'nvngxfg',
-        name: 'NvngxFG',
+        name: "Nukem's/Artur's DLSSG",
         value: 'nvngxfg',
     },
     {
         id: 'fsrfg',
-        name: 'FSR FG',
+        name: 'FSR 3.1 FG',
         value: 'fsrfg',
     },
     {
         id: 'upscaler',
-        name: 'Upscaler',
+        name: 'OptiFG (Upscaler)',
         value: 'upscaler',
     },
     {
         id: 'fsrfg30',
-        name: 'FSR FG 3.0',
+        name: 'FSR 3.0 FG',
         value: 'fsrfg30',
     },
 ] as const
@@ -107,7 +107,7 @@ const frameGenOutputValues = [
     },
     {
         id: 'nofg',
-        name: 'No FrameGen',
+        name: 'No Frame Generation',
         value: 'nofg',
     },
     {
@@ -122,7 +122,7 @@ const frameGenOutputValues = [
     },
     {
         id: 'nvngxfg',
-        name: 'NvngxFG',
+        name: 'FSR3-FG Nukem/Enabler',
         value: 'nvngxfg',
     },
     {
@@ -132,7 +132,7 @@ const frameGenOutputValues = [
     },
     {
         id: 'dlssgwithnvngx',
-        name: 'DLSSG with NvngxFG',
+        name: 'DLSSG with Nvngx FG',
         value: 'dlssgwithnvngx',
     },
 ] as const
@@ -375,6 +375,14 @@ const launchOptions: LaunchOption[] = [
         name: 'OptiScaler FrameGen',
         on: optiScalerEnv('FrameGen_Enabled', 'true'),
         off: optiScalerEnv('FrameGen_Enabled', 'false'),
+        enableGlobally: false,
+    },
+    {
+        id: 'optiscaler-hudfix',
+        group: optiScalerGroup,
+        name: 'OptiScaler FrameGen OptiFG HUDFix',
+        on: optiScalerEnv('OptiFG_HUDFix', 'true'),
+        off: optiScalerEnv('OptiFG_HUDFix', 'auto'),
         enableGlobally: false,
     },
     ...optiScalerDropdown(
