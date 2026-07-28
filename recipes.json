@@ -17,6 +17,75 @@
         "off": "OptiScaler_FrameGen_Enabled=\"false\""
       },
       {
+        "id": "optiscaler-menu-shortcut-key-auto",
+        "group": "OptiScaler",
+        "name": "OptiScaler Menu Shortcut",
+        "on": "OptiScaler_Menu_ShortcutKey=\"auto\"",
+        "off": "",
+        "enableGlobally": true,
+        "valueId": "optiscaler-menu-shortcut-key",
+        "valueName": "Auto",
+        "fallbackValue": true
+      },
+      {
+        "id": "optiscaler-menu-shortcut-key-insert",
+        "group": "OptiScaler",
+        "name": "OptiScaler Menu Shortcut",
+        "on": "OptiScaler_Menu_ShortcutKey=\"0x2D\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler-menu-shortcut-key",
+        "valueName": "Insert"
+      },
+      {
+        "id": "optiscaler-menu-shortcut-key-volume-down",
+        "group": "OptiScaler",
+        "name": "OptiScaler Menu Shortcut",
+        "on": "OptiScaler_Menu_ShortcutKey=\"0xAE\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler-menu-shortcut-key",
+        "valueName": "Volume Down"
+      },
+      {
+        "id": "optiscaler-menu-shortcut-key-volume-up",
+        "group": "OptiScaler",
+        "name": "OptiScaler Menu Shortcut",
+        "on": "OptiScaler_Menu_ShortcutKey=\"0xAF\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler-menu-shortcut-key",
+        "valueName": "Volume Up"
+      },
+      {
+        "id": "optiscaler-menu-shortcut-key-start",
+        "group": "OptiScaler",
+        "name": "OptiScaler Menu Shortcut",
+        "on": "OptiScaler_Menu_ShortcutKey=\"0xCF\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler-menu-shortcut-key",
+        "valueName": "Start"
+      },
+      {
+        "id": "optiscaler-menu-shortcut-key-select",
+        "group": "OptiScaler",
+        "name": "OptiScaler Menu Shortcut",
+        "on": "OptiScaler_Menu_ShortcutKey=\"0xD0\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler-menu-shortcut-key",
+        "valueName": "Select"
+      },
+      {
+        "id": "optiscaler-hudfix",
+        "group": "OptiScaler",
+        "name": "OptiScaler FrameGen OptiFG HUDFix",
+        "on": "OptiScaler_OptiFG_HUDFix=\"true\"",
+        "off": "OptiScaler_OptiFG_HUDFix=\"auto\"",
+        "enableGlobally": false
+      },
+      {
         "id": "optiscaler-framegen-input-auto",
         "group": "OptiScaler",
         "name": "OptiScaler FrameGen Input",
@@ -35,7 +104,7 @@
         "off": "",
         "enableGlobally": false,
         "valueId": "optiscaler-framegen-input",
-        "valueName": "No FrameGen"
+        "valueName": "No Frame Generation"
       },
       {
         "id": "optiscaler-framegen-input-dlssg",
@@ -45,7 +114,7 @@
         "off": "",
         "enableGlobally": false,
         "valueId": "optiscaler-framegen-input",
-        "valueName": "DLSSG"
+        "valueName": "DLSSG via Streamline"
       },
       {
         "id": "optiscaler-framegen-input-nvngxfg",
@@ -55,7 +124,7 @@
         "off": "",
         "enableGlobally": false,
         "valueId": "optiscaler-framegen-input",
-        "valueName": "NvngxFG"
+        "valueName": "Nukem's/Artur's DLSSG"
       },
       {
         "id": "optiscaler-framegen-input-fsrfg",
@@ -65,7 +134,7 @@
         "off": "",
         "enableGlobally": false,
         "valueId": "optiscaler-framegen-input",
-        "valueName": "FSR FG"
+        "valueName": "FSR 3.1 FG"
       },
       {
         "id": "optiscaler-framegen-input-upscaler",
@@ -75,7 +144,7 @@
         "off": "",
         "enableGlobally": false,
         "valueId": "optiscaler-framegen-input",
-        "valueName": "Upscaler"
+        "valueName": "OptiFG (Upscaler)"
       },
       {
         "id": "optiscaler-framegen-input-fsrfg30",
@@ -85,7 +154,7 @@
         "off": "",
         "enableGlobally": false,
         "valueId": "optiscaler-framegen-input",
-        "valueName": "FSR FG 3.0"
+        "valueName": "FSR 3.0 FG"
       },
       {
         "id": "optiscaler-framegen-output-auto",
@@ -106,7 +175,7 @@
         "off": "",
         "enableGlobally": false,
         "valueId": "optiscaler-framegen-output",
-        "valueName": "No FrameGen"
+        "valueName": "No Frame Generation"
       },
       {
         "id": "optiscaler-framegen-output-fsrfg",
@@ -136,7 +205,7 @@
         "off": "",
         "enableGlobally": false,
         "valueId": "optiscaler-framegen-output",
-        "valueName": "NvngxFG"
+        "valueName": "FSR3-FG Nukem/Enabler"
       },
       {
         "id": "optiscaler-framegen-output-dlssg",
@@ -156,7 +225,7 @@
         "off": "",
         "enableGlobally": false,
         "valueId": "optiscaler-framegen-output",
-        "valueName": "DLSSG with NvngxFG"
+        "valueName": "DLSSG with Nvngx FG"
       },
       {
         "id": "optiscaler-framerate-limit-auto",
