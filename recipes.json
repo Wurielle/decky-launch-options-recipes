@@ -19,9 +19,70 @@
         "enableGlobally": false
       },
       {
+        "id": "optiscaler-menu-shortcut-key-auto",
+        "group": "OptiScaler",
+        "name": "OptiScaler Menu Shortcut",
+        "on": "OptiScaler_Menu_ShortcutKey=\"auto\"",
+        "off": "",
+        "enableGlobally": true,
+        "valueId": "optiscaler-menu-shortcut-key",
+        "valueName": "Auto",
+        "fallbackValue": true
+      },
+      {
+        "id": "optiscaler-menu-shortcut-key-insert",
+        "group": "OptiScaler",
+        "name": "OptiScaler Menu Shortcut",
+        "on": "OptiScaler_Menu_ShortcutKey=\"0x2D\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler-menu-shortcut-key",
+        "valueName": "Insert"
+      },
+      {
+        "id": "optiscaler-menu-shortcut-key-volume-down",
+        "group": "OptiScaler",
+        "name": "OptiScaler Menu Shortcut",
+        "on": "OptiScaler_Menu_ShortcutKey=\"0xAE\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler-menu-shortcut-key",
+        "valueName": "Volume Down"
+      },
+      {
+        "id": "optiscaler-menu-shortcut-key-volume-up",
+        "group": "OptiScaler",
+        "name": "OptiScaler Menu Shortcut",
+        "on": "OptiScaler_Menu_ShortcutKey=\"0xAF\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler-menu-shortcut-key",
+        "valueName": "Volume Up"
+      },
+      {
+        "id": "optiscaler-menu-shortcut-key-start",
+        "group": "OptiScaler",
+        "name": "OptiScaler Menu Shortcut",
+        "on": "OptiScaler_Menu_ShortcutKey=\"0xCF\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler-menu-shortcut-key",
+        "valueName": "Start"
+      },
+      {
+        "id": "optiscaler-menu-shortcut-key-select",
+        "group": "OptiScaler",
+        "name": "OptiScaler Menu Shortcut",
+        "on": "OptiScaler_Menu_ShortcutKey=\"0xD0\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler-menu-shortcut-key",
+        "valueName": "Select"
+      },
+      {
         "id": "optiscaler-hudfix",
         "group": "OptiScaler",
-        "name": "OptiScaler HUDFix",
+        "name": "OptiScaler FrameGen OptiFG HUDFix",
         "on": "OptiScaler_OptiFG_HUDFix=\"true\"",
         "off": "OptiScaler_OptiFG_HUDFix=\"auto\"",
         "enableGlobally": false

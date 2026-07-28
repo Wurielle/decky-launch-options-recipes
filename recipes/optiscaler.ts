@@ -57,6 +57,41 @@ const optiScalerCustomDropdown = (
     ...(value.fallbackValue === true ? {fallbackValue: true} : {}),
 }))
 
+const menuShortcutKeyValues = [
+    {
+        id: 'auto',
+        name: 'Auto',
+        value: 'auto',
+        enableGlobally: true,
+        fallbackValue: true,
+    },
+    {
+        id: 'insert',
+        name: 'Insert',
+        value: '0x2D',
+    },
+    {
+        id: 'volume-down',
+        name: 'Volume Down',
+        value: '0xAE',
+    },
+    {
+        id: 'volume-up',
+        name: 'Volume Up',
+        value: '0xAF',
+    },
+    {
+        id: 'start',
+        name: 'Start',
+        value: '0xCF',
+    },
+    {
+        id: 'select',
+        name: 'Select',
+        value: '0xD0',
+    },
+] as const
+
 const frameGenInputValues = [
     {
         id: 'auto',
@@ -377,6 +412,13 @@ const launchOptions: LaunchOption[] = [
         off: optiScalerEnv('FrameGen_Enabled', 'false'),
         enableGlobally: false,
     },
+    ...optiScalerDropdown(
+        'optiscaler-menu-shortcut-key',
+        'OptiScaler Menu Shortcut',
+        'optiscaler-menu-shortcut-key',
+        'Menu_ShortcutKey',
+        menuShortcutKeyValues,
+    ),
     {
         id: 'optiscaler-hudfix',
         group: optiScalerGroup,
