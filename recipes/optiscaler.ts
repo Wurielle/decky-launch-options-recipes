@@ -11,14 +11,6 @@ type OptiScalerDropdownValue = {
     fallbackValue?: boolean
 }
 
-type OptiScalerCustomDropdownValue = {
-    id: string
-    name: string
-    on: string
-    enableGlobally?: boolean
-    fallbackValue?: boolean
-}
-
 const optiScalerGroup = 'OptiScaler'
 const optiScalerEnv = (option: string, value: string | number | boolean) => `OptiScaler_${option}="${value}"`
 
@@ -33,23 +25,6 @@ const optiScalerDropdown = (
     group: optiScalerGroup,
     name,
     on: optiScalerEnv(option, value.value),
-    off: '',
-    enableGlobally: value.enableGlobally ?? false,
-    valueId,
-    valueName: value.name,
-    ...(value.fallbackValue === true ? {fallbackValue: true} : {}),
-}))
-
-const optiScalerCustomDropdown = (
-    idPrefix: string,
-    name: string,
-    valueId: string,
-    values: readonly OptiScalerCustomDropdownValue[],
-): LaunchOption[] => values.map((value): LaunchOption => ({
-    id: `${idPrefix}-${value.id}`,
-    group: optiScalerGroup,
-    name,
-    on: value.on,
     off: '',
     enableGlobally: value.enableGlobally ?? false,
     valueId,
@@ -97,7 +72,6 @@ const frameGenInputValues = [
         id: 'auto',
         name: 'Auto',
         value: 'auto',
-        enableGlobally: true,
         fallbackValue: true,
     },
     {
@@ -137,7 +111,6 @@ const frameGenOutputValues = [
         id: 'auto',
         name: 'Auto',
         value: 'auto',
-        enableGlobally: true,
         fallbackValue: true,
     },
     {
@@ -187,82 +160,6 @@ const framerateLimitValues = [
     240,
     360,
     480,
-] as const
-
-const latencyProviderValues = [
-    {
-        id: 'auto',
-        name: 'Auto',
-        on: [
-            optiScalerEnv('fakenvapi_UseFakenvapi', 'auto'),
-            optiScalerEnv('fakenvapi_ForceXeLL', 'auto'),
-            optiScalerEnv('fakenvapi_ForceLatencyFlex', 'auto'),
-        ].join(' '),
-        fallbackValue: true,
-    },
-    {
-        id: 'fakenvapi',
-        name: 'Fakenvapi',
-        on: optiScalerEnv('fakenvapi_UseFakenvapi', 'true'),
-    },
-    {
-        id: 'xell',
-        name: 'Force XeLL',
-        on: optiScalerEnv('fakenvapi_ForceXeLL', 'true'),
-    },
-    {
-        id: 'latencyflex',
-        name: 'Force LatencyFlex',
-        on: optiScalerEnv('fakenvapi_ForceLatencyFlex', 'true'),
-    },
-    {
-        id: 'disabled',
-        name: 'Disable Fakenvapi',
-        on: optiScalerEnv('fakenvapi_UseFakenvapi', 'false'),
-    },
-] as const
-
-const latencyFlexModeValues = [
-    {
-        id: 'auto',
-        name: 'Auto',
-        value: 'auto',
-        fallbackValue: true,
-    },
-    {
-        id: 'conservative',
-        name: 'Conservative',
-        value: 0,
-    },
-    {
-        id: 'aggressive',
-        name: 'Aggressive',
-        value: 1,
-    },
-    {
-        id: 'reflex-frame-ids',
-        name: 'Reflex Frame IDs',
-        value: 2,
-    },
-] as const
-
-const reflexOverrideValues = [
-    {
-        id: 'auto',
-        name: 'Auto',
-        value: 'auto',
-        fallbackValue: true,
-    },
-    {
-        id: 'disabled',
-        name: 'Force Disabled',
-        value: 1,
-    },
-    {
-        id: 'enabled',
-        name: 'Force Enabled',
-        value: 2,
-    },
 ] as const
 
 const dx11UpscalerValues = [
@@ -402,7 +299,6 @@ const launchOptions: LaunchOption[] = [
         name: 'OptiScaler',
         on: '~/fgmod/fgmod %command%',
         off: '~/fgmod/fgmod-uninstaller.sh %command%',
-        enableGlobally: false,
     },
     {
         id: 'optiscaler-framegen-enabled',
@@ -410,7 +306,6 @@ const launchOptions: LaunchOption[] = [
         name: 'OptiScaler FrameGen',
         on: optiScalerEnv('FrameGen_Enabled', 'true'),
         off: optiScalerEnv('FrameGen_Enabled', 'false'),
-        enableGlobally: false,
     },
     ...optiScalerDropdown(
         'optiscaler-menu-shortcut-key',
@@ -464,26 +359,6 @@ const launchOptions: LaunchOption[] = [
                 value: framerateLimit,
             })),
         ],
-    ),
-    ...optiScalerCustomDropdown(
-        'optiscaler-latency-provider',
-        'OptiScaler Latency Provider',
-        'optiscaler-latency-provider',
-        latencyProviderValues,
-    ),
-    ...optiScalerDropdown(
-        'optiscaler-latencyflex-mode',
-        'OptiScaler LatencyFlex Mode',
-        'optiscaler-latencyflex-mode',
-        'fakenvapi_LatencyFlexMode',
-        latencyFlexModeValues,
-    ),
-    ...optiScalerDropdown(
-        'optiscaler-reflex-override',
-        'OptiScaler Reflex Override',
-        'optiscaler-reflex-override',
-        'fakenvapi_ForceReflex',
-        reflexOverrideValues,
     ),
     ...optiScalerDropdown(
         'optiscaler-upscalers-dx11',

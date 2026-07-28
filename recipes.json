@@ -7,16 +7,14 @@
         "group": "",
         "name": "OptiScaler",
         "on": "~/fgmod/fgmod %command%",
-        "off": "~/fgmod/fgmod-uninstaller.sh %command%",
-        "enableGlobally": false
+        "off": "~/fgmod/fgmod-uninstaller.sh %command%"
       },
       {
         "id": "optiscaler-framegen-enabled",
         "group": "OptiScaler",
         "name": "OptiScaler FrameGen",
         "on": "OptiScaler_FrameGen_Enabled=\"true\"",
-        "off": "OptiScaler_FrameGen_Enabled=\"false\"",
-        "enableGlobally": false
+        "off": "OptiScaler_FrameGen_Enabled=\"false\""
       },
       {
         "id": "optiscaler-menu-shortcut-key-auto",
@@ -93,7 +91,7 @@
         "name": "OptiScaler FrameGen Input",
         "on": "OptiScaler_FrameGen_FGInput=\"auto\"",
         "off": "",
-        "enableGlobally": true,
+        "enableGlobally": false,
         "valueId": "optiscaler-framegen-input",
         "valueName": "Auto",
         "fallbackValue": true
@@ -164,7 +162,7 @@
         "name": "OptiScaler FrameGen Output",
         "on": "OptiScaler_FrameGen_FGOutput=\"auto\"",
         "off": "",
-        "enableGlobally": true,
+        "enableGlobally": false,
         "valueId": "optiscaler-framegen-output",
         "valueName": "Auto",
         "fallbackValue": true
@@ -389,129 +387,6 @@
         "enableGlobally": false,
         "valueId": "optiscaler-framerate-limit",
         "valueName": "480"
-      },
-      {
-        "id": "optiscaler-latency-provider-auto",
-        "group": "OptiScaler",
-        "name": "OptiScaler Latency Provider",
-        "on": "OptiScaler_fakenvapi_UseFakenvapi=\"auto\" OptiScaler_fakenvapi_ForceXeLL=\"auto\" OptiScaler_fakenvapi_ForceLatencyFlex=\"auto\"",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-latency-provider",
-        "valueName": "Auto",
-        "fallbackValue": true
-      },
-      {
-        "id": "optiscaler-latency-provider-fakenvapi",
-        "group": "OptiScaler",
-        "name": "OptiScaler Latency Provider",
-        "on": "OptiScaler_fakenvapi_UseFakenvapi=\"true\"",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-latency-provider",
-        "valueName": "Fakenvapi"
-      },
-      {
-        "id": "optiscaler-latency-provider-xell",
-        "group": "OptiScaler",
-        "name": "OptiScaler Latency Provider",
-        "on": "OptiScaler_fakenvapi_ForceXeLL=\"true\"",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-latency-provider",
-        "valueName": "Force XeLL"
-      },
-      {
-        "id": "optiscaler-latency-provider-latencyflex",
-        "group": "OptiScaler",
-        "name": "OptiScaler Latency Provider",
-        "on": "OptiScaler_fakenvapi_ForceLatencyFlex=\"true\"",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-latency-provider",
-        "valueName": "Force LatencyFlex"
-      },
-      {
-        "id": "optiscaler-latency-provider-disabled",
-        "group": "OptiScaler",
-        "name": "OptiScaler Latency Provider",
-        "on": "OptiScaler_fakenvapi_UseFakenvapi=\"false\"",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-latency-provider",
-        "valueName": "Disable Fakenvapi"
-      },
-      {
-        "id": "optiscaler-latencyflex-mode-auto",
-        "group": "OptiScaler",
-        "name": "OptiScaler LatencyFlex Mode",
-        "on": "OptiScaler_fakenvapi_LatencyFlexMode=\"auto\"",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-latencyflex-mode",
-        "valueName": "Auto",
-        "fallbackValue": true
-      },
-      {
-        "id": "optiscaler-latencyflex-mode-conservative",
-        "group": "OptiScaler",
-        "name": "OptiScaler LatencyFlex Mode",
-        "on": "OptiScaler_fakenvapi_LatencyFlexMode=\"0\"",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-latencyflex-mode",
-        "valueName": "Conservative"
-      },
-      {
-        "id": "optiscaler-latencyflex-mode-aggressive",
-        "group": "OptiScaler",
-        "name": "OptiScaler LatencyFlex Mode",
-        "on": "OptiScaler_fakenvapi_LatencyFlexMode=\"1\"",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-latencyflex-mode",
-        "valueName": "Aggressive"
-      },
-      {
-        "id": "optiscaler-latencyflex-mode-reflex-frame-ids",
-        "group": "OptiScaler",
-        "name": "OptiScaler LatencyFlex Mode",
-        "on": "OptiScaler_fakenvapi_LatencyFlexMode=\"2\"",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-latencyflex-mode",
-        "valueName": "Reflex Frame IDs"
-      },
-      {
-        "id": "optiscaler-reflex-override-auto",
-        "group": "OptiScaler",
-        "name": "OptiScaler Reflex Override",
-        "on": "OptiScaler_fakenvapi_ForceReflex=\"auto\"",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-reflex-override",
-        "valueName": "Auto",
-        "fallbackValue": true
-      },
-      {
-        "id": "optiscaler-reflex-override-disabled",
-        "group": "OptiScaler",
-        "name": "OptiScaler Reflex Override",
-        "on": "OptiScaler_fakenvapi_ForceReflex=\"1\"",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-reflex-override",
-        "valueName": "Force Disabled"
-      },
-      {
-        "id": "optiscaler-reflex-override-enabled",
-        "group": "OptiScaler",
-        "name": "OptiScaler Reflex Override",
-        "on": "OptiScaler_fakenvapi_ForceReflex=\"2\"",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-reflex-override",
-        "valueName": "Force Enabled"
       },
       {
         "id": "optiscaler-upscalers-dx11-auto",
