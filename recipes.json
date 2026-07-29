@@ -58,24 +58,64 @@
         "valueName": "Volume Up"
       },
       {
-        "id": "optiscaler-menu-shortcut-key-start",
+        "id": "optiscaler-menu-shortcut-key-previous-track",
         "group": "OptiScaler",
         "name": "OptiScaler Menu Shortcut",
-        "on": "OptiScaler_Menu_ShortcutKey=\"0xCF\"",
+        "on": "OptiScaler_Menu_ShortcutKey=\"0xB1\"",
         "off": "",
         "enableGlobally": false,
         "valueId": "optiscaler-menu-shortcut-key",
-        "valueName": "Start"
+        "valueName": "Previous Track"
       },
       {
-        "id": "optiscaler-menu-shortcut-key-select",
+        "id": "optiscaler-menu-shortcut-key-play-pause",
         "group": "OptiScaler",
         "name": "OptiScaler Menu Shortcut",
-        "on": "OptiScaler_Menu_ShortcutKey=\"0xD0\"",
+        "on": "OptiScaler_Menu_ShortcutKey=\"0xB3\"",
         "off": "",
         "enableGlobally": false,
         "valueId": "optiscaler-menu-shortcut-key",
-        "valueName": "Select"
+        "valueName": "Play/Pause"
+      },
+      {
+        "id": "optiscaler-menu-shortcut-key-next-track",
+        "group": "OptiScaler",
+        "name": "OptiScaler Menu Shortcut",
+        "on": "OptiScaler_Menu_ShortcutKey=\"0xB0\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler-menu-shortcut-key",
+        "valueName": "Next Track"
+      },
+      {
+        "id": "optiscaler-menu-shortcut-key-escape",
+        "group": "OptiScaler",
+        "name": "OptiScaler Menu Shortcut",
+        "on": "OptiScaler_Menu_ShortcutKey=\"0x1B\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler-menu-shortcut-key",
+        "valueName": "Escape"
+      },
+      {
+        "id": "optiscaler-menu-shortcut-key-tab",
+        "group": "OptiScaler",
+        "name": "OptiScaler Menu Shortcut",
+        "on": "OptiScaler_Menu_ShortcutKey=\"0x09\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler-menu-shortcut-key",
+        "valueName": "Tab"
+      },
+      {
+        "id": "optiscaler-menu-shortcut-key-enter",
+        "group": "OptiScaler",
+        "name": "OptiScaler Menu Shortcut",
+        "on": "OptiScaler_Menu_ShortcutKey=\"0x0D\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler-menu-shortcut-key",
+        "valueName": "Enter"
       },
       {
         "id": "optiscaler-hudfix",

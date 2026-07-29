@@ -56,14 +56,34 @@ const menuShortcutKeyValues = [
         value: '0xAF',
     },
     {
-        id: 'start',
-        name: 'Start',
-        value: '0xCF',
+        id: 'previous-track',
+        name: 'Previous Track',
+        value: '0xB1',
     },
     {
-        id: 'select',
-        name: 'Select',
-        value: '0xD0',
+        id: 'play-pause',
+        name: 'Play/Pause',
+        value: '0xB3',
+    },
+    {
+        id: 'next-track',
+        name: 'Next Track',
+        value: '0xB0',
+    },
+    {
+        id: 'escape',
+        name: 'Escape',
+        value: '0x1B',
+    },
+    {
+        id: 'tab',
+        name: 'Tab',
+        value: '0x09',
+    },
+    {
+        id: 'enter',
+        name: 'Enter',
+        value: '0x0D',
     },
 ] as const
 
