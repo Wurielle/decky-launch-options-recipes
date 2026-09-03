@@ -14,8 +14,9 @@ source to a different file hosted anywhere so you can easily create your own set
 > and
 > review yourself.
 
-Recipe sources live in `recipes/*.ts` and each file exports exactly one typed recipe. `recipes.json` is generated from
-those files automatically, so there is no registry file to maintain.
+Recipe sources live in either `recipes/<name>.ts` or `recipes/<name>/index.ts`, and each source exports exactly one typed
+recipe. The directory form can keep supporting files beside the recipe. `recipes.json` is generated from those sources
+automatically, so there is no registry file to maintain.
 
 Here's what the generated recipes look like:
 
@@ -83,8 +84,9 @@ example above to a gist and point the recipes source to it inside the plugin.
 
 I welcome contributions!
 
-If you want to create a recipe, add a file in `recipes/` named `<my-recipe-name>.ts` that exports a single object that
-satifies the `Recipe` type.
+If you want to create a recipe, add either `recipes/<my-recipe-name>.ts` or `recipes/<my-recipe-name>/index.ts`. Export a
+single object that satisfies the `Recipe` type. Use the directory form when the recipe has supporting files such as
+scripts.
 
 ### Build-time environment variables
 

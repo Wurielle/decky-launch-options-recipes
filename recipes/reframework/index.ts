@@ -1,4 +1,4 @@
-import type { LaunchOption, Recipe } from './types.js'
+import type { LaunchOption, Recipe } from '../types.js'
 
 const reframeworkGroup = 'REFramework'
 const repositoryOwner = '{{env:RECIPE_REPOSITORY_OWNER}}'

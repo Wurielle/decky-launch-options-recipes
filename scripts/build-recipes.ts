@@ -7,6 +7,7 @@ import type {Recipe} from '../recipes/types.js';
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(currentDir, '..', '..', '..');
+const recipesDir = path.join(repoRoot, 'recipes');
 const compiledRecipesDir = path.join(repoRoot, '.generated', 'recipes-build', 'recipes');
 const outputPath = path.join(repoRoot, 'recipes.json');
 const environmentPlaceholderPattern = /\{\{env:([A-Z_][A-Z0-9_]*)\}\}/g;
@@ -45,6 +46,49 @@ function resolveEnvironmentPlaceholders(value: unknown, fileName: string): unkno
   return value;
 }
 
+async function getRecipeModulePaths(): Promise<string[]> {
+  const entries = await fs.readdir(recipesDir, {withFileTypes: true});
+  const modulePaths = new Map<string, string>();
+
+  const addModulePath = (recipeId: string, modulePath: string) => {
+    const existingModulePath = modulePaths.get(recipeId);
+
+    if (existingModulePath !== undefined) {
+      throw new Error(
+        `Recipe "${recipeId}" is defined by both "${existingModulePath}" and "${modulePath}".`,
+      );
+    }
+
+    modulePaths.set(recipeId, modulePath);
+  };
+
+  for (const entry of entries) {
+    if (
+      entry.isFile()
+      && entry.name.endsWith('.ts')
+      && entry.name !== 'index.ts'
+      && entry.name !== 'types.ts'
+    ) {
+      const recipeId = path.basename(entry.name, '.ts');
+      addModulePath(recipeId, `${recipeId}.js`);
+      continue;
+    }
+
+    if (!entry.isDirectory()) {
+      continue;
+    }
+
+    try {
+      await fs.access(path.join(recipesDir, entry.name, 'index.ts'));
+      addModulePath(entry.name, path.join(entry.name, 'index.js'));
+    } catch {
+      // Directories without an index.ts are not recipe sources.
+    }
+  }
+
+  return [...modulePaths.values()].sort();
+}
+
 async function getExistingRecipeOrder(): Promise<Map<string, number>> {
   try {
     const json = execFileSync('git', ['show', 'HEAD:recipes.json'], {
@@ -60,17 +104,14 @@ async function getExistingRecipeOrder(): Promise<Map<string, number>> {
 }
 
 async function loadRecipes(): Promise<Recipe[]> {
-  const fileNames = (await fs.readdir(compiledRecipesDir))
-    .filter((fileName) => fileName.endsWith('.js'))
-    .filter((fileName) => fileName !== 'index.js' && fileName !== 'types.js')
-    .sort();
+  const modulePaths = await getRecipeModulePaths();
 
   return Promise.all(
-    fileNames.map(async (fileName) => {
-      const moduleUrl = pathToFileURL(path.join(compiledRecipesDir, fileName)).href;
+    modulePaths.map(async (modulePath) => {
+      const moduleUrl = pathToFileURL(path.join(compiledRecipesDir, modulePath)).href;
       const module = await import(moduleUrl);
 
-      return resolveEnvironmentPlaceholders(module.default, fileName) as Recipe;
+      return resolveEnvironmentPlaceholders(module.default, modulePath) as Recipe;
     }),
   );
 }

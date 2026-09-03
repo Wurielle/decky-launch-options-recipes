@@ -1,6 +1,6 @@
 ---
 name: decky-launch-options-recipes
-description: Create or update Decky Launch Options recipe source files for the Wurielle/decky-launch-options plugin. Use when asked to add launch options, recipe entries, dropdown launch options, or generated recipes.json output for Decky Launch Options, especially in repositories with recipes/*.ts and a Recipe type.
+description: Create or update Decky Launch Options recipe sources for the Wurielle/decky-launch-options plugin. Use when asked to add launch options, recipe entries, dropdown launch options, or generated recipes.json output, especially in repositories with recipes/<name>.ts or recipes/<name>/index.ts and a Recipe type.
 ---
 
 # Decky Launch Options Recipes
@@ -14,8 +14,9 @@ Use this skill to add or update recipes for the Decky Launch Options plugin.
    - Treat `recipes.json` as generated output. Do not edit it by hand.
    - Prefer matching the best existing local example. In `decky-launch-options-recipes`, `recipes/mangohud.ts` is the model for dropdowns.
 
-2. Create or update one source recipe file under `recipes/`.
-   - Use a hyphen-case file name, for example `mangohud.ts` or `lossless-scaling.ts`.
+2. Create or update one recipe source under `recipes/`.
+   - Use either `recipes/<name>.ts` or `recipes/<name>/index.ts`. Use the directory form when the recipe has supporting files such as scripts.
+   - Use a hyphen-case file or directory name, for example `mangohud.ts`, `lossless-scaling.ts`, or `reframework/index.ts`.
    - Export exactly one default object satisfying `Recipe`.
    - Import the type with the existing repo style, commonly:
 
@@ -39,6 +40,8 @@ const recipe = {
 export default recipe
 ```
 
+   - In a directory index, import the shared type from `../types.js` instead.
+
    - Prefer programmatic generation for repeated or patterned launch options, especially dropdowns with numeric values, DLL lists, presets, backends, or other structured choices.
    - Import `LaunchOption` along with `Recipe` when building `launchOptions` from arrays or helper functions.
    - Keep source arrays compact and ordered the same way the UI should display values, then use `map` or `flatMap` to produce `LaunchOption[]`.
@@ -53,7 +56,7 @@ export default recipe
 
 ## Generated Recipes File
 
-Never manually update `recipes.json`. Add or change entries only in `recipes/*.ts`, then run the repo's recipe build/check command so TypeScript validates the recipe before `recipes.json` is generated. This keeps invalid launch option entries from being copied directly into the generated file.
+Never manually update `recipes.json`. Add or change entries only in `recipes/<name>.ts` or `recipes/<name>/index.ts`, then run the repo's recipe build/check command so TypeScript validates the recipe before `recipes.json` is generated. This keeps invalid launch option entries from being copied directly into the generated file.
 
 ## Launch Option Fields
 
