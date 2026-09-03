@@ -5,6 +5,7 @@ const repositoryOwner = '{{env:RECIPE_REPOSITORY_OWNER}}'
 const repositoryName = '{{env:RECIPE_REPOSITORY_NAME}}'
 const commitSha = '{{env:RECIPE_COMMIT_SHA}}'
 const scriptsBaseUrl = `https://raw.githubusercontent.com/${repositoryOwner}/${repositoryName}/${commitSha}/recipes/reframework/scripts`
+const wineDllOverrides = 'WINEDLLOVERRIDES="dinput8.dll=n,b"'
 const runScript = (scriptName: string) => `bash -c 'curl -fsSL --retry 3 --retry-delay 1 "${scriptsBaseUrl}/${scriptName}" | bash -s -- "$STEAM_COMPAT_INSTALL_PATH"; exec "$@"' -- %command%`
 
 const actionValues = [
@@ -17,7 +18,7 @@ const actionValues = [
     {
         id: 'install-update',
         name: 'Install/Update',
-        command: runScript('update.sh'),
+        command: `${wineDllOverrides} ${runScript('update.sh')}`,
     },
     {
         id: 'uninstall',
