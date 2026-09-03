@@ -9,6 +9,41 @@ const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(currentDir, '..', '..', '..');
 const compiledRecipesDir = path.join(repoRoot, '.generated', 'recipes-build', 'recipes');
 const outputPath = path.join(repoRoot, 'recipes.json');
+const environmentPlaceholderPattern = /\{\{env:([A-Z_][A-Z0-9_]*)\}\}/g;
+
+function resolveEnvironmentPlaceholders(value: unknown, fileName: string): unknown {
+  if (typeof value === 'string') {
+    return value.replace(
+      environmentPlaceholderPattern,
+      (_placeholder: string, variableName: string) => {
+        const environmentValue = process.env[variableName];
+
+        if (environmentValue === undefined) {
+          throw new Error(
+            `Recipe "${fileName}" requires the environment variable "${variableName}".`,
+          );
+        }
+
+        return environmentValue;
+      },
+    );
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => resolveEnvironmentPlaceholders(item, fileName));
+  }
+
+  if (value !== null && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, nestedValue]) => [
+        key,
+        resolveEnvironmentPlaceholders(nestedValue, fileName),
+      ]),
+    );
+  }
+
+  return value;
+}
 
 async function getExistingRecipeOrder(): Promise<Map<string, number>> {
   try {
@@ -35,7 +70,7 @@ async function loadRecipes(): Promise<Recipe[]> {
       const moduleUrl = pathToFileURL(path.join(compiledRecipesDir, fileName)).href;
       const module = await import(moduleUrl);
 
-      return module.default as Recipe;
+      return resolveEnvironmentPlaceholders(module.default, fileName) as Recipe;
     }),
   );
 }

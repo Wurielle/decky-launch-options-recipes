@@ -85,3 +85,13 @@ I welcome contributions!
 
 If you want to create a recipe, add a file in `recipes/` named `<my-recipe-name>.ts` that exports a single object that
 satifies the `Recipe` type.
+
+### Build-time environment variables
+
+Recipe string fields can use `{{env:VARIABLE_NAME}}` placeholders. The recipe generator replaces each placeholder with
+the matching environment variable and fails when a required variable is missing.
+
+The GitHub workflow provides the source repository owner, repository name, and commit as
+`RECIPE_REPOSITORY_OWNER`, `RECIPE_REPOSITORY_NAME`, and `RECIPE_COMMIT_SHA`. This allows recipes to reference files
+from the exact repository revision that generated `recipes.json`. Pull requests generate the file for validation; the
+push workflow commits the final generated file because its contents depend on the source commit SHA.

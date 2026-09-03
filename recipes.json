@@ -2516,5 +2516,41 @@
         "valueName": "Disabled"
       }
     ]
+  },
+  {
+    "name": "REFramework",
+    "launchOptions": [
+      {
+        "id": "reframework-none",
+        "group": "REFramework",
+        "name": "REFramework",
+        "on": "",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "reframework",
+        "valueName": "None",
+        "fallbackValue": true
+      },
+      {
+        "id": "reframework-install-update",
+        "group": "REFramework",
+        "name": "REFramework",
+        "on": "bash -c 'curl -fsSL --retry 3 --retry-delay 1 \"https://raw.githubusercontent.com/Wurielle/decky-launch-options-recipes/refs/heads/dev/recipes/reframework/scripts/update.sh\" | bash -s -- \"$STEAM_COMPAT_INSTALL_PATH\"; exec \"$@\"' -- %command%",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "reframework",
+        "valueName": "Install/Update"
+      },
+      {
+        "id": "reframework-uninstall",
+        "group": "REFramework",
+        "name": "REFramework",
+        "on": "bash -c 'curl -fsSL --retry 3 --retry-delay 1 \"https://raw.githubusercontent.com/Wurielle/decky-launch-options-recipes/refs/heads/dev/recipes/reframework/scripts/uninstall.sh\" | bash -s -- \"$STEAM_COMPAT_INSTALL_PATH\"; exec \"$@\"' -- %command%",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "reframework",
+        "valueName": "Uninstall"
+      }
+    ]
   }
 ]
