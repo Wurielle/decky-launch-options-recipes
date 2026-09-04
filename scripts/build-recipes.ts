@@ -3,7 +3,7 @@ import {execFileSync} from 'node:child_process';
 import path from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 
-import type {Recipe} from '../recipes/types.js';
+import type {Recipe} from '../recipes/shared/types.js';
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(currentDir, '..', '..', '..');
@@ -11,6 +11,7 @@ const recipesDir = path.join(repoRoot, 'recipes');
 const compiledRecipesDir = path.join(repoRoot, '.generated', 'recipes-build', 'recipes');
 const outputPath = path.join(repoRoot, 'recipes.json');
 const environmentPlaceholderPattern = /\{\{env:([A-Z_][A-Z0-9_]*)\}\}/g;
+const ignoredRecipeDirectories = new Set(['shared']);
 
 function resolveEnvironmentPlaceholders(value: unknown, fileName: string): unknown {
   if (typeof value === 'string') {
@@ -67,14 +68,13 @@ async function getRecipeModulePaths(): Promise<string[]> {
       entry.isFile()
       && entry.name.endsWith('.ts')
       && entry.name !== 'index.ts'
-      && entry.name !== 'types.ts'
     ) {
       const recipeId = path.basename(entry.name, '.ts');
       addModulePath(recipeId, `${recipeId}.js`);
       continue;
     }
 
-    if (!entry.isDirectory()) {
+    if (!entry.isDirectory() || ignoredRecipeDirectories.has(entry.name)) {
       continue;
     }
 

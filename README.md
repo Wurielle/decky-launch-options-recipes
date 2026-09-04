@@ -16,7 +16,8 @@ source to a different file hosted anywhere so you can easily create your own set
 
 Recipe sources live in either `recipes/<name>.ts` or `recipes/<name>/index.ts`, and each source exports exactly one typed
 recipe. The directory form can keep supporting files beside the recipe. `recipes.json` is generated from those sources
-automatically, so there is no registry file to maintain.
+automatically, so there is no registry file to maintain. Shared recipe code and types live in `recipes/shared/`, which
+the generator never treats as a recipe source.
 
 Here's what the generated recipes look like:
 

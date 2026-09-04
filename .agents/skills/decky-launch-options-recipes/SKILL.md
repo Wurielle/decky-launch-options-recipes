@@ -10,7 +10,7 @@ Use this skill to add or update recipes for the Decky Launch Options plugin.
 ## Workflow
 
 1. Inspect the repository before editing:
-   - Read `README.md`, `recipes/types.ts`, `package.json`, and similar existing recipe files.
+   - Read `README.md`, `recipes/shared/types.ts`, `package.json`, and similar existing recipe files.
    - Read `recipes/shared/host-runtime.ts` when a recipe downloads a script or invokes another host-system command from Steam.
    - Treat `recipes.json` as generated output. Do not edit it by hand.
    - Prefer matching the best existing local example. In `decky-launch-options-recipes`, `recipes/mangohud.ts` is the model for dropdowns.
@@ -22,7 +22,7 @@ Use this skill to add or update recipes for the Decky Launch Options plugin.
    - Import the type with the existing repo style, commonly:
 
 ```ts
-import type { Recipe } from './types.js'
+import type { Recipe } from './shared/types.js'
 
 const recipe = {
     name: 'Tool Name',
@@ -41,7 +41,8 @@ const recipe = {
 export default recipe
 ```
 
-   - In a directory index, import the shared type from `../types.js` instead.
+   - In a directory index, import the shared type from `../shared/types.js` instead.
+   - `recipes/shared/` is reserved for reusable recipe modules and is never loaded as a recipe source.
 
    - Prefer programmatic generation for repeated or patterned launch options, especially dropdowns with numeric values, DLL lists, presets, backends, or other structured choices.
    - Import `LaunchOption` along with `Recipe` when building `launchOptions` from arrays or helper functions.
@@ -126,7 +127,7 @@ Use `recipes/optiscaler.ts` as the model: its dropdown fallbacks use `Auto` beca
 For mutually exclusive choices, prefer a compact value array plus a typed `map`:
 
 ```ts
-import type { LaunchOption, Recipe } from './types.js'
+import type { LaunchOption, Recipe } from './shared/types.js'
 
 const toolModeValues = [
     {
