@@ -5,7 +5,7 @@ on:
     branches:
       - '**'
     paths:
-      - 'recipes/**/*.ts'
+      - 'recipes/**'
       - 'scripts/build-recipes.ts'
       - 'tsconfig.recipes.json'
       - 'package.json'
@@ -14,7 +14,7 @@ on:
     branches:
       - '**'
     paths:
-      - 'recipes/**/*.ts'
+      - 'recipes/**'
       - 'scripts/build-recipes.ts'
       - 'tsconfig.recipes.json'
       - 'package.json'
@@ -31,7 +31,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.head_ref || github.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup pnpm
@@ -49,6 +50,10 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build recipes.json
+        env:
+          RECIPE_REPOSITORY_OWNER: ${{ github.event.pull_request.head.repo.owner.login || github.repository_owner }}
+          RECIPE_REPOSITORY_NAME: ${{ github.event.pull_request.head.repo.name || github.event.repository.name }}
+          RECIPE_COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: pnpm recipes:build
 
       - name: Commit and push generated recipes.json
@@ -63,8 +68,4 @@ jobs:
           git config --local user.name "github-actions[bot]"
           git add recipes.json
           git commit -m "chore: rebuild recipes.json"
-          git push
-
-      - name: Verify generated recipes.json is committed
-        if: github.event_name == 'pull_request'
-        run: git diff --exit-code -- recipes.json
+          git push origin "HEAD:${GITHUB_REF}"

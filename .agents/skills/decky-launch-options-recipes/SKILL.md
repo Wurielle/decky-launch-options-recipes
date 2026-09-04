@@ -1,6 +1,6 @@
 ---
 name: decky-launch-options-recipes
-description: Create or update Decky Launch Options recipe source files for the Wurielle/decky-launch-options plugin. Use when asked to add launch options, recipe entries, dropdown launch options, or generated recipes.json output for Decky Launch Options, especially in repositories with recipes/*.ts and a Recipe type.
+description: Create or update Decky Launch Options recipe sources for the Wurielle/decky-launch-options plugin. Use when asked to add launch options, recipe entries, dropdown launch options, or generated recipes.json output, especially in repositories with recipes/<name>.ts or recipes/<name>/index.ts and a Recipe type.
 ---
 
 # Decky Launch Options Recipes
@@ -10,17 +10,19 @@ Use this skill to add or update recipes for the Decky Launch Options plugin.
 ## Workflow
 
 1. Inspect the repository before editing:
-   - Read `README.md`, `recipes/types.ts`, `package.json`, and similar existing recipe files.
+   - Read `README.md`, `recipes/shared/types.ts`, `package.json`, and similar existing recipe files.
+   - Read `recipes/shared/host-runtime.ts` when a recipe downloads a script or invokes another host-system command from Steam.
    - Treat `recipes.json` as generated output. Do not edit it by hand.
    - Prefer matching the best existing local example. In `decky-launch-options-recipes`, `recipes/mangohud.ts` is the model for dropdowns.
 
-2. Create or update one source recipe file under `recipes/`.
-   - Use a hyphen-case file name, for example `mangohud.ts` or `lossless-scaling.ts`.
+2. Create or update one recipe source under `recipes/`.
+   - Use either `recipes/<name>.ts` or `recipes/<name>/index.ts`. Use the directory form when the recipe has supporting files such as scripts.
+   - Use a hyphen-case file or directory name, for example `mangohud.ts`, `lossless-scaling.ts`, or `reframework/index.ts`.
    - Export exactly one default object satisfying `Recipe`.
    - Import the type with the existing repo style, commonly:
 
 ```ts
-import type { Recipe } from './types.js'
+import type { Recipe } from './shared/types.js'
 
 const recipe = {
     name: 'Tool Name',
@@ -39,6 +41,9 @@ const recipe = {
 export default recipe
 ```
 
+   - In a directory index, import the shared type from `../shared/types.js` instead.
+   - `recipes/shared/` is reserved for reusable recipe modules and is never loaded as a recipe source.
+
    - Prefer programmatic generation for repeated or patterned launch options, especially dropdowns with numeric values, DLL lists, presets, backends, or other structured choices.
    - Import `LaunchOption` along with `Recipe` when building `launchOptions` from arrays or helper functions.
    - Keep source arrays compact and ordered the same way the UI should display values, then use `map` or `flatMap` to produce `LaunchOption[]`.
@@ -53,7 +58,7 @@ export default recipe
 
 ## Generated Recipes File
 
-Never manually update `recipes.json`. Add or change entries only in `recipes/*.ts`, then run the repo's recipe build/check command so TypeScript validates the recipe before `recipes.json` is generated. This keeps invalid launch option entries from being copied directly into the generated file.
+Never manually update `recipes.json`. Add or change entries only in `recipes/<name>.ts` or `recipes/<name>/index.ts`, then run the repo's recipe build/check command so TypeScript validates the recipe before `recipes.json` is generated. This keeps invalid launch option entries from being copied directly into the generated file.
 
 ## Launch Option Fields
 
@@ -76,6 +81,16 @@ Use these fields according to the local `LaunchOption` type:
 - Put wrapper commands before `%command%`, for example `mangohud %command%`.
 - Put game arguments after `%command%` when the option is a game argument.
 - Keep `on` and `off` shell-safe for Steam launch options. Preserve quotes where values contain `=` or spaces.
+- Any launch option that uses `curl` to fetch a script or other host resource from inside Steam must prefix at least the `curl` command with the shared `hostRuntime` value. This escapes Steam's legacy library environment for the host downloader:
+
+```ts
+import { hostRuntime } from './shared/host-runtime.js'
+
+const download = `${hostRuntime} curl -fsSL "https://example.com/script.sh"`
+```
+
+- From a directory recipe such as `recipes/<name>/index.ts`, import it from `../shared/host-runtime.js` instead.
+- Apply `hostRuntime` only to the auxiliary host commands that need it. Do not wrap the game's `%command%`, which must remain in Steam's intended runtime environment.
 
 ## ID Convention
 
@@ -112,7 +127,7 @@ Use `recipes/optiscaler.ts` as the model: its dropdown fallbacks use `Auto` beca
 For mutually exclusive choices, prefer a compact value array plus a typed `map`:
 
 ```ts
-import type { LaunchOption, Recipe } from './types.js'
+import type { LaunchOption, Recipe } from './shared/types.js'
 
 const toolModeValues = [
     {
@@ -152,5 +167,6 @@ Before finishing:
 - Confirm dropdown IDs include tool, option/config name, and value.
 - Confirm each dropdown has one fallback/default choice when appropriate.
 - Confirm `%command%` is present for wrappers and absent for pure environment-variable options.
+- Confirm every `curl` command used by a Steam launch option is prefixed with the shared `hostRuntime` value.
 - Confirm `recipes.json` was generated by the repo command, not edited manually.
 - Run the repo's recipe build/check command and report any failure clearly.

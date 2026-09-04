@@ -1,4 +1,4 @@
-import type { Recipe } from './types.js'
+import type { Recipe } from './shared/types.js'
 
 const recipe = {
     "name": "Lossless Scaling",
