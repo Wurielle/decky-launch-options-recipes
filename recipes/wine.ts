@@ -1,4 +1,4 @@
-import type { LaunchOption, Recipe } from './types.js'
+import type { LaunchOption, Recipe } from './shared/types.js'
 
 const recommendedDlls = [
     'winhttp.dll',
