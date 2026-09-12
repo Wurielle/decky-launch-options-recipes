@@ -401,6 +401,35 @@ const launchOptions: LaunchOption[] = [
         'Upscalers_VulkanUpscaler',
         vulkanUpscalerValues,
     ),
+    ...optiScalerDropdown(
+        'optiscaler-fsr-upscaler-index',
+        'OptiScaler FSR Upscaler Backend',
+        'optiscaler-fsr-upscaler-index',
+        'FSR_UpscalerIndex',
+        [
+            {
+                id: 'auto',
+                name: 'Auto',
+                value: 'auto',
+                fallbackValue: true,
+            },
+            {
+                id: '0',
+                name: 'FSR 4.0.2',
+                value: 0,
+            },
+            {
+                id: '1',
+                name: 'FSR 3.1.5',
+                value: 1,
+            },
+            {
+                id: '2',
+                name: 'FSR 2.3.4',
+                value: 2,
+            },
+        ],
+    ),
 ]
 
 const recipe = {

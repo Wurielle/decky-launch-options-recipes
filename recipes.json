@@ -660,6 +660,47 @@
         "enableGlobally": false,
         "valueId": "optiscaler-upscalers-vk",
         "valueName": "DLSS"
+      },
+      {
+        "id": "optiscaler-fsr-upscaler-index-auto",
+        "group": "OptiScaler",
+        "name": "OptiScaler FSR Upscaler Backend",
+        "on": "OptiScaler_FSR_UpscalerIndex=\"auto\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler-fsr-upscaler-index",
+        "valueName": "Auto",
+        "fallbackValue": true
+      },
+      {
+        "id": "optiscaler-fsr-upscaler-index-0",
+        "group": "OptiScaler",
+        "name": "OptiScaler FSR Upscaler Backend",
+        "on": "OptiScaler_FSR_UpscalerIndex=\"0\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler-fsr-upscaler-index",
+        "valueName": "FSR 4.0.2"
+      },
+      {
+        "id": "optiscaler-fsr-upscaler-index-1",
+        "group": "OptiScaler",
+        "name": "OptiScaler FSR Upscaler Backend",
+        "on": "OptiScaler_FSR_UpscalerIndex=\"1\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler-fsr-upscaler-index",
+        "valueName": "FSR 3.1.5"
+      },
+      {
+        "id": "optiscaler-fsr-upscaler-index-2",
+        "group": "OptiScaler",
+        "name": "OptiScaler FSR Upscaler Backend",
+        "on": "OptiScaler_FSR_UpscalerIndex=\"2\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler-fsr-upscaler-index",
+        "valueName": "FSR 2.3.4"
       }
     ]
   },
