@@ -312,6 +312,16 @@ const vulkanUpscalerValues = [
     },
 ] as const
 
+const fsr4PresetValues = [
+    {id: 'auto', name: 'Auto', value: 'auto', fallbackValue: true},
+    {id: '0', name: 'Native AA', value: 0},
+    {id: '1', name: 'Ultra Quality / Quality', value: 1},
+    {id: '2', name: 'Balanced', value: 2},
+    {id: '3', name: 'Performance', value: 3},
+    {id: '4', name: 'DRS', value: 4},
+    {id: '5', name: 'Ultra Performance', value: 5},
+] as const
+
 const launchOptions: LaunchOption[] = [
     {
         id: 'optiscaler',
@@ -429,6 +439,13 @@ const launchOptions: LaunchOption[] = [
                 value: 2,
             },
         ],
+    ),
+    ...optiScalerDropdown(
+        'optiscaler-fsr4-preset',
+        'OptiScaler FSR 4 Preset',
+        'optiscaler-fsr4-preset',
+        'FSR_Fsr4Preset',
+        fsr4PresetValues,
     ),
 ]
 

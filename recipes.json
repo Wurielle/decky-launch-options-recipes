@@ -701,6 +701,77 @@
         "enableGlobally": false,
         "valueId": "optiscaler-fsr-upscaler-index",
         "valueName": "FSR 2.3.4"
+      },
+      {
+        "id": "optiscaler-fsr4-preset-auto",
+        "group": "OptiScaler",
+        "name": "OptiScaler FSR 4 Preset",
+        "on": "OptiScaler_FSR_Fsr4Preset=\"auto\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler-fsr4-preset",
+        "valueName": "Auto",
+        "fallbackValue": true
+      },
+      {
+        "id": "optiscaler-fsr4-preset-0",
+        "group": "OptiScaler",
+        "name": "OptiScaler FSR 4 Preset",
+        "on": "OptiScaler_FSR_Fsr4Preset=\"0\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler-fsr4-preset",
+        "valueName": "Native AA"
+      },
+      {
+        "id": "optiscaler-fsr4-preset-1",
+        "group": "OptiScaler",
+        "name": "OptiScaler FSR 4 Preset",
+        "on": "OptiScaler_FSR_Fsr4Preset=\"1\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler-fsr4-preset",
+        "valueName": "Ultra Quality / Quality"
+      },
+      {
+        "id": "optiscaler-fsr4-preset-2",
+        "group": "OptiScaler",
+        "name": "OptiScaler FSR 4 Preset",
+        "on": "OptiScaler_FSR_Fsr4Preset=\"2\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler-fsr4-preset",
+        "valueName": "Balanced"
+      },
+      {
+        "id": "optiscaler-fsr4-preset-3",
+        "group": "OptiScaler",
+        "name": "OptiScaler FSR 4 Preset",
+        "on": "OptiScaler_FSR_Fsr4Preset=\"3\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler-fsr4-preset",
+        "valueName": "Performance"
+      },
+      {
+        "id": "optiscaler-fsr4-preset-4",
+        "group": "OptiScaler",
+        "name": "OptiScaler FSR 4 Preset",
+        "on": "OptiScaler_FSR_Fsr4Preset=\"4\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler-fsr4-preset",
+        "valueName": "DRS"
+      },
+      {
+        "id": "optiscaler-fsr4-preset-5",
+        "group": "OptiScaler",
+        "name": "OptiScaler FSR 4 Preset",
+        "on": "OptiScaler_FSR_Fsr4Preset=\"5\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler-fsr4-preset",
+        "valueName": "Ultra Performance"
       }
     ]
   },
