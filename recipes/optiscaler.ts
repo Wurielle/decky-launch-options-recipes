@@ -322,6 +322,37 @@ const fsr4PresetValues = [
     {id: '5', name: 'Ultra Performance', value: 5},
 ] as const
 
+// The V-Sync section contains a hyphen, so its environment variables must be
+// passed through env rather than used as shell variable assignments.
+const vsyncValues = [
+    {id: 'auto', name: 'Auto', value: 'auto', override: 'auto', fallbackValue: true},
+    {id: 'on', name: 'On', value: true, override: true},
+    {id: 'off', name: 'Off', value: false, override: true},
+] as const
+
+const vsyncOptions: LaunchOption[] = vsyncValues.map((value): LaunchOption => ({
+    id: `optiscaler-vsync-${value.id}`,
+    group: optiScalerGroup,
+    name: 'OptiScaler VSync',
+    on: `env ${optiScalerEnv('V-Sync_OverrideVsync', value.override)} ${optiScalerEnv('V-Sync_ForceVsync', value.value)} %command%`,
+    off: '',
+    enableGlobally: false,
+    valueId: 'optiscaler-vsync',
+    valueName: value.name,
+    ...('fallbackValue' in value ? {fallbackValue: true} : {}),
+}))
+
+const syncIntervalOptions: LaunchOption[] = optiScalerDropdown(
+    'optiscaler-vsync-sync-interval',
+    'OptiScaler VSync Sync Interval',
+    'optiscaler-vsync-sync-interval',
+    'V-Sync_SyncInterval',
+    [
+        {id: 'auto', name: 'Auto', value: 'auto', fallbackValue: true},
+        ...[0, 1, 2, 3].map((value) => ({id: `${value}`, name: `${value}`, value})),
+    ],
+).map((option) => ({...option, on: `env ${option.on} %command%`}))
+
 const launchOptions: LaunchOption[] = [
     {
         id: 'optiscaler',
@@ -447,6 +478,8 @@ const launchOptions: LaunchOption[] = [
         'FSR_Fsr4Preset',
         fsr4PresetValues,
     ),
+    ...vsyncOptions,
+    ...syncIntervalOptions,
 ]
 
 const recipe = {

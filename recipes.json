@@ -772,6 +772,88 @@
         "enableGlobally": false,
         "valueId": "optiscaler-fsr4-preset",
         "valueName": "Ultra Performance"
+      },
+      {
+        "id": "optiscaler-vsync-auto",
+        "group": "OptiScaler",
+        "name": "OptiScaler VSync",
+        "on": "env OptiScaler_V-Sync_OverrideVsync=\"auto\" OptiScaler_V-Sync_ForceVsync=\"auto\" %command%",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler-vsync",
+        "valueName": "Auto",
+        "fallbackValue": true
+      },
+      {
+        "id": "optiscaler-vsync-on",
+        "group": "OptiScaler",
+        "name": "OptiScaler VSync",
+        "on": "env OptiScaler_V-Sync_OverrideVsync=\"true\" OptiScaler_V-Sync_ForceVsync=\"true\" %command%",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler-vsync",
+        "valueName": "On"
+      },
+      {
+        "id": "optiscaler-vsync-off",
+        "group": "OptiScaler",
+        "name": "OptiScaler VSync",
+        "on": "env OptiScaler_V-Sync_OverrideVsync=\"true\" OptiScaler_V-Sync_ForceVsync=\"false\" %command%",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler-vsync",
+        "valueName": "Off"
+      },
+      {
+        "id": "optiscaler-vsync-sync-interval-auto",
+        "group": "OptiScaler",
+        "name": "OptiScaler VSync Sync Interval",
+        "on": "env OptiScaler_V-Sync_SyncInterval=\"auto\" %command%",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler-vsync-sync-interval",
+        "valueName": "Auto",
+        "fallbackValue": true
+      },
+      {
+        "id": "optiscaler-vsync-sync-interval-0",
+        "group": "OptiScaler",
+        "name": "OptiScaler VSync Sync Interval",
+        "on": "env OptiScaler_V-Sync_SyncInterval=\"0\" %command%",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler-vsync-sync-interval",
+        "valueName": "0"
+      },
+      {
+        "id": "optiscaler-vsync-sync-interval-1",
+        "group": "OptiScaler",
+        "name": "OptiScaler VSync Sync Interval",
+        "on": "env OptiScaler_V-Sync_SyncInterval=\"1\" %command%",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler-vsync-sync-interval",
+        "valueName": "1"
+      },
+      {
+        "id": "optiscaler-vsync-sync-interval-2",
+        "group": "OptiScaler",
+        "name": "OptiScaler VSync Sync Interval",
+        "on": "env OptiScaler_V-Sync_SyncInterval=\"2\" %command%",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler-vsync-sync-interval",
+        "valueName": "2"
+      },
+      {
+        "id": "optiscaler-vsync-sync-interval-3",
+        "group": "OptiScaler",
+        "name": "OptiScaler VSync Sync Interval",
+        "on": "env OptiScaler_V-Sync_SyncInterval=\"3\" %command%",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler-vsync-sync-interval",
+        "valueName": "3"
       }
     ]
   },
