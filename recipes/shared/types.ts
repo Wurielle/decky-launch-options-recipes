@@ -5,6 +5,7 @@ export interface LaunchOption {
     on?: string;
     off?: string;
     enableGlobally?: boolean;
+    priority?: number;
     valueId?: string;
     valueName?: string;
     fallbackValue?: boolean;
