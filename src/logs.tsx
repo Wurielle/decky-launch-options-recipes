@@ -1,9 +1,6 @@
 import {callable, FileSelectionType, openFilePicker, toaster} from '@decky/api'
 import {
     ButtonItem,
-    DialogBody,
-    DialogButton,
-    DialogHeader,
     Focusable,
     GamepadButton,
     ModalRoot,
@@ -11,6 +8,29 @@ import {
 } from '@decky/ui'
 import type {GamepadEvent} from '@decky/ui'
 import {useEffect, useRef, useState} from 'react'
+import type {ComponentType, ReactNode} from 'react'
+
+const SCROLL_STEP = 120
+
+const ModalScrollContent = Focusable as ComponentType<{
+    autoFocus?: boolean
+    children: ReactNode
+    focusable?: boolean
+    noFocusRing?: boolean
+    onGamepadDirection?: (event: GamepadEvent) => void
+}>
+
+function findScrollableAncestor(element: HTMLElement | null) {
+    const ownerWindow = element?.ownerDocument.defaultView
+    let current = element
+    while (current && current !== element?.ownerDocument.body) {
+        const overflowY = ownerWindow?.getComputedStyle(current).overflowY
+        if ((overflowY === 'auto' || overflowY === 'scroll' || overflowY === 'overlay')
+            && current.scrollHeight > current.clientHeight) return current
+        current = current.parentElement
+    }
+    return null
+}
 
 type LogFile = {
     path: string
@@ -37,43 +57,35 @@ function LogFileModal({path, onClose}: {path: string; onClose: () => void}) {
     }, [path])
 
     const scrollLog = (event: GamepadEvent) => {
-        const element = scrollRef.current
-        if (!element) return
-        const direction = event.detail.button === GamepadButton.DIR_UP ? -1
-            : event.detail.button === GamepadButton.DIR_DOWN ? 1 : 0
-        if (!direction || (direction < 0 && element.scrollTop <= 0)
-            || (direction > 0 && element.scrollTop + element.clientHeight >= element.scrollHeight)) return
+        const element = findScrollableAncestor(scrollRef.current)
+        if (!element || (event.detail.button !== GamepadButton.DIR_UP
+            && event.detail.button !== GamepadButton.DIR_DOWN)) return
         event.preventDefault()
-        element.scrollBy({top: direction * 120, behavior: event.detail.is_repeat ? 'auto' : 'smooth'})
+        element.scrollBy({
+            top: event.detail.button === GamepadButton.DIR_UP ? -SCROLL_STEP : SCROLL_STEP,
+            behavior: event.detail.is_repeat ? 'auto' : 'smooth',
+        })
     }
 
     return (
         <ModalRoot onCancel={onClose} bAllowFullSize>
-            <DialogHeader>Log file</DialogHeader>
-            <DialogBody>
-                <p style={{fontSize: '14px', overflowWrap: 'anywhere', marginTop: 0}}>
-                    {log?.path ?? path}
-                </p>
-                {error ? <p role="alert">Could not open log: {error}</p> : !log ? (
-                    <p role="status">Loading log…</p>
-                ) : (
-                    <>
-                        {log.truncated && <p>Showing the latest 1 MiB of this log. Older content is omitted.</p>}
-                        <Focusable
-                            ref={scrollRef}
-                            tabIndex={0}
-                            onGamepadDirection={scrollLog}
-                            aria-label="Log contents"
-                            style={{maxHeight: '50vh', overflowY: 'auto', padding: '8px'}}
-                        >
-                            <pre style={{whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', fontSize: '13px', margin: 0}}>
+            <ModalScrollContent autoFocus focusable noFocusRing onGamepadDirection={scrollLog}>
+                <div ref={scrollRef}>
+                    <p style={{fontSize: '14px', overflowWrap: 'anywhere', marginTop: 0}}>
+                        {log?.path ?? path}
+                    </p>
+                    {error ? <p role="alert">Could not open log: {error}</p> : !log ? (
+                        <p role="status">Loading log…</p>
+                    ) : (
+                        <>
+                            {log.truncated && <p>Showing the latest 1 MiB of this log. Older content is omitted.</p>}
+                            <pre style={{whiteSpace: 'pre-wrap', wordBreak: 'break-word', margin: 0}}>
                                 {log.content || 'This log is empty.'}
                             </pre>
-                        </Focusable>
-                    </>
-                )}
-                <DialogButton style={{marginTop: '12px'}} onClick={onClose}>Close</DialogButton>
-            </DialogBody>
+                        </>
+                    )}
+                </div>
+            </ModalScrollContent>
         </ModalRoot>
     )
 }
