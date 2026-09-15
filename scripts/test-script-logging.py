@@ -117,6 +117,31 @@ fi''')
         self.assertFalse((self.game / "dinput8.dll").exists())
         self.assertIn("Uninstalled:", self.log("reframework-uninstall"))
 
+    def test_shell_body_survives_decky_launch_options_token_classification(self):
+        # Compatibility with the deployed Launch Options parser: it classifies
+        # every token before %command%, including the quoted bash -c body.
+        recipes = json.loads((ROOT / "recipes.json").read_text())
+        for recipe in recipes:
+            for option in recipe["launchOptions"]:
+                if option["id"] not in ("reframework-install-update", "reframework-uninstall",
+                                        "optiscaler-nightly-upgrade"):
+                    continue
+                with self.subTest(option=option["id"]):
+                    tokens = shlex.split(option["on"])
+                    prefix, environment = [], {}
+                    for token in tokens[:tokens.index("%command%")]:
+                        if "=" in token and not token.startswith("-") and "/" not in token.split("=", 1)[0]:
+                            key, value = token.split("=", 1)
+                            environment[key] = value
+                        else:
+                            prefix.append(token)
+                    self.assertNotIn("LD_PRELOAD", environment)
+                    self.assertTrue(set(environment) <= {"WINEDLLOVERRIDES"})
+                    self.assertEqual(prefix[:2], ["bash", "-c"])
+                    self.assertEqual(len(prefix), 4)
+                    self.assertIn('exec "$@"', prefix[2])
+                    self.assertEqual(prefix[3], "--")
+
     def test_host_tools_escape_steam_libraries_but_game_keeps_its_environment(self):
         recipes = json.loads((ROOT / "recipes.json").read_text())
         options = {o["id"]: o for r in recipes for o in r["launchOptions"]}
