@@ -90,6 +90,7 @@ const download = `${hostRuntime} curl -fsSL "https://example.com/script.sh"`
 ```
 
 - From a directory recipe such as `recipes/<name>/index.ts`, import it from `../shared/host-runtime.js` instead.
+- When piping a downloaded script into a shell, also prefix the receiving shell with `hostRuntime`: `${hostRuntime} curl ... | ${hostRuntime} bash -s -- ...`. Each side of a pipeline inherits its environment separately; wrapping only the downloader leaves the script’s internal `curl` and other host tools in Steam’s incompatible library environment.
 - Apply `hostRuntime` only to the auxiliary host commands that need it. Do not wrap the game's `%command%`, which must remain in Steam's intended runtime environment.
 
 ## Artifact Caching and Script Logging

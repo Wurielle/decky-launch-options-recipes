@@ -116,6 +116,59 @@ fi''')
         self.assertFalse((self.game / "dinput8.dll").exists())
         self.assertIn("Uninstalled:", self.log("reframework-uninstall"))
 
+    def test_host_tools_escape_steam_libraries_but_game_keeps_its_environment(self):
+        recipes = json.loads((ROOT / "recipes.json").read_text())
+        options = {o["id"]: o for r in recipes for o in r["launchOptions"]}
+        runtime = self.root / "Steam runtime"
+        (runtime / "scripts").mkdir(parents=True)
+        self.tool_path = runtime / "scripts/switch-runtime.sh"
+        self.tool_path.write_text(
+            '#!/usr/bin/env bash\nshift 2\nunset LD_LIBRARY_PATH\n'
+            'export STEAM_RUNTIME=""\nexec "$@"\n')
+        self.tool_path.chmod(0o755)
+        self.env.update(STEAM_RUNTIME=str(runtime), STEAM_COMPAT_INSTALL_PATH=str(self.game),
+                        LD_LIBRARY_PATH="/test/steam/pinned_libs_64")
+        self.tool("unzip", "exit 0")
+        self.tool("curl", '''
+if [[ -n "${LD_LIBRARY_PATH:-}" ]]; then
+    echo "curl: Steam libcurl does not provide CURL_OPENSSL_4" >&2
+    exit 1
+fi
+if [[ "$*" == *raw.githubusercontent.com* ]]; then
+    cat "$TEST_RECIPE_SCRIPT"
+elif [[ "$*" == *url_effective* ]]; then
+    printf 'https://github.com/praydog/REFramework-nightly/releases/tag/test'
+else
+    printf '%s' '[{"draft":false,"tag_name":"test","assets":[{"name":"OptiScaler_test.7z"}]}]'
+fi''')
+        for cache, relative in (("reframework-cache", "test/dinput8.dll"),
+                                ("optiscaler-cache", "test/files/OptiScaler.dll")):
+            dll = self.root / cache / relative
+            dll.parent.mkdir(parents=True)
+            dll.write_text("cached release")
+        marker = self.root / "game-environment.json"
+        game = shlex.join(["python3", "-c",
+                           "import json, os, pathlib; pathlib.Path(os.environ['TEST_GAME_MARKER']).write_text(json.dumps({key: os.environ.get(key) for key in ['LD_LIBRARY_PATH', 'STEAM_RUNTIME']}))"])
+        self.env["TEST_GAME_MARKER"] = str(marker)
+        for name, option, success in [
+            ("reframework-update", "reframework-install-update", "Installed:"),
+            ("reframework-uninstall", "reframework-uninstall", "Uninstalled:"),
+            ("optiscaler-update-nightly", "optiscaler-nightly-upgrade", "Upgraded:"),
+        ]:
+            with self.subTest(script=name):
+                self.env["TEST_RECIPE_SCRIPT"] = str(SCRIPTS[name])
+                marker.unlink(missing_ok=True)
+                result = subprocess.run(["bash", "-c", options[option]["on"].replace("%command%", game)],
+                                        env=self.env, capture_output=True, text=True, timeout=15)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                log = self.log(name)
+                self.assertIn(success, log)
+                self.assertIn("finished with exit status 0", log)
+                self.assertNotIn("CURL_OPENSSL_4", log)
+                environment = json.loads(marker.read_text())
+                self.assertEqual(environment["LD_LIBRARY_PATH"], self.env["LD_LIBRARY_PATH"])
+                self.assertEqual(environment["STEAM_RUNTIME"], str(runtime))
+
     def test_launch_wrappers_continue_after_real_script_failures(self):
         recipes = json.loads((ROOT / "recipes.json").read_text())
         options = {o["id"]: o for r in recipes for o in r["launchOptions"]}

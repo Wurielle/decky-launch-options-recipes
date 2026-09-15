@@ -371,7 +371,7 @@ const launchOptions: LaunchOption[] = [
         id: 'optiscaler-nightly-upgrade',
         group: optiScalerGroup,
         name: 'OptiScaler Nightly Upgrade',
-        on: `bash -c '${hostRuntime} curl -fsSL --retry 3 --retry-delay 1 "${nightlyScriptUrl}" | bash -s -- "$STEAM_COMPAT_INSTALL_PATH"; exec "$@"' -- %command%`,
+        on: `bash -c '${hostRuntime} curl -fsSL --retry 3 --retry-delay 1 "${nightlyScriptUrl}" | ${hostRuntime} bash -s -- "$STEAM_COMPAT_INSTALL_PATH"; exec "$@"' -- %command%`,
         off: '',
         enableGlobally: false,
         priority: -1,
