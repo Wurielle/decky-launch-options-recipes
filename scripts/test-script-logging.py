@@ -48,7 +48,8 @@ class ScriptLoggingTests(unittest.TestCase):
                               capture_output=True, text=True, timeout=15)
 
     def log(self, name, count=1):
-        logs = sorted((self.home / ".dlor/logs" / name).glob("*.log"))
+        recipe, script = name.split("-", 1)
+        logs = sorted((self.home / ".dlor/logs" / recipe / script).glob("*.log"))
         self.assertEqual(len(logs), count)
         return logs[-1].read_text()
 
@@ -105,7 +106,7 @@ fi''')
         self.assertEqual(result.returncode, 22, result.stderr)
         log = self.log("reframework-update")
         self.assertIn("artifact download failed", log)
-        self.assertIn("reframework-update line", log)
+        self.assertIn("reframework/update line", log)
         self.assertIn("cleanup failed", log)
         self.assertIn("finished with exit status 22", log)
 

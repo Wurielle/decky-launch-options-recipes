@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Keep this bootstrap self-contained: Steam downloads this script into bash -s.
-readonly SCRIPT_NAME="reframework-update"
-log_dir="${HOME}/.dlor/logs/$SCRIPT_NAME"
+readonly RECIPE_NAME="reframework"
+readonly SCRIPT_NAME="update"
+log_dir="${HOME}/.dlor/logs/$RECIPE_NAME/$SCRIPT_NAME"
 printf -v log_timestamp '%(%Y-%m-%dT%H-%M-%S)T' -1
 log_timestamp+=".${EPOCHREALTIME##*.}"
 log_file="$log_dir/$log_timestamp.log"
@@ -13,7 +14,7 @@ else
 fi
 
 set -Eeuo pipefail
-trap 'printf "Error: %s line %s: %s (exit %s)\n" "$SCRIPT_NAME" "$LINENO" "$BASH_COMMAND" "$?" >&2' ERR
+trap 'printf "Error: %s line %s: %s (exit %s)\n" "$RECIPE_NAME/$SCRIPT_NAME" "$LINENO" "$BASH_COMMAND" "$?" >&2' ERR
 
 on_exit() {
     local status=$?
@@ -22,13 +23,13 @@ on_exit() {
     if declare -F cleanup >/dev/null; then
         cleanup
     fi
-    printf '%s finished with exit status %s.\n' "$SCRIPT_NAME" "$status"
+    printf '%s finished with exit status %s.\n' "$RECIPE_NAME/$SCRIPT_NAME" "$status"
     exit "$status"
 }
 trap on_exit EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
-printf 'Starting %s\n' "$SCRIPT_NAME"
+printf 'Starting %s\n' "$RECIPE_NAME/$SCRIPT_NAME"
 
 readonly REPOSITORY="praydog/REFramework-nightly"
 readonly ASSET_NAME="REFramework.zip"
