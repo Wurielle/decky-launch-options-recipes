@@ -56,7 +56,7 @@ usage() {
     printf 'Usage: bash update-nightly.sh /path/to/steam-game-directory\n'
     printf 'Updates fgmod dxgi.dll installations beside OptiScaler.ini, including subfolders.\n'
     printf 'Preserves configuration. Override cache with OPTISCALER_CACHE_DIR (default: %s).\n' "$CACHE_ROOT"
-    printf 'Preserves the FSR4 upscaler and AMD driver overrides installed by fgmod.\n'
+    printf 'Overlays supporting DLLs from ~/fgmod; keeps the nightly OptiScaler injector.\n'
 }
 
 if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
@@ -168,38 +168,12 @@ else
     fi
 fi
 
-for directory in "${install_dirs[@]}"; do
-    # fgmod runs first and puts the selected FSR4 variant beside the executable.
-    # Nightlies now load supporting DLLs from OptiScaler/ instead. Use the game's
-    # selected files there too, while keeping the nightly's other dependencies.
-    fsr4_files=(amd_fidelityfx_upscaler_dx12.dll amdxcffx64.dll amdxc64.dll)
-    has_fsr4=false
-    [[ -s "$directory/${fsr4_files[0]}" ]] && has_fsr4=true
+# Install the nightly first, then overlay fgmod's supporting DLLs. Keep its
+# alternative variants and renamed injector copies out of the dependency folder.
+python3 - "$cached_files" "$HOME/fgmod" "${install_dirs[@]}" <<'PY'
+import hashlib, json, os, pathlib, shutil, sys
 
-    # Copy bundled DLLs with their relative layout, leaving user config intact.
-    while IFS= read -r -d '' source; do
-        relative="${source#"$cached_files/"}"
-        [[ "$relative" == 'OptiScaler.dll' ]] && continue
-        if [[ "$has_fsr4" == true ]]; then
-            for fsr4_file in "${fsr4_files[@]}"; do
-                if [[ ( "$relative" == "$fsr4_file" || "$relative" == "OptiScaler/$fsr4_file" )
-                    && -s "$directory/$fsr4_file" ]]; then
-                    # Preserve flat installations; sync the new layout below.
-                    continue 2
-                fi
-            done
-        fi
-        destination="$directory/$relative"
-        mkdir -p -- "${destination%/*}"
-        cp -f -- "$source" "$destination"
-    done < <(find "$cached_files" -type f -iname '*.dll' -print0)
-
-    if [[ "$has_fsr4" == true && -d "$cached_files/OptiScaler" ]]; then
-        # Driver overrides are variant-specific and may not be in the archive.
-        # Track only our copies, so switching variants can remove stale overrides
-        # without removing files subsequently changed by the user or another mod.
-        python3 - "$directory" "$cached_files" "${fsr4_files[@]}" <<'PY'
-import hashlib, json, pathlib, shutil, sys
+cache, fgmod = map(pathlib.Path, sys.argv[1:3])
 
 def checksum(path):
     digest = hashlib.sha256()
@@ -208,27 +182,67 @@ def checksum(path):
             digest.update(chunk)
     return digest.hexdigest()
 
-game = pathlib.Path(sys.argv[1])
-cache = pathlib.Path(sys.argv[2])
-target = game / "OptiScaler"
-target.mkdir(exist_ok=True)
-manifest = target / ".dlor-fsr4.json"
-previous = json.loads(manifest.read_text()) if manifest.is_file() else {}
-current = {}
-for name in sys.argv[3:]:
-    source, destination = game / name, target / name
-    if source.is_file() and source.stat().st_size:
+def dlls(root, excluded=()):
+    return {
+        str(path.relative_to(root)).casefold(): path
+        for path in sorted(root.rglob("*"))
+        if path.is_file() and path.suffix.lower() == ".dll"
+        and path.name.lower() != "optiscaler.dll"
+        and not any(part.casefold() == "renames" or part.casefold().startswith("fsr4-")
+                    or part in excluded for part in path.relative_to(root).parts[:-1])
+    }
+
+metadata_path = fgmod / "install-manifest.json"
+metadata = json.loads(metadata_path.read_text()) if metadata_path.is_file() else {}
+variants = metadata.get("fsr4_variants", {})
+sources = dlls(fgmod, {v["dir_name"] for v in variants.values() if "dir_name" in v})
+selected = os.environ.get("FGMOD_FSR4_VARIANT") or metadata.get("selected_default_variant")
+variant_dir = variants.get(selected, {}).get("dir_name")
+if variant_dir:
+    variant = (fgmod / variant_dir).resolve()
+    if not variant.is_relative_to(fgmod.resolve()):
+        raise ValueError("Framegen variant directory must be inside ~/fgmod")
+    sources.update(dlls(variant))
+
+archive_files = dlls(cache)
+modern_layout = (cache / "OptiScaler").is_dir()
+for directory in map(pathlib.Path, sys.argv[3:]):
+    for source in archive_files.values():
+        destination = directory / source.relative_to(cache)
+        destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(source, destination)
-        current[name] = checksum(destination)
-        print(f"Preserved Framegen FSR4 file: {destination}")
-    elif destination.is_file() and name in previous and not (cache / "OptiScaler" / name).is_file():
-        if checksum(destination) == previous[name]:
-            destination.unlink()
-            print(f"Removed previous Framegen FSR4 override: {destination}")
-manifest.write_text(json.dumps(current))
+
+    target = directory / "OptiScaler" if modern_layout else directory
+    target.mkdir(exist_ok=True)
+    manifest = target / ".dlor-fgmod.json"
+    legacy_manifest = target / ".dlor-fsr4.json"
+    previous_file = manifest if manifest.is_file() else legacy_manifest
+    previous = json.loads(previous_file.read_text()) if previous_file.is_file() else {}
+    current = {}
+    for relative, source in sources.items():
+        # Match Windows paths case-insensitively (e.g. D3D12_Optiscaler).
+        archive_key = "optiscaler/" + relative if modern_layout else relative
+        bundled = archive_files.get(archive_key)
+        source_root = variant if variant_dir and source.is_relative_to(variant) else fgmod
+        destination = directory / bundled.relative_to(cache) if bundled else target / source.relative_to(source_root)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source, destination)
+        current[str(destination.relative_to(target))] = checksum(destination)
+        print(f"Using fgmod DLL: {source} -> {destination}")
+
+    # Remove only obsolete copies we still own; retain nightly replacements and
+    # files that have since been changed by the user or another mod.
+    for relative, digest in previous.items():
+        destination = target / relative
+        archive_key = "optiscaler/" + relative.casefold() if modern_layout else relative.casefold()
+        if relative in current or archive_key in archive_files:
+            continue
+        if destination.resolve().is_relative_to(target.resolve()) and destination.is_file():
+            if checksum(destination) == digest:
+                destination.unlink()
+                print(f"Removed previous fgmod DLL: {destination}")
+    manifest.write_text(json.dumps(current))
+    shutil.copyfile(cache / "OptiScaler.dll", directory / "dxgi.dll")
+    print(f"Upgraded: {directory}")
 PY
-    fi
-    cp -f -- "$cached_files/OptiScaler.dll" "$directory/dxgi.dll"
-    printf 'Upgraded: %s\n' "$directory"
-done
 printf 'Version: %s\nCache: %s\n' "$version" "$version_dir"
