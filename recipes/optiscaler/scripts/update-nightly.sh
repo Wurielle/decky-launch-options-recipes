@@ -1,5 +1,13 @@
 #!/usr/bin/env bash
 # Keep this bootstrap self-contained: Steam downloads this script into bash -s.
+# These scripts run host tools only; keep Steam's libraries and overlay out of them.
+# Use builtins before the first subprocess, including logging setup (bash -s safe).
+unset LD_PRELOAD
+if [[ "${STEAM_RUNTIME:-}" == /* ]]; then
+    export LD_LIBRARY_PATH="${SYSTEM_LD_LIBRARY_PATH:-}"
+    export PATH="${SYSTEM_PATH:-/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin}"
+    unset STEAM_RUNTIME
+fi
 readonly RECIPE_NAME="optiscaler"
 readonly SCRIPT_NAME="update-nightly"
 log_dir="${HOME}/.dlor/logs/$RECIPE_NAME/$SCRIPT_NAME"
@@ -79,7 +87,9 @@ require_command mktemp
 mkdir -p -- "$CACHE_ROOT"
 printf 'Checking the latest OptiScaler nightly release...\n'
 # Nightlies are prereleases, which GitHub's /releases/latest endpoint excludes.
-release_info="$(curl -fsSL --retry 3 --retry-delay 1 "$RELEASES_URL" | python3 -c '
+release_json="$(curl -fsSL --retry 3 --retry-delay 1 "$RELEASES_URL")" ||
+    fail "Could not download the latest nightly release metadata"
+release_info="$(python3 -c '
 import json, re, sys
 releases = json.load(sys.stdin)
 release = next(r for r in releases if not r["draft"])
@@ -90,7 +100,7 @@ if any(not re.fullmatch(r"[A-Za-z0-9_][A-Za-z0-9_.-]*", s) for s in (version, na
     sys.exit("Invalid release version or asset name")
 print(version)
 print(name)
-')" || fail "Could not determine the latest nightly release"
+' <<< "$release_json")" || fail "Could not determine the latest nightly release"
 mapfile -t release_fields <<< "$release_info"
 version="${release_fields[0]}"
 asset_name="${release_fields[1]}"

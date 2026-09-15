@@ -1,5 +1,13 @@
 #!/usr/bin/env bash
 # Keep this bootstrap self-contained: Steam downloads this script into bash -s.
+# These scripts run host tools only; keep Steam's libraries and overlay out of them.
+# Use builtins before the first subprocess, including logging setup (bash -s safe).
+unset LD_PRELOAD
+if [[ "${STEAM_RUNTIME:-}" == /* ]]; then
+    export LD_LIBRARY_PATH="${SYSTEM_LD_LIBRARY_PATH:-}"
+    export PATH="${SYSTEM_PATH:-/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin}"
+    unset STEAM_RUNTIME
+fi
 readonly RECIPE_NAME="reframework"
 readonly SCRIPT_NAME="uninstall"
 log_dir="${HOME}/.dlor/logs/$RECIPE_NAME/$SCRIPT_NAME"

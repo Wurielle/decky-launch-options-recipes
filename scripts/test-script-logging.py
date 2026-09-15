@@ -35,6 +35,7 @@ class ScriptLoggingTests(unittest.TestCase):
                         PATH=f"{self.bin}:{os.environ['PATH']}",
                         REFRAMEWORK_CACHE_DIR=str(self.root / "reframework-cache"),
                         OPTISCALER_CACHE_DIR=str(self.root / "optiscaler-cache"))
+        self.env["SYSTEM_PATH"] = self.env["PATH"]
 
     def tool(self, name, body):
         path = self.bin / name
@@ -127,10 +128,12 @@ fi''')
             'export STEAM_RUNTIME=""\nexec "$@"\n')
         self.tool_path.chmod(0o755)
         self.env.update(STEAM_RUNTIME=str(runtime), STEAM_COMPAT_INSTALL_PATH=str(self.game),
-                        LD_LIBRARY_PATH="/test/steam/pinned_libs_64")
+                        LD_LIBRARY_PATH="/test/steam/pinned_libs_64",
+                        LD_PRELOAD="/test/steam/gameoverlayrenderer.so",
+                        SYSTEM_PATH=self.env["PATH"], SYSTEM_LD_LIBRARY_PATH="")
         self.tool("unzip", "exit 0")
         self.tool("curl", '''
-if [[ -n "${LD_LIBRARY_PATH:-}" ]]; then
+if [[ -n "${LD_LIBRARY_PATH:-}" || -n "${LD_PRELOAD:-}" ]]; then
     echo "curl: Steam libcurl does not provide CURL_OPENSSL_4" >&2
     exit 1
 fi
@@ -148,7 +151,7 @@ fi''')
             dll.write_text("cached release")
         marker = self.root / "game-environment.json"
         game = shlex.join(["python3", "-c",
-                           "import json, os, pathlib; pathlib.Path(os.environ['TEST_GAME_MARKER']).write_text(json.dumps({key: os.environ.get(key) for key in ['LD_LIBRARY_PATH', 'STEAM_RUNTIME']}))"])
+                           "import json, os, pathlib; pathlib.Path(os.environ['TEST_GAME_MARKER']).write_text(json.dumps({key: os.environ.get(key) for key in ['LD_LIBRARY_PATH', 'LD_PRELOAD', 'STEAM_RUNTIME']}))"])
         self.env["TEST_GAME_MARKER"] = str(marker)
         for name, option, success in [
             ("reframework-update", "reframework-install-update", "Installed:"),
@@ -165,9 +168,22 @@ fi''')
                 self.assertIn(success, log)
                 self.assertIn("finished with exit status 0", log)
                 self.assertNotIn("CURL_OPENSSL_4", log)
+                self.assertNotIn("ld.so", log)
                 environment = json.loads(marker.read_text())
                 self.assertEqual(environment["LD_LIBRARY_PATH"], self.env["LD_LIBRARY_PATH"])
+                self.assertEqual(environment["LD_PRELOAD"], self.env["LD_PRELOAD"])
                 self.assertEqual(environment["STEAM_RUNTIME"], str(runtime))
+
+                # Older imported wrappers can still pipe directly into bash -s.
+                # The script must clean its own environment before any tools run.
+                if name == "reframework-uninstall":
+                    (self.game / "dinput8.dll").write_text("original")
+                result = self.run_script(name, self.game, stdin=True)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                log = self.log(name, count=2)
+                self.assertIn(success, log)
+                self.assertNotIn("CURL_OPENSSL_4", log)
+                self.assertNotIn("ld.so", log)
 
     def test_launch_wrappers_continue_after_real_script_failures(self):
         recipes = json.loads((ROOT / "recipes.json").read_text())

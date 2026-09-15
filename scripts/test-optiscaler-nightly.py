@@ -125,7 +125,10 @@ dest = pathlib.Path(next(a[2:] for a in sys.argv if a.startswith("-o")))
 
     def test_network_failure_leaves_installation_unchanged(self):
         (self.root / "network-failure").touch()
-        self.run_update(success=False)
+        result = self.run_update(success=False)
+        self.assertIn("Could not download the latest nightly release metadata", result.stdout)
+        self.assertNotIn("JSONDecodeError", result.stdout + result.stderr)
+        self.assertNotIn("Traceback", result.stdout + result.stderr)
         self.assertEqual((self.install / "dxgi.dll").read_text(), "fgmod version")
 
     def test_launch_wrapper_continues_after_updater_failure_and_preserves_arguments(self):

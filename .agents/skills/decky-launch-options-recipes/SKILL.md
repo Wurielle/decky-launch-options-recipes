@@ -92,6 +92,9 @@ const download = `${hostRuntime} curl -fsSL "https://example.com/script.sh"`
 - From a directory recipe such as `recipes/<name>/index.ts`, import it from `../shared/host-runtime.js` instead.
 - When piping a downloaded script into a shell, also prefix the receiving shell with `hostRuntime`: `${hostRuntime} curl ... | ${hostRuntime} bash -s -- ...`. Each side of a pipeline inherits its environment separately; wrapping only the downloader leaves the script’s internal `curl` and other host tools in Steam’s incompatible library environment.
 - Apply `hostRuntime` only to the auxiliary host commands that need it. Do not wrap the game's `%command%`, which must remain in Steam's intended runtime environment.
+- Clear `LD_PRELOAD` for auxiliary host commands before launching them; Steam's runtime switch does not clear the overlay preload. The shared `hostRuntime` prefix does this with a command-local assignment, preserving the game's overlay environment.
+- Downloaded host scripts must also clean their own environment with shell builtins before logging or other subprocesses: unset `LD_PRELOAD`, and when `STEAM_RUNTIME` is an absolute path, restore `LD_LIBRARY_PATH` from `SYSTEM_LD_LIBRARY_PATH` (or empty), restore `PATH` from `SYSTEM_PATH` (or the standard host paths), and unset `STEAM_RUNTIME`. Keep this bootstrap self-contained and compatible with `bash -s`. Test direct execution under Steam's environment as well as the generated wrapper.
+- Check metadata downloads for success before parsing JSON, so a network or loader failure reports its actual cause without a secondary empty-input parser traceback.
 
 ## Artifact Caching and Script Logging
 
