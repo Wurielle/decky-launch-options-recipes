@@ -56,6 +56,7 @@ usage() {
     printf 'Usage: bash update-nightly.sh /path/to/steam-game-directory\n'
     printf 'Updates fgmod dxgi.dll installations beside OptiScaler.ini, including subfolders.\n'
     printf 'Preserves configuration. Override cache with OPTISCALER_CACHE_DIR (default: %s).\n' "$CACHE_ROOT"
+    printf 'Preserves the FSR4 upscaler and AMD driver overrides installed by fgmod.\n'
 }
 
 if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
@@ -168,14 +169,65 @@ else
 fi
 
 for directory in "${install_dirs[@]}"; do
+    # fgmod runs first and puts the selected FSR4 variant beside the executable.
+    # Nightlies now load supporting DLLs from OptiScaler/ instead. Use the game's
+    # selected files there too, while keeping the nightly's other dependencies.
+    fsr4_files=(amd_fidelityfx_upscaler_dx12.dll amdxcffx64.dll amdxc64.dll)
+    has_fsr4=false
+    [[ -s "$directory/${fsr4_files[0]}" ]] && has_fsr4=true
+
     # Copy bundled DLLs with their relative layout, leaving user config intact.
     while IFS= read -r -d '' source; do
         relative="${source#"$cached_files/"}"
         [[ "$relative" == 'OptiScaler.dll' ]] && continue
+        if [[ "$has_fsr4" == true ]]; then
+            for fsr4_file in "${fsr4_files[@]}"; do
+                if [[ ( "$relative" == "$fsr4_file" || "$relative" == "OptiScaler/$fsr4_file" )
+                    && -s "$directory/$fsr4_file" ]]; then
+                    # Preserve flat installations; sync the new layout below.
+                    continue 2
+                fi
+            done
+        fi
         destination="$directory/$relative"
         mkdir -p -- "${destination%/*}"
         cp -f -- "$source" "$destination"
     done < <(find "$cached_files" -type f -iname '*.dll' -print0)
+
+    if [[ "$has_fsr4" == true && -d "$cached_files/OptiScaler" ]]; then
+        # Driver overrides are variant-specific and may not be in the archive.
+        # Track only our copies, so switching variants can remove stale overrides
+        # without removing files subsequently changed by the user or another mod.
+        python3 - "$directory" "$cached_files" "${fsr4_files[@]}" <<'PY'
+import hashlib, json, pathlib, shutil, sys
+
+def checksum(path):
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+game = pathlib.Path(sys.argv[1])
+cache = pathlib.Path(sys.argv[2])
+target = game / "OptiScaler"
+target.mkdir(exist_ok=True)
+manifest = target / ".dlor-fsr4.json"
+previous = json.loads(manifest.read_text()) if manifest.is_file() else {}
+current = {}
+for name in sys.argv[3:]:
+    source, destination = game / name, target / name
+    if source.is_file() and source.stat().st_size:
+        shutil.copyfile(source, destination)
+        current[name] = checksum(destination)
+        print(f"Preserved Framegen FSR4 file: {destination}")
+    elif destination.is_file() and name in previous and not (cache / "OptiScaler" / name).is_file():
+        if checksum(destination) == previous[name]:
+            destination.unlink()
+            print(f"Removed previous Framegen FSR4 override: {destination}")
+manifest.write_text(json.dumps(current))
+PY
+    fi
     cp -f -- "$cached_files/OptiScaler.dll" "$directory/dxgi.dll"
     printf 'Upgraded: %s\n' "$directory"
 done

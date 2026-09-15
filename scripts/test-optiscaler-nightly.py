@@ -61,6 +61,9 @@ dest = pathlib.Path(next(a[2:] for a in sys.argv if a.startswith("-o")))
 (dest / "OptiScaler.dll").write_text("nightly version")
 (dest / "OptiScaler.ini").write_text("default settings")
 (dest / "amd_fidelityfx_dx12.dll").write_text("nightly dependency")
+(dest / "OptiScaler").mkdir()
+(dest / "OptiScaler/amd_fidelityfx_upscaler_dx12.dll").write_text("stock nightly upscaler")
+(dest / "OptiScaler/amd_fidelityfx_loader_dx12.dll").write_text("nightly loader")
 ''')
 
     def tool(self, name, code):
@@ -95,6 +98,58 @@ dest = pathlib.Path(next(a[2:] for a in sys.argv if a.startswith("-o")))
         self.run_update()
         self.assert_updated()
         self.assertNotIn("download", self.calls.read_text())
+
+    def test_preserves_each_games_fsr4_variant_and_companion_drivers(self):
+        names = ("amd_fidelityfx_upscaler_dx12.dll", "amdxcffx64.dll", "amdxc64.dll")
+        for name in names:
+            (self.install / name).write_text("selected " + name)
+        other = self.game / "Other installation"
+        other.mkdir()
+        (other / "OptiScaler.ini").write_text("other settings")
+        (other / "dxgi.dll").write_text("old injector")
+        (other / names[0]).write_text("different per-game variant")
+        self.run_update()
+        self.assert_updated()
+        for name in names:
+            self.assertEqual((self.install / name).read_text(), "selected " + name)
+            self.assertEqual((self.install / "OptiScaler" / name).read_text(), "selected " + name)
+        self.assertEqual((other / "OptiScaler" / names[0]).read_text(), "different per-game variant")
+        self.assertEqual((self.install / "OptiScaler/amd_fidelityfx_loader_dx12.dll").read_text(), "nightly loader")
+        self.assertEqual((self.version / "files/OptiScaler" / names[0]).read_text(), "stock nightly upscaler")
+
+    def test_cached_update_follows_variant_change_and_removes_only_managed_overrides(self):
+        upscaler = self.install / "amd_fidelityfx_upscaler_dx12.dll"
+        upscaler.write_text("driver variant")
+        for name in ("amdxcffx64.dll", "amdxc64.dll"):
+            (self.install / name).write_text("selected driver")
+        self.run_update()
+        upscaler.write_text("INT8 variant")
+        for name in ("amdxcffx64.dll", "amdxc64.dll"):
+            (self.install / name).unlink()
+        # A file changed by another mod no longer belongs to the updater.
+        (self.install / "OptiScaler/amdxc64.dll").write_text("another mod")
+        self.run_update()
+        self.assertEqual((self.install / "OptiScaler" / upscaler.name).read_text(), "INT8 variant")
+        self.assertFalse((self.install / "OptiScaler/amdxcffx64.dll").exists())
+        self.assertEqual((self.install / "OptiScaler/amdxc64.dll").read_text(), "another mod")
+        self.assertEqual(self.calls.read_text().splitlines().count("download"), 1)
+
+    def test_without_existing_fsr4_uses_nightly_files(self):
+        self.run_update()
+        self.assertEqual((self.install / "OptiScaler/amd_fidelityfx_upscaler_dx12.dll").read_text(),
+                         "stock nightly upscaler")
+
+    def test_flat_archive_preserves_existing_fsr4(self):
+        files = self.version / "files"
+        files.mkdir(parents=True)
+        (files / "OptiScaler.dll").write_text("nightly version")
+        for name in ("amd_fidelityfx_upscaler_dx12.dll", "amdxcffx64.dll", "amdxc64.dll"):
+            (files / name).write_text("stock archive file")
+            (self.install / name).write_text("selected variant file")
+        self.run_update()
+        self.assertEqual((self.install / "dxgi.dll").read_text(), "nightly version")
+        for name in ("amd_fidelityfx_upscaler_dx12.dll", "amdxcffx64.dll", "amdxc64.dll"):
+            self.assertEqual((self.install / name).read_text(), "selected variant file")
 
     def test_corrupt_archive_is_downloaded_again(self):
         self.version.mkdir(parents=True)
