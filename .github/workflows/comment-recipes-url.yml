@@ -35,9 +35,6 @@ jobs:
             const url = `https://raw.githubusercontent.com/${repository}/refs/heads/${branch}/recipes.json`;
             const body = [
               marker,
-              '### Recipe source',
-              '',
-              'Copy this URL into Decky Launch Options to use this branch’s recipes:',
               '',
               '```text',
               url,
