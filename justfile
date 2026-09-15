@@ -11,7 +11,7 @@ depsetup:
 
 # Setup pnpm and install dependencies
 pnpmsetup:
-    which pnpm && pnpm i
+    pnpm install --frozen-lockfile
 
 # Update @decky/ui (Decky Frontend Library)
 updatefrontendlib:
@@ -33,8 +33,8 @@ settingscheck:
 cli-build:
     ./.vscode/build.sh
 
-# Full build - setup, settings check, and build
-build: setup settingscheck cli-build
+# Build with pinned dependencies; editor settings are not needed by the CLI
+build: pnpmsetup cli-build
 
 # --- DEPLOY COMMANDS ---
 

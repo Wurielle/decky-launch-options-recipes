@@ -1,0 +1,65 @@
+name: Comment recipes.json URL
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, edited]
+
+permissions:
+  pull-requests: write
+
+concurrency:
+  group: comment-recipes-url-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  comment-recipes-url:
+    runs-on: ubuntu-latest
+
+    steps:
+      # This privileged workflow only reads PR metadata; never check out or run PR code.
+      - name: Create or update recipe source comment
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const pullRequest = context.payload.pull_request;
+            if (!pullRequest.head.repo) {
+              core.info('The source repository no longer exists.');
+              return;
+            }
+
+            const marker = '<!-- recipes-json-url -->';
+            const repository = pullRequest.head.repo.full_name
+              .split('/').map(encodeURIComponent).join('/');
+            const branch = pullRequest.head.ref
+              .split('/').map(encodeURIComponent).join('/');
+            const url = `https://raw.githubusercontent.com/${repository}/refs/heads/${branch}/recipes.json`;
+            const body = [
+              marker,
+              '',
+              '```text',
+              url,
+              '```',
+            ].join('\n');
+
+            const issue = {
+              ...context.repo,
+              issue_number: pullRequest.number,
+            };
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              ...issue,
+              per_page: 100,
+            });
+            const existingComment = comments.find(comment =>
+              comment.user?.login === 'github-actions[bot]' &&
+              comment.body?.includes(marker)
+            );
+
+            if (!existingComment) {
+              await github.rest.issues.createComment({ ...issue, body });
+            } else if (existingComment.body !== body) {
+              await github.rest.issues.updateComment({
+                ...context.repo,
+                comment_id: existingComment.id,
+                body,
+              });
+            }

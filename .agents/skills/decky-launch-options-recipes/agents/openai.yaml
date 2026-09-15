@@ -1,0 +1,4 @@
+interface:
+  display_name: "Decky Launch Options Recipes"
+  short_description: "Add well-formed Decky Launch Options recipe files."
+  default_prompt: "Use this skill when adding or updating Decky Launch Options recipes in a repository."

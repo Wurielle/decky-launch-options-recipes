@@ -1,0 +1,71 @@
+name: Build recipes.json
+
+on:
+  push:
+    branches:
+      - '**'
+    paths:
+      - 'recipes/**'
+      - 'scripts/build-recipes.ts'
+      - 'tsconfig.recipes.json'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+  pull_request:
+    branches:
+      - '**'
+    paths:
+      - 'recipes/**'
+      - 'scripts/build-recipes.ts'
+      - 'tsconfig.recipes.json'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+
+permissions:
+  contents: write
+
+jobs:
+  build-recipes:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build recipes.json
+        env:
+          RECIPE_REPOSITORY_OWNER: ${{ github.event.pull_request.head.repo.owner.login || github.repository_owner }}
+          RECIPE_REPOSITORY_NAME: ${{ github.event.pull_request.head.repo.name || github.event.repository.name }}
+          RECIPE_COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: pnpm recipes:build
+
+      - name: Commit and push generated recipes.json
+        if: github.event_name == 'push'
+        run: |
+          if git diff --quiet -- recipes.json; then
+            echo "recipes.json is already up to date"
+            exit 0
+          fi
+
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add recipes.json
+          git commit -m "chore: rebuild recipes.json"
+          git push origin "HEAD:${GITHUB_REF}"

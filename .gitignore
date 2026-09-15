@@ -34,6 +34,7 @@ Thumbs.db
 
 # Ignore built ts files
 dist/
+.generated/
 
 __pycache__/
 
@@ -52,6 +53,7 @@ decky_plugin.py
 # Ignore decky CLI for building plugins
 out
 out/*
+/.out-backup.*/
 cli/
 cli/*
 cli/decky

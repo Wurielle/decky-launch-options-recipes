@@ -2,9 +2,12 @@
   "name": "decky-launch-options-recipes",
   "version": "0.0.1",
   "description": "Recipes for the Decky Launch Options plugin.",
+  "packageManager": "pnpm@10.28.2",
   "type": "module",
   "scripts": {
     "build": "rollup -c",
+    "recipes:build": "tsc -p tsconfig.recipes.json && node .generated/recipes-build/scripts/build-recipes.js",
+    "recipes:check": "pnpm recipes:build && git diff --exit-code -- recipes.json",
     "watch": "rollup -c -w",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -27,7 +30,7 @@
   "homepage": "https://github.com/SteamDeckHomebrew/decky-plugin-template#readme",
   "devDependencies": {
     "@decky/rollup": "^1.0.2",
-    "@decky/ui": "^4.11.1",
+    "@decky/ui": "^4.12.1",
     "@rollup/rollup-linux-x64-musl": "^4.53.3",
     "@types/react": "19.1.1",
     "@types/react-dom": "19.1.1",
