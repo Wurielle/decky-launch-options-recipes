@@ -57,7 +57,10 @@ jobs:
         run: pnpm recipes:build
 
       - name: Commit and push generated recipes.json
-        if: github.event_name == 'push'
+        # Release preparation generates and commits these files itself.
+        if: >-
+          github.event_name == 'push' &&
+          !contains(fromJSON('["main", "pre/rc", "beta", "alpha"]'), github.ref_name)
         run: |
           if git diff --quiet -- recipes.json; then
             echo "recipes.json is already up to date"
