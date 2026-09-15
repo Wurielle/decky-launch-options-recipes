@@ -19,6 +19,7 @@ import {v4 as uuid} from 'uuid';
 import {Store, StoreOptions, useStore} from '@tanstack/react-store'
 import {produce} from "immer";
 import {readClipboardText} from "./clipboard";
+import {BrowseLogsButton} from "./logs";
 
 const defaultRecipesSource = 'https://raw.githubusercontent.com/Wurielle/decky-launch-options-recipes/refs/heads/dev/recipes.json'
 
@@ -179,6 +180,9 @@ function Content() {
                     >
                         Manage recipes source
                     </ButtonItem>
+                </PanelSectionRow>
+                <PanelSectionRow>
+                    <BrowseLogsButton/>
                 </PanelSectionRow>
             </PanelSection>
             <PanelSection title={'Recipes'}>
