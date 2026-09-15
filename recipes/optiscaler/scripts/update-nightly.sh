@@ -168,8 +168,11 @@ else
     fi
 fi
 
-# Install the nightly first, then overlay fgmod's supporting DLLs. Keep its
-# alternative variants and renamed injector copies out of the dependency folder.
+# Overwrite policy: fgmod's supporting DLLs intentionally take precedence over
+# nightly dependencies, including subfolders. Apply only the selected variant
+# (FGMOD_FSR4_VARIANT or install-manifest.json); exclude alternate bundles and
+# renames/ injector copies. Install the nightly OptiScaler injector last so
+# Framegen's older injector cannot replace it. Keep cached downloads unchanged.
 python3 - "$cached_files" "$HOME/fgmod" "${install_dirs[@]}" <<'PY'
 import hashlib, json, os, pathlib, shutil, sys
 

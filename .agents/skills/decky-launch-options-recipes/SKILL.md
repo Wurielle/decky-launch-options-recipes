@@ -11,13 +11,14 @@ Use this skill to add or update recipes for the Decky Launch Options plugin.
 
 1. Inspect the repository before editing:
    - Read `README.md`, `recipes/shared/types.ts`, `package.json`, and similar existing recipe files.
+   - Read recipe-specific instructions in comments in the target source and its supporting scripts before editing them.
    - Read `recipes/shared/host-runtime.ts` when a recipe downloads a script or invokes another host-system command from Steam.
    - Treat `recipes.json` as generated output. Do not edit it by hand.
-   - Prefer matching the best existing local example. In `decky-launch-options-recipes`, `recipes/mangohud.ts` is the model for dropdowns.
+   - Inspect an existing implementation of the same kind of option before choosing a pattern.
 
 2. Create or update one recipe source under `recipes/`.
    - Use either `recipes/<name>.ts` or `recipes/<name>/index.ts`. Use the directory form when the recipe has supporting files such as scripts.
-   - Use a hyphen-case file or directory name, for example `mangohud.ts`, `lossless-scaling.ts`, or `reframework/index.ts`.
+   - Use a hyphen-case file or directory name, such as `tool-name.ts` or `tool-name/index.ts`.
    - Export exactly one default object satisfying `Recipe`.
    - Import the type with the existing repo style, commonly:
 
@@ -50,6 +51,7 @@ export default recipe
    - Use small helper functions for repeated command fragments, such as quoted environment-variable assignments.
    - Do not generate IDs from user-facing labels when values need stable compatibility; define explicit `id` values for non-trivial choices.
    - Add a top-of-file dropdown fallback policy comment when a recipe intentionally uses a default other than `None`.
+   - Keep recipe-specific instructions beside the relevant code as comments, not in this skill. Add or update comments when an implementation depends on non-obvious command ordering, overwrite rules, archive layout, or variant selection. Explain the constraint and its reason; point to supporting script comments from the recipe source when needed instead of duplicating them.
 
 3. Build or check recipes using the repo script, usually `pnpm recipes:build` or `pnpm recipes:check`.
    - The build type-checks recipe entries before writing generated recipe output.
@@ -59,6 +61,8 @@ export default recipe
 ## Generated Recipes File
 
 Never manually update `recipes.json`. Add or change entries only in `recipes/<name>.ts` or `recipes/<name>/index.ts`, then run the repo's recipe build/check command so TypeScript validates the recipe before `recipes.json` is generated. This keeps invalid launch option entries from being copied directly into the generated file.
+
+Downloaded scripts use commit-pinned URLs generated from `RECIPE_COMMIT_SHA`. Changing a supporting script or deploying the plugin does not update already imported launch options. When diagnosing a Deck failure, check the saved option's URL and parsed command. After publishing script changes, confirm the generated recipes reference the new revision; refetching and re-importing updates the saved options.
 
 ## Launch Option Fields
 
@@ -70,6 +74,7 @@ Use these fields according to the local `LaunchOption` type:
 - `on`: Launch option string applied when enabled.
 - `off`: Launch option string applied when disabled. Use `''` when no disabled command is needed.
 - `enableGlobally`: Whether the option is enabled by default for all games.
+- `priority`: Prefix order, highest first. Order dependent wrappers so installation runs before an update that relies on its files.
 - `valueId`: Shared dropdown identifier.
 - `valueName`: Dropdown choice label.
 - `fallbackValue`: Mark the default dropdown choice.
@@ -77,8 +82,8 @@ Use these fields according to the local `LaunchOption` type:
 ## Command Rules
 
 - Include `%command%` when an option wraps or modifies the game launch command.
-- Put environment variables before `%command%`, for example `MANGOHUD_CONFIG="preset=1"`.
-- Put wrapper commands before `%command%`, for example `mangohud %command%`.
+- Put environment variables before `%command%`, for example `TOOL_CONFIG="preset=1"`.
+- Put wrapper commands before `%command%`, for example `tool-wrapper %command%`.
 - Put game arguments after `%command%` when the option is a game argument.
 - Keep `on` and `off` shell-safe for Steam launch options. Preserve quotes where values contain `=` or spaces.
 - Any launch option that uses `curl` to fetch a script or other host resource from inside Steam must prefix at least the `curl` command with the shared `hostRuntime` value. This escapes Steam's legacy library environment for the host downloader:
@@ -98,25 +103,31 @@ const download = `${hostRuntime} curl -fsSL "https://example.com/script.sh"`
 
 ## Artifact Caching and Script Logging
 
-- Every recipe or skill that downloads release artifacts must cache them, following `recipes/reframework/scripts/update.sh` and `recipes/optiscaler/scripts/update-nightly.sh`.
+- Every recipe or skill that downloads release artifacts must cache them.
 - Key the cache by release/version and asset name. Reuse valid extracted files first, then cached archives; only download missing or invalid artifacts. Download and extract through temporary paths, validate required files before promoting them into the cache, and clean up temporary files on failure. Preserve existing cache-directory overrides.
-- Every recipe script, including uninstallers, must create a separate log per invocation at `~/.dlor/logs/<recipe-name>/<script-name>/<timestamp>.log`. Use the recipe directory name and script filename without its extension (for example `reframework/update` or `optiscaler/update-nightly`), and a timestamp with subsecond precision. Define these names explicitly rather than deriving them from `$0`: Steam runs downloaded scripts through `bash -s`.
+- Every recipe script, including uninstallers, must create a separate log per invocation at `~/.dlor/logs/<recipe-name>/<script-name>/<timestamp>.log`. Use the recipe directory name and script filename without its extension, and a timestamp with subsecond precision. Define these names explicitly rather than deriving them from `$0`: Steam runs downloaded scripts through `bash -s`.
 - Start logging before argument validation or other work. Capture stdout and stderr, including subprocess diagnostics, unexpected shell errors, cleanup errors, and the final exit status. Do not discard tool output that may contain error details.
 - Logging must be best-effort: failure to create or write a log must not stop the script or later launch commands. Keep console diagnostics available; when using GNU `tee`, use `--output-error=warn` so it keeps consuming output if a destination fails.
 - Stop dependent installation steps when their prerequisites fail and preserve a nonzero script exit status. Keep cleanup steps independent. The launch wrapper must still run subsequent commands and the game's `%command%` after an auxiliary script fails (for example, `script; exec "$@"`, rather than joining the game launch with `&&`).
 - Keep logging self-contained in scripts downloaded individually. Test successful and failed runs, cache reuse, unavailable logging, and game-launch continuation with offline fixtures.
 
+## Updating Existing Installations
+
+- Inspect the downloaded archive, the installed files, and the application's dependency search paths. Preserving a DLL in its old location does not ensure a new version loads it.
+- Establish which source should supply each class of file. When the requested policy is to retain an existing tool's supporting DLLs while updating its main component, overlay those supporting DLLs generally (including subfolders), then install the updated main component last. Avoid narrowing a general overwrite policy to the files involved in one reported failure. Preserve configuration and keep the download cache unchanged.
+- Keep alternative variant bundles and renamed copies of the main component out of dependency overlays. Resolve the selected variant from the tool's configuration or manifest. Match Windows dependency paths case-insensitively when installing on Linux.
+- Track files copied by the updater. Remove stale copies only when their hashes still match that record; retain replacements supplied by the update and files changed by the user or another mod.
+- Test copy precedence, subfolders, variant selection, cache reuse, logging, parser compatibility, and launch continuation. Include an arbitrary supporting DLL to check that the policy is general, and update fixtures when archive layouts change.
+- For on-device validation, use temporary game folders with the installed Launch Options parser and real runtime/dependencies. Distinguish verified file hashes and test-command continuation from actual gameplay or confirmation that a feature works in-game.
+
 ## ID Convention
 
 Use predictable, hyphen-case IDs.
 
-- Regular launch option: include the feature/tool name only, for example `mangohud`, `lossless-scaling`, or `proton-ge`.
+- Regular launch option: include the feature/tool name only, for example `tool-name`.
 - Dropdown option: include the feature/tool name, the modified option/config name, and the value.
   - Pattern: `<tool>-<option-or-config-name>-<value>`
-  - MangoHud examples:
-    - `mangohud-config-preset-none`
-    - `mangohud-config-preset-0`
-    - `mangohud-fps-limit-60`
+  - Examples: `tool-config-preset-none`, `tool-config-preset-fast`, `tool-fps-limit-60`.
 - Keep all options in a dropdown on the same `valueId`.
 
 ## Dropdown Defaults
@@ -134,7 +145,7 @@ Every dropdown should include one fallback/default choice.
 // options would leave <existing tool/config state> unchanged.
 ```
 
-Use `recipes/optiscaler.ts` as the model: its dropdown fallbacks use `Auto` because `OptiScaler_<Section>_<Option>="auto"` actively resets values that may otherwise persist in `OptiScaler.ini`.
+For example, an `Auto` fallback is appropriate when `TOOL_SETTING="auto"` actively resets a persisted setting; an empty command would leave that setting unchanged.
 
 ## Dropdown Pattern
 
@@ -170,7 +181,7 @@ const toolModeOptions: LaunchOption[] = toolModeValues.map((mode): LaunchOption 
 }))
 ```
 
-For one-off dropdowns with only a couple of values, inline entries are acceptable. Once the third or fourth nearly identical option appears, switch to arrays and helpers like `recipes/wine.ts`, `recipes/mangohud.ts`, or `recipes/optiscaler.ts`.
+For one-off dropdowns with only a couple of values, inline entries are acceptable. Once the third or fourth nearly identical option appears, switch to arrays and helpers.
 
 ## Review Checklist
 
