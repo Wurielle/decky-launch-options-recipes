@@ -14,11 +14,12 @@ import {definePlugin} from "@decky/api"
 import {FaList} from "react-icons/fa";
 import {QueryClientProvider} from "@tanstack/react-query";
 import {queryClient, useGetRecipesQuery} from "./query";
-import {useCallback, useEffect, useState} from "react";
+import {useCallback, useEffect, useLayoutEffect, useRef, useState} from "react";
 import {v4 as uuid} from 'uuid';
 import {Store, StoreOptions, useStore} from '@tanstack/react-store'
 import {produce} from "immer";
 import {readClipboardText} from "./clipboard";
+import {BrowseLogsButton} from "./logs";
 
 const defaultRecipesSource = 'https://raw.githubusercontent.com/Wurielle/decky-launch-options-recipes/refs/heads/dev/recipes.json'
 
@@ -159,12 +160,35 @@ function RecipesSourceFormModal(props: { onCancel: () => void }) {
     )
 }
 
+function resetAncestorScrollPositions(element: HTMLElement | null) {
+    const ownerDocument = element?.ownerDocument ?? document
+    let current = element?.parentElement
+
+    while (current && current !== ownerDocument.body) {
+        if (current.scrollTop > 0 || current.scrollHeight > current.clientHeight) {
+            current.scrollTop = 0
+        }
+        current = current.parentElement
+    }
+
+    ownerDocument.scrollingElement?.scrollTo({top: 0})
+}
+
 function Content() {
+    const contentRef = useRef<HTMLDivElement>(null)
     const [id, setId] = useState(uuid())
     const recipesSource = useStore(recipesStore, (s) => s.recipesSource)
     const {data, isLoading} = useGetRecipesQuery(`${recipesSource}?id=${id}`)
+    useLayoutEffect(() => {
+        const resetScroll = () => resetAncestorScrollPositions(contentRef.current)
+        resetScroll()
+        const frame = window.requestAnimationFrame(resetScroll)
+        return () => window.cancelAnimationFrame(frame)
+    }, [])
+
     return (
         <>
+            <div ref={contentRef} style={{display: 'none'}} />
             <PanelSection>
                 <PanelSectionRow>
                     <ButtonItem
@@ -179,6 +203,9 @@ function Content() {
                     >
                         Manage recipes source
                     </ButtonItem>
+                </PanelSectionRow>
+                <PanelSectionRow>
+                    <BrowseLogsButton/>
                 </PanelSectionRow>
             </PanelSection>
             <PanelSection title={'Recipes'}>

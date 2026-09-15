@@ -10,6 +10,15 @@
         "off": "~/fgmod/fgmod-uninstaller.sh %command%"
       },
       {
+        "id": "optiscaler-nightly-upgrade",
+        "group": "OptiScaler",
+        "name": "OptiScaler Nightly Upgrade",
+        "on": "bash -c '(unset LD_PRELOAD; \"${STEAM_RUNTIME}/scripts/switch-runtime.sh\" --runtime=\"\" -- curl -fsSL --retry 3 --retry-delay 1 \"https://raw.githubusercontent.com/Wurielle/decky-launch-options-recipes/4a97bd4baad1e9dffb184438306fc5b7a0e56b04/recipes/optiscaler/scripts/update-nightly.sh\" | \"${STEAM_RUNTIME}/scripts/switch-runtime.sh\" --runtime=\"\" -- bash -s -- \"$STEAM_COMPAT_INSTALL_PATH\"); exec \"$@\"' -- %command%",
+        "off": "",
+        "enableGlobally": false,
+        "priority": -1
+      },
+      {
         "id": "optiscaler-framegen-enabled",
         "group": "OptiScaler",
         "name": "OptiScaler FrameGen",
@@ -2729,7 +2738,7 @@
         "id": "reframework-install-update",
         "group": "REFramework",
         "name": "REFramework",
-        "on": "WINEDLLOVERRIDES=\"dinput8.dll=n,b\" bash -c '\"${STEAM_RUNTIME}/scripts/switch-runtime.sh\" --runtime=\"\" -- curl -fsSL --retry 3 --retry-delay 1 \"https://raw.githubusercontent.com/Wurielle/decky-launch-options-recipes/d89ef5922a33302e16b2d577c620e4e4d8ffd0fd/recipes/reframework/scripts/update.sh\" | bash -s -- \"$STEAM_COMPAT_INSTALL_PATH\"; exec \"$@\"' -- %command%",
+        "on": "WINEDLLOVERRIDES=\"dinput8.dll=n,b\" bash -c '(unset LD_PRELOAD; \"${STEAM_RUNTIME}/scripts/switch-runtime.sh\" --runtime=\"\" -- curl -fsSL --retry 3 --retry-delay 1 \"https://raw.githubusercontent.com/Wurielle/decky-launch-options-recipes/4a97bd4baad1e9dffb184438306fc5b7a0e56b04/recipes/reframework/scripts/update.sh\" | \"${STEAM_RUNTIME}/scripts/switch-runtime.sh\" --runtime=\"\" -- bash -s -- \"$STEAM_COMPAT_INSTALL_PATH\"); exec \"$@\"' -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "reframework",
@@ -2739,7 +2748,7 @@
         "id": "reframework-uninstall",
         "group": "REFramework",
         "name": "REFramework",
-        "on": "bash -c '\"${STEAM_RUNTIME}/scripts/switch-runtime.sh\" --runtime=\"\" -- curl -fsSL --retry 3 --retry-delay 1 \"https://raw.githubusercontent.com/Wurielle/decky-launch-options-recipes/d89ef5922a33302e16b2d577c620e4e4d8ffd0fd/recipes/reframework/scripts/uninstall.sh\" | bash -s -- \"$STEAM_COMPAT_INSTALL_PATH\"; exec \"$@\"' -- %command%",
+        "on": "bash -c '(unset LD_PRELOAD; \"${STEAM_RUNTIME}/scripts/switch-runtime.sh\" --runtime=\"\" -- curl -fsSL --retry 3 --retry-delay 1 \"https://raw.githubusercontent.com/Wurielle/decky-launch-options-recipes/4a97bd4baad1e9dffb184438306fc5b7a0e56b04/recipes/reframework/scripts/uninstall.sh\" | \"${STEAM_RUNTIME}/scripts/switch-runtime.sh\" --runtime=\"\" -- bash -s -- \"$STEAM_COMPAT_INSTALL_PATH\"); exec \"$@\"' -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "reframework",

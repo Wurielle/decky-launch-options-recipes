@@ -1,7 +1,13 @@
 // Dropdown fallback policy: use "Auto" instead of "None" because empty launch
 // options would leave existing OptiScaler.ini values unchanged instead of
 // resetting them to OptiScaler defaults.
-import type { LaunchOption, Recipe } from './shared/types.js'
+import type { LaunchOption, Recipe } from '../shared/types.js'
+import { hostRuntime } from '../shared/host-runtime.js'
+
+const repositoryOwner = '{{env:RECIPE_REPOSITORY_OWNER}}'
+const repositoryName = '{{env:RECIPE_REPOSITORY_NAME}}'
+const commitSha = '{{env:RECIPE_COMMIT_SHA}}'
+const nightlyScriptUrl = `https://raw.githubusercontent.com/${repositoryOwner}/${repositoryName}/${commitSha}/recipes/optiscaler/scripts/update-nightly.sh`
 
 type OptiScalerDropdownValue = {
     id: string
@@ -360,6 +366,15 @@ const launchOptions: LaunchOption[] = [
         name: 'OptiScaler',
         on: '~/fgmod/fgmod %command%',
         off: '~/fgmod/fgmod-uninstaller.sh %command%',
+    },
+    {
+        id: 'optiscaler-nightly-upgrade',
+        group: optiScalerGroup,
+        name: 'OptiScaler Nightly Upgrade',
+        on: `bash -c '(unset LD_PRELOAD; ${hostRuntime} curl -fsSL --retry 3 --retry-delay 1 "${nightlyScriptUrl}" | ${hostRuntime} bash -s -- "$STEAM_COMPAT_INSTALL_PATH"); exec "$@"' -- %command%`,
+        off: '',
+        enableGlobally: false,
+        priority: -1,
     },
     {
         id: 'optiscaler-framegen-enabled',

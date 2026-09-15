@@ -7,7 +7,7 @@ const repositoryName = '{{env:RECIPE_REPOSITORY_NAME}}'
 const commitSha = '{{env:RECIPE_COMMIT_SHA}}'
 const scriptsBaseUrl = `https://raw.githubusercontent.com/${repositoryOwner}/${repositoryName}/${commitSha}/recipes/reframework/scripts`
 const wineDllOverrides = 'WINEDLLOVERRIDES="dinput8.dll=n,b"'
-const runScript = (scriptName: string) => `bash -c '${hostRuntime} curl -fsSL --retry 3 --retry-delay 1 "${scriptsBaseUrl}/${scriptName}" | bash -s -- "$STEAM_COMPAT_INSTALL_PATH"; exec "$@"' -- %command%`
+const runScript = (scriptName: string) => `bash -c '(unset LD_PRELOAD; ${hostRuntime} curl -fsSL --retry 3 --retry-delay 1 "${scriptsBaseUrl}/${scriptName}" | ${hostRuntime} bash -s -- "$STEAM_COMPAT_INSTALL_PATH"); exec "$@"' -- %command%`
 
 const actionValues = [
     {
