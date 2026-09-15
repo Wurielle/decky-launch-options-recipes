@@ -1,5 +1,34 @@
 #!/usr/bin/env bash
+# Keep this bootstrap self-contained: Steam downloads this script into bash -s.
+readonly SCRIPT_NAME="reframework-update"
+log_dir="${HOME}/.dlor/logs/$SCRIPT_NAME"
+printf -v log_timestamp '%(%Y-%m-%dT%H-%M-%S)T' -1
+log_timestamp+=".${EPOCHREALTIME##*.}"
+log_file="$log_dir/$log_timestamp.log"
+if mkdir -p -- "$log_dir" && : >> "$log_file" && command -v tee >/dev/null 2>&1; then
+    # Keep draining output even if a log write or the console fails.
+    exec > >(tee --output-error=warn -a -- "$log_file") 2>&1
+else
+    printf 'Warning: could not enable logging to %s; continuing.\n' "$log_file" >&2
+fi
+
 set -Eeuo pipefail
+trap 'printf "Error: %s line %s: %s (exit %s)\n" "$SCRIPT_NAME" "$LINENO" "$BASH_COMMAND" "$?" >&2' ERR
+
+on_exit() {
+    local status=$?
+    # A cleanup error must not skip other cleanup or hide the original status.
+    set +e
+    if declare -F cleanup >/dev/null; then
+        cleanup
+    fi
+    printf '%s finished with exit status %s.\n' "$SCRIPT_NAME" "$status"
+    exit "$status"
+}
+trap on_exit EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+printf 'Starting %s\n' "$SCRIPT_NAME"
 
 readonly REPOSITORY="praydog/REFramework-nightly"
 readonly ASSET_NAME="REFramework.zip"
@@ -102,9 +131,6 @@ cleanup() {
         rm -f -- "$dll_tmp"
     fi
 }
-trap cleanup EXIT
-trap 'exit 130' INT
-trap 'exit 143' TERM
 
 download_archive() {
     download_tmp="$(mktemp "$version_dir/.${ASSET_NAME}.XXXXXX")"

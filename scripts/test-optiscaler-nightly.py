@@ -33,7 +33,8 @@ class NightlyUpgradeTests(unittest.TestCase):
         self.bin.mkdir()
         self.calls = self.root / "calls"
         self.env = dict(os.environ, PATH=f"{self.bin}:{os.environ['PATH']}",
-                        OPTISCALER_CACHE_DIR=str(self.cache), TEST_ROOT=str(self.root))
+                        OPTISCALER_CACHE_DIR=str(self.cache), TEST_ROOT=str(self.root),
+                        HOME=str(self.root / "home"))
         self.tool("curl", '''
 import json, os, pathlib, sys
 root = pathlib.Path(os.environ["TEST_ROOT"])
