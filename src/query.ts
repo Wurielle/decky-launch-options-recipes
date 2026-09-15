@@ -1,6 +1,6 @@
 import {QueryClient, useQuery} from '@tanstack/react-query'
 
-import type {Recipe} from '../recipes/types'
+import type {Recipe} from '../recipes/shared/types'
 
 export const queryClient = new QueryClient()
 
