@@ -7,6 +7,7 @@ import shlex
 import subprocess
 import tempfile
 import unittest
+from runner_test_support import install_runner
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -22,8 +23,15 @@ class ScriptLoggingTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory(prefix="recipe-logging-")
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
+        # Test the same LF script contents served by GitHub from Windows checkouts.
+        self.scripts = {}
+        for name, source in SCRIPTS.items():
+            script = self.root / f"{name}.sh"
+            script.write_text(source.read_text())
+            self.scripts[name] = script
         self.home = self.root / "home"
         self.home.mkdir()
+        install_runner(self.home)
         self.bin = self.root / "bin"
         self.bin.mkdir()
         self.game = self.root / "Steam game"
@@ -43,9 +51,9 @@ class ScriptLoggingTests(unittest.TestCase):
         path.chmod(0o755)
 
     def run_script(self, name, *args, stdin=False):
-        command = ["bash", "-s", "--"] if stdin else ["bash", str(SCRIPTS[name])]
+        command = ["bash", "-s", "--"] if stdin else ["bash", str(self.scripts[name])]
         return subprocess.run([*command, *map(str, args)], env=self.env,
-                              input=SCRIPTS[name].read_text() if stdin else None,
+                              input=self.scripts[name].read_text() if stdin else None,
                               capture_output=True, text=True, timeout=15)
 
     def log(self, name, count=1):
@@ -75,7 +83,7 @@ class ScriptLoggingTests(unittest.TestCase):
                 self.assertIn("finished with exit status 1", log)
 
     def test_logging_setup_failure_does_not_stop_scripts(self):
-        (self.home / ".dlor").write_text("blocks log directory creation")
+        (self.home / ".dlor/logs").write_text("blocks log directory creation")
         for name in SCRIPTS:
             with self.subTest(script=name):
                 result = self.run_script(name, "--help")
@@ -117,11 +125,12 @@ fi''')
         self.assertFalse((self.game / "dinput8.dll").exists())
         self.assertIn("Uninstalled:", self.log("reframework-uninstall"))
 
-    def test_shell_body_survives_decky_launch_options_token_classification(self):
+    def test_runner_survives_decky_launch_options_token_classification(self):
         # Compatibility with the deployed Launch Options parser: it classifies
         # every token before %command%, including the quoted bash -c body.
         recipes = json.loads((ROOT / "recipes.json").read_text())
         for recipe in recipes:
+            self.assertEqual(set(recipe), {"name", "launchOptions"})
             for option in recipe["launchOptions"]:
                 if option["id"] not in ("reframework-install-update", "reframework-uninstall",
                                         "optiscaler-nightly-upgrade"):
@@ -137,10 +146,12 @@ fi''')
                             prefix.append(token)
                     self.assertNotIn("LD_PRELOAD", environment)
                     self.assertTrue(set(environment) <= {"WINEDLLOVERRIDES"})
-                    self.assertEqual(prefix[:2], ["bash", "-c"])
-                    self.assertEqual(len(prefix), 4)
-                    self.assertIn('exec "$@"', prefix[2])
-                    self.assertEqual(prefix[3], "--")
+                    self.assertEqual(prefix[0], "~/.dlor/run")
+                    self.assertEqual(len(prefix), 5)
+                    self.assertRegex(prefix[1], r"^[a-z0-9-]+$")
+                    self.assertRegex(prefix[2], r"^[a-z0-9-]+$")
+                    self.assertRegex(prefix[3], r"^[a-f0-9]{40}$")
+                    self.assertEqual(prefix[4], "--")
 
     def test_host_tools_escape_steam_libraries_but_game_keeps_its_environment(self):
         recipes = json.loads((ROOT / "recipes.json").read_text())
@@ -163,7 +174,8 @@ if [[ -n "${LD_LIBRARY_PATH:-}" || -n "${LD_PRELOAD:-}" ]]; then
     exit 1
 fi
 if [[ "$*" == *raw.githubusercontent.com* ]]; then
-    cat "$TEST_RECIPE_SCRIPT"
+    while [[ "$1" != --output ]]; do shift; done
+    cat "$TEST_RECIPE_SCRIPT" > "$2"
 elif [[ "$*" == *url_effective* ]]; then
     printf 'https://github.com/praydog/REFramework-nightly/releases/tag/test'
 else
@@ -184,7 +196,7 @@ fi''')
             ("optiscaler-update-nightly", "optiscaler-nightly-upgrade", "Upgraded:"),
         ]:
             with self.subTest(script=name):
-                self.env["TEST_RECIPE_SCRIPT"] = str(SCRIPTS[name])
+                self.env["TEST_RECIPE_SCRIPT"] = str(self.scripts[name])
                 marker.unlink(missing_ok=True)
                 result = subprocess.run(["bash", "-c", options[option]["on"].replace("%command%", game)],
                                         env=self.env, capture_output=True, text=True, timeout=15)
@@ -235,7 +247,8 @@ fi''')
                 marker.unlink(missing_ok=True)
                 self.tool("curl", f'''
 if [[ "$*" == *raw.githubusercontent.com* ]]; then
-    cat {shlex.quote(str(SCRIPTS[name]))}
+    while [[ "$1" != --output ]]; do shift; done
+    cat {shlex.quote(str(self.scripts[name]))} > "$2"
 else
     echo 'network failed' >&2
     exit 22

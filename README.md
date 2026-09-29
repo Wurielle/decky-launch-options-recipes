@@ -89,6 +89,27 @@ If you want to create a recipe, add either `recipes/<my-recipe-name>.ts` or `rec
 single object that satisfies the `Recipe` type. Use the directory form when the recipe has supporting files such as
 scripts.
 
+### Remote script launcher
+
+The plugin installs `~/.dlor/run`, a utility for downloading and running remote scripts
+hosted in the same repository as `recipes.json`. Use it in launch options:
+
+```sh
+~/.dlor/run <recipe-name> <script-name> [commit-sha] -- %command%
+```
+
+The script lives at `recipes/<recipe-name>/scripts/<script-name>.sh`; omit `.sh`
+from the command. It is downloaded on every launch, then the game starts, even if
+the script fails. A full commit SHA is recommended to pin the version;
+leaving it out uses the `dev` branch.
+
+In recipe sources, use `remoteScript(recipe, script)` from
+`recipes/shared/remote-script.ts` to generate a pinned command.
+For forks, prefix the command with `DLOR_REPOSITORY="owner/repository"`;
+the generator does this automatically for builds from another repository.
+
+Runner logs are saved to `~/.dlor/logs/run/`.
+
 ### Build-time environment variables
 
 Recipe string fields can use `{{env:VARIABLE_NAME}}` placeholders. The recipe generator replaces each placeholder with
