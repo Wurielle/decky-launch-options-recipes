@@ -1,0 +1,2 @@
+# The installed launcher must remain executable from Windows-built packages.
+defaults/dlor-run.sh text eol=lf
