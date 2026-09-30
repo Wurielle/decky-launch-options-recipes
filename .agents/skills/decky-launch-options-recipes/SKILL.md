@@ -107,9 +107,34 @@ const download = `${hostRuntime} curl -fsSL "https://example.com/script.sh"`
 - Key the cache by release/version and asset name. Reuse valid extracted files first, then cached archives; only download missing or invalid artifacts. Download and extract through temporary paths, validate required files before promoting them into the cache, and clean up temporary files on failure. Preserve existing cache-directory overrides.
 - Every recipe script, including uninstallers, must create a separate log per invocation at `~/.dlor/logs/<recipe-name>/<script-name>/<timestamp>.log`. Use the recipe directory name and script filename without its extension, and a timestamp with subsecond precision. Define these names explicitly rather than deriving them from `$0`: Steam runs downloaded scripts through `bash -s`.
 - Start logging before argument validation or other work. Capture stdout and stderr, including subprocess diagnostics, unexpected shell errors, cleanup errors, and the final exit status. Do not discard tool output that may contain error details.
-- Logging must be best-effort: failure to create or write a log must not stop the script or later launch commands. Keep console diagnostics available; when using GNU `tee`, use `--output-error=warn` so it keeps consuming output if a destination fails.
+- Whenever a script creates a log, keep at most the 10 newest logs in that script's log folder, including the new log. Delete all excess logs oldest first by filename timestamp. Apply the limit separately to each folder, including the shared launcher's `~/.dlor/logs/run/`. Only remove regular `.log` files in that folder; leave symlinks, subdirectories, unrelated files, and other log folders untouched.
+- Logging must be best-effort: failure to create, write, or prune a log must not stop the script or later launch commands. Report retention cleanup failures as warnings. Keep console diagnostics available; when using GNU `tee`, use `--output-error=warn` so it keeps consuming output if a destination fails.
 - Stop dependent installation steps when their prerequisites fail and preserve a nonzero script exit status. Keep cleanup steps independent. The launch wrapper must still run subsequent commands and the game's `%command%` after an auxiliary script fails (for example, `script; exec "$@"`, rather than joining the game launch with `&&`).
-- Keep logging self-contained in scripts downloaded individually. Test successful and failed runs, cache reuse, unavailable logging, and game-launch continuation with offline fixtures.
+- Keep logging and retention cleanup self-contained in scripts downloaded individually. Test successful and failed runs, cache reuse, unavailable logging, and game-launch continuation with offline fixtures. For retention, cover the 10-log boundary, an existing backlog, preservation of unrelated files and folders, and continued execution after deletion failures.
+
+Use this retention block immediately after creating the log and redirecting output
+through `tee`, inside the successful logging-setup branch and before enabling
+`set -Eeuo pipefail`. `log_dir` must be the current script's log folder. The
+subshell keeps the locale, glob settings, and temporary variables local to cleanup.
+
+```bash
+# Timestamped filenames sort oldest first; keep the latest 10 per folder.
+(
+    export LC_ALL=C
+    shopt -s nullglob
+    logs=()
+    for candidate in "$log_dir/"*.log; do
+        if [[ -f "$candidate" && ! -L "$candidate" ]]; then
+            logs+=("$candidate")
+        fi
+    done
+    excess=$(( ${#logs[@]} - 10 ))
+    if (( excess > 0 )); then
+        rm -f -- "${logs[@]:0:excess}" ||
+            printf 'Warning: could not remove old logs in %s; continuing.\n' "$log_dir" >&2
+    fi
+)
+```
 
 ## Updating Existing Installations
 

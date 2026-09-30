@@ -12,6 +12,7 @@ import shlex
 import subprocess
 import tempfile
 import unittest
+from runner_test_support import install_runner
 
 
 SCRIPT = Path(__file__).resolve().parents[1] / "recipes/optiscaler/scripts/update-nightly.sh"
@@ -22,6 +23,8 @@ class NightlyUpgradeTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory(prefix="optiscaler-test-")
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
+        self.script = self.root / "update-nightly.sh"
+        self.script.write_text(SCRIPT.read_text())
         self.game = self.root / "Steam game"
         self.install = self.game / "Binaries" / "Win64"
         self.install.mkdir(parents=True)
@@ -74,7 +77,7 @@ dest = pathlib.Path(next(a[2:] for a in sys.argv if a.startswith("-o")))
         path.chmod(0o755)
 
     def run_update(self, success=True):
-        result = subprocess.run(["bash", str(SCRIPT), str(self.game)], env=self.env,
+        result = subprocess.run(["bash", str(self.script), str(self.game)], env=self.env,
                                 capture_output=True, text=True)
         self.assertEqual(result.returncode == 0, success, result.stdout + result.stderr)
         return result
@@ -220,6 +223,7 @@ dest = pathlib.Path(next(a[2:] for a in sys.argv if a.startswith("-o")))
         self.assertEqual((self.install / "dxgi.dll").read_text(), "fgmod version")
 
     def test_launch_wrapper_continues_after_updater_failure_and_preserves_arguments(self):
+        install_runner(Path(self.env["HOME"]))
         recipes = json.loads((SCRIPT.parents[3] / "recipes.json").read_text())
         recipe = next(r for r in recipes if r["name"] == "OptiScaler")
         option = next(o for o in recipe["launchOptions"]
@@ -233,14 +237,18 @@ dest = pathlib.Path(next(a[2:] for a in sys.argv if a.startswith("-o")))
         switch.write_text('#!/usr/bin/env bash\nshift 2\nexec "$@"\n')
         switch.chmod(0o755)
         self.env.update(STEAM_RUNTIME=str(runtime), STEAM_COMPAT_INSTALL_PATH=str(self.game))
-        self.tool("curl", 'print("exit 1")')
+        self.env["SYSTEM_PATH"] = self.env["PATH"]
+        self.tool("curl", 'import pathlib, sys; pathlib.Path(sys.argv[sys.argv.index("--output") + 1]).write_text("exit 1\\n")')
         args = ["game path with spaces", 'argument with "quotes"', "$literal"]
+        marker = self.root / "game-arguments.json"
         command = shlex.join(["python3", "-c",
-                              "import json, sys; print(json.dumps(sys.argv[1:]))", *args])
+                              "import json, pathlib, sys; pathlib.Path(sys.argv[1]).write_text(json.dumps(sys.argv[2:]))",
+                              str(marker), *args])
         result = subprocess.run(["bash", "-c", option["on"].replace("%command%", command)],
                                 env=self.env, capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(json.loads(result.stdout), args)
+        self.assertEqual(json.loads(marker.read_text()), args)
+        self.assertIn("Recipe helper failed (exit 1)", result.stderr)
 
 
 if __name__ == "__main__":

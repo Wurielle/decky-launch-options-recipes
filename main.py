@@ -1,10 +1,36 @@
 import os
 import decky
 import asyncio
+import tempfile
 from pathlib import Path
 
 
 MAX_LOG_BYTES = 1024 * 1024
+
+
+def _atomic_write(path, content, mode):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(dir=path.parent, delete=False) as stream:
+            temporary = Path(stream.name)
+            stream.write(content)
+        temporary.chmod(mode)
+        temporary.replace(path)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+
+
+def _install_runner():
+    # Decky flattens defaults/ into the plugin root when packaging.
+    # The fallback also supports running backend tests from the source checkout.
+    root = Path(__file__).resolve().parent
+    source = root / "dlor-run.sh"
+    if not source.is_file():
+        source = root / "defaults" / "dlor-run.sh"
+    target = Path(decky.DECKY_USER_HOME) / ".dlor" / "run"
+    _atomic_write(target, source.read_bytes().replace(b"\r\n", b"\n"), 0o755)
 
 
 def _logs_directory():
@@ -41,6 +67,7 @@ class Plugin:
 
     async def _main(self):
         self.loop = asyncio.get_event_loop()
+        await asyncio.to_thread(_install_runner)
 
     async def _unload(self):
         pass

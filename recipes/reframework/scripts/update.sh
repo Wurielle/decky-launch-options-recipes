@@ -14,9 +14,26 @@ log_dir="${HOME}/.dlor/logs/$RECIPE_NAME/$SCRIPT_NAME"
 printf -v log_timestamp '%(%Y-%m-%dT%H-%M-%S)T' -1
 log_timestamp+=".${EPOCHREALTIME##*.}"
 log_file="$log_dir/$log_timestamp.log"
-if mkdir -p -- "$log_dir" && : >> "$log_file" && command -v tee >/dev/null 2>&1; then
+if mkdir -p -- "$log_dir" && command -v tee >/dev/null 2>&1 && : >> "$log_file"; then
     # Keep draining output even if a log write or the console fails.
     exec > >(tee --output-error=warn -a -- "$log_file") 2>&1
+    # Timestamped filenames sort oldest first; keep the latest 10 per folder.
+    # Stay self-contained for scripts downloaded separately, including bash -s.
+    (
+        export LC_ALL=C
+        shopt -s nullglob
+        logs=()
+        for candidate in "$log_dir/"*.log; do
+            if [[ -f "$candidate" && ! -L "$candidate" ]]; then
+                logs+=("$candidate")
+            fi
+        done
+        excess=$(( ${#logs[@]} - 10 ))
+        if (( excess > 0 )); then
+            rm -f -- "${logs[@]:0:excess}" ||
+                printf 'Warning: could not remove old logs in %s; continuing.\n' "$log_dir" >&2
+        fi
+    )
 else
     printf 'Warning: could not enable logging to %s; continuing.\n' "$log_file" >&2
 fi
