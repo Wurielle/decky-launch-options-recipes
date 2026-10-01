@@ -1,6 +1,3 @@
-// Dropdown fallback policy: use "Auto" instead of "None" because empty launch
-// options would leave existing OptiScaler.ini values unchanged instead of
-// resetting them to OptiScaler defaults.
 import type { LaunchOption, Recipe } from '../shared/types.js'
 import { remoteScript } from '../shared/remote-script.js'
 
@@ -10,8 +7,6 @@ type OptiScalerDropdownValue = {
     id: string
     name: string
     value: string | number | boolean
-    enableGlobally?: boolean
-    fallbackValue?: boolean
 }
 
 const optiScalerGroup = 'OptiScaler'
@@ -23,16 +18,19 @@ const optiScalerDropdown = (
     valueId: string,
     option: string,
     values: readonly OptiScalerDropdownValue[],
-): LaunchOption[] => values.map((value): LaunchOption => ({
+): LaunchOption[] => [
+    {id: 'none', name: 'None', value: null},
+    ...values,
+].map((value): LaunchOption => ({
     id: `${idPrefix}-${value.id}`,
     group: optiScalerGroup,
     name,
-    on: optiScalerEnv(option, value.value),
+    on: value.value === null ? '' : optiScalerEnv(option, value.value),
     off: '',
-    enableGlobally: value.enableGlobally ?? false,
+    enableGlobally: false,
     valueId,
     valueName: value.name,
-    ...(value.fallbackValue === true ? {fallbackValue: true} : {}),
+    ...(value.value === null ? {fallbackValue: true} : {}),
 }))
 
 const menuShortcutKeyValues = [
@@ -40,8 +38,6 @@ const menuShortcutKeyValues = [
         id: 'auto',
         name: 'Auto',
         value: 'auto',
-        enableGlobally: true,
-        fallbackValue: true,
     },
     {
         id: 'insert',
@@ -95,7 +91,6 @@ const frameGenInputValues = [
         id: 'auto',
         name: 'Auto',
         value: 'auto',
-        fallbackValue: true,
     },
     {
         id: 'nofg',
@@ -134,7 +129,6 @@ const frameGenOutputValues = [
         id: 'auto',
         name: 'Auto',
         value: 'auto',
-        fallbackValue: true,
     },
     {
         id: 'nofg',
@@ -190,8 +184,6 @@ const dx11UpscalerValues = [
         id: 'auto',
         name: 'Auto',
         value: 'auto',
-        enableGlobally: true,
-        fallbackValue: true,
     },
     {
         id: 'fsr22',
@@ -240,8 +232,6 @@ const dx12UpscalerValues = [
         id: 'auto',
         name: 'Auto',
         value: 'auto',
-        enableGlobally: true,
-        fallbackValue: true,
     },
     {
         id: 'xess',
@@ -275,8 +265,6 @@ const vulkanUpscalerValues = [
         id: 'auto',
         name: 'Auto',
         value: 'auto',
-        enableGlobally: true,
-        fallbackValue: true,
     },
     {
         id: 'fsr21',
@@ -316,7 +304,7 @@ const vulkanUpscalerValues = [
 ] as const
 
 const fsr4PresetValues = [
-    {id: 'auto', name: 'Auto', value: 'auto', fallbackValue: true},
+    {id: 'auto', name: 'Auto', value: 'auto'},
     {id: '0', name: 'Native AA', value: 0},
     {id: '1', name: 'Ultra Quality / Quality', value: 1},
     {id: '2', name: 'Balanced', value: 2},
@@ -328,7 +316,8 @@ const fsr4PresetValues = [
 // The V-Sync section contains a hyphen, so its environment variables must be
 // passed through env rather than used as shell variable assignments.
 const vsyncValues = [
-    {id: 'auto', name: 'Auto', value: 'auto', override: 'auto', fallbackValue: true},
+    {id: 'none', name: 'None', value: null, override: null},
+    {id: 'auto', name: 'Auto', value: 'auto', override: 'auto'},
     {id: 'on', name: 'On', value: true, override: true},
     {id: 'off', name: 'Off', value: false, override: true},
 ] as const
@@ -337,12 +326,12 @@ const vsyncOptions: LaunchOption[] = vsyncValues.map((value): LaunchOption => ({
     id: `optiscaler-vsync-${value.id}`,
     group: optiScalerGroup,
     name: 'OptiScaler VSync',
-    on: `env ${optiScalerEnv('V-Sync_OverrideVsync', value.override)} ${optiScalerEnv('V-Sync_ForceVsync', value.value)} %command%`,
+    on: value.value === null ? '' : `env ${optiScalerEnv('V-Sync_OverrideVsync', value.override)} ${optiScalerEnv('V-Sync_ForceVsync', value.value)} %command%`,
     off: '',
     enableGlobally: false,
     valueId: 'optiscaler-vsync',
     valueName: value.name,
-    ...('fallbackValue' in value ? {fallbackValue: true} : {}),
+    ...(value.value === null ? {fallbackValue: true} : {}),
 }))
 
 const syncIntervalOptions: LaunchOption[] = optiScalerDropdown(
@@ -351,10 +340,10 @@ const syncIntervalOptions: LaunchOption[] = optiScalerDropdown(
     'optiscaler-vsync-sync-interval',
     'V-Sync_SyncInterval',
     [
-        {id: 'auto', name: 'Auto', value: 'auto', fallbackValue: true},
+        {id: 'auto', name: 'Auto', value: 'auto'},
         ...[0, 1, 2, 3].map((value) => ({id: `${value}`, name: `${value}`, value})),
     ],
-).map((option) => ({...option, on: `env ${option.on} %command%`}))
+).map((option) => ({...option, on: option.on === '' ? '' : `env ${option.on} %command%`}))
 
 const launchOptions: LaunchOption[] = [
     {
@@ -419,7 +408,6 @@ const launchOptions: LaunchOption[] = [
                 id: 'auto',
                 name: 'Auto',
                 value: 'auto',
-                fallbackValue: true,
             },
             {
                 id: 'disabled',
@@ -464,7 +452,6 @@ const launchOptions: LaunchOption[] = [
                 id: 'auto',
                 name: 'Auto',
                 value: 'auto',
-                fallbackValue: true,
             },
             {
                 id: '0',

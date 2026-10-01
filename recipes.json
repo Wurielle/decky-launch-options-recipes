@@ -26,15 +26,25 @@
         "off": "OptiScaler_FrameGen_Enabled=\"false\""
       },
       {
+        "id": "optiscaler-menu-shortcut-key-none",
+        "group": "OptiScaler",
+        "name": "OptiScaler Menu Shortcut",
+        "on": "",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler-menu-shortcut-key",
+        "valueName": "None",
+        "fallbackValue": true
+      },
+      {
         "id": "optiscaler-menu-shortcut-key-auto",
         "group": "OptiScaler",
         "name": "OptiScaler Menu Shortcut",
         "on": "OptiScaler_Menu_ShortcutKey=\"auto\"",
         "off": "",
-        "enableGlobally": true,
+        "enableGlobally": false,
         "valueId": "optiscaler-menu-shortcut-key",
-        "valueName": "Auto",
-        "fallbackValue": true
+        "valueName": "Auto"
       },
       {
         "id": "optiscaler-menu-shortcut-key-insert",
@@ -135,6 +145,17 @@
         "enableGlobally": false
       },
       {
+        "id": "optiscaler-framegen-input-none",
+        "group": "OptiScaler",
+        "name": "OptiScaler FrameGen Input",
+        "on": "",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler-framegen-input",
+        "valueName": "None",
+        "fallbackValue": true
+      },
+      {
         "id": "optiscaler-framegen-input-auto",
         "group": "OptiScaler",
         "name": "OptiScaler FrameGen Input",
@@ -142,8 +163,7 @@
         "off": "",
         "enableGlobally": false,
         "valueId": "optiscaler-framegen-input",
-        "valueName": "Auto",
-        "fallbackValue": true
+        "valueName": "Auto"
       },
       {
         "id": "optiscaler-framegen-input-nofg",
@@ -206,6 +226,17 @@
         "valueName": "FSR 3.0 FG"
       },
       {
+        "id": "optiscaler-framegen-output-none",
+        "group": "OptiScaler",
+        "name": "OptiScaler FrameGen Output",
+        "on": "",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler-framegen-output",
+        "valueName": "None",
+        "fallbackValue": true
+      },
+      {
         "id": "optiscaler-framegen-output-auto",
         "group": "OptiScaler",
         "name": "OptiScaler FrameGen Output",
@@ -213,8 +244,7 @@
         "off": "",
         "enableGlobally": false,
         "valueId": "optiscaler-framegen-output",
-        "valueName": "Auto",
-        "fallbackValue": true
+        "valueName": "Auto"
       },
       {
         "id": "optiscaler-framegen-output-nofg",
@@ -277,6 +307,17 @@
         "valueName": "DLSSG with Nvngx FG"
       },
       {
+        "id": "optiscaler-framerate-limit-none",
+        "group": "OptiScaler",
+        "name": "OptiScaler Framerate Limit",
+        "on": "",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler-framerate-limit",
+        "valueName": "None",
+        "fallbackValue": true
+      },
+      {
         "id": "optiscaler-framerate-limit-auto",
         "group": "OptiScaler",
         "name": "OptiScaler Framerate Limit",
@@ -284,8 +325,7 @@
         "off": "",
         "enableGlobally": false,
         "valueId": "optiscaler-framerate-limit",
-        "valueName": "Auto",
-        "fallbackValue": true
+        "valueName": "Auto"
       },
       {
         "id": "optiscaler-framerate-limit-disabled",
@@ -438,15 +478,25 @@
         "valueName": "480"
       },
       {
+        "id": "optiscaler-upscalers-dx11-none",
+        "group": "OptiScaler",
+        "name": "OptiScaler Upscaler (Dx11)",
+        "on": "",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler-upscalers-dx11",
+        "valueName": "None",
+        "fallbackValue": true
+      },
+      {
         "id": "optiscaler-upscalers-dx11-auto",
         "group": "OptiScaler",
         "name": "OptiScaler Upscaler (Dx11)",
         "on": "OptiScaler_Upscalers_Dx11Upscaler=\"auto\"",
         "off": "",
-        "enableGlobally": true,
+        "enableGlobally": false,
         "valueId": "optiscaler-upscalers-dx11",
-        "valueName": "Auto",
-        "fallbackValue": true
+        "valueName": "Auto"
       },
       {
         "id": "optiscaler-upscalers-dx11-fsr22",
@@ -529,15 +579,25 @@
         "valueName": "DLSS"
       },
       {
+        "id": "optiscaler-upscalers-dx12-none",
+        "group": "OptiScaler",
+        "name": "OptiScaler Upscaler (Dx12)",
+        "on": "",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler-upscalers-dx12",
+        "valueName": "None",
+        "fallbackValue": true
+      },
+      {
         "id": "optiscaler-upscalers-dx12-auto",
         "group": "OptiScaler",
         "name": "OptiScaler Upscaler (Dx12)",
         "on": "OptiScaler_Upscalers_Dx12Upscaler=\"auto\"",
         "off": "",
-        "enableGlobally": true,
+        "enableGlobally": false,
         "valueId": "optiscaler-upscalers-dx12",
-        "valueName": "Auto",
-        "fallbackValue": true
+        "valueName": "Auto"
       },
       {
         "id": "optiscaler-upscalers-dx12-xess",
@@ -590,15 +650,25 @@
         "valueName": "DLSS"
       },
       {
+        "id": "optiscaler-upscalers-vk-none",
+        "group": "OptiScaler",
+        "name": "OptiScaler Upscaler (Vulkan)",
+        "on": "",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler-upscalers-vk",
+        "valueName": "None",
+        "fallbackValue": true
+      },
+      {
         "id": "optiscaler-upscalers-vk-auto",
         "group": "OptiScaler",
         "name": "OptiScaler Upscaler (Vulkan)",
         "on": "OptiScaler_Upscalers_VulkanUpscaler=\"auto\"",
         "off": "",
-        "enableGlobally": true,
+        "enableGlobally": false,
         "valueId": "optiscaler-upscalers-vk",
-        "valueName": "Auto",
-        "fallbackValue": true
+        "valueName": "Auto"
       },
       {
         "id": "optiscaler-upscalers-vk-fsr21",
@@ -671,6 +741,17 @@
         "valueName": "DLSS"
       },
       {
+        "id": "optiscaler-fsr-upscaler-index-none",
+        "group": "OptiScaler",
+        "name": "OptiScaler FSR Upscaler Backend",
+        "on": "",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler-fsr-upscaler-index",
+        "valueName": "None",
+        "fallbackValue": true
+      },
+      {
         "id": "optiscaler-fsr-upscaler-index-auto",
         "group": "OptiScaler",
         "name": "OptiScaler FSR Upscaler Backend",
@@ -678,8 +759,7 @@
         "off": "",
         "enableGlobally": false,
         "valueId": "optiscaler-fsr-upscaler-index",
-        "valueName": "Auto",
-        "fallbackValue": true
+        "valueName": "Auto"
       },
       {
         "id": "optiscaler-fsr-upscaler-index-0",
@@ -712,6 +792,17 @@
         "valueName": "FSR 2.3.4"
       },
       {
+        "id": "optiscaler-fsr4-preset-none",
+        "group": "OptiScaler",
+        "name": "OptiScaler FSR 4 Preset",
+        "on": "",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler-fsr4-preset",
+        "valueName": "None",
+        "fallbackValue": true
+      },
+      {
         "id": "optiscaler-fsr4-preset-auto",
         "group": "OptiScaler",
         "name": "OptiScaler FSR 4 Preset",
@@ -719,8 +810,7 @@
         "off": "",
         "enableGlobally": false,
         "valueId": "optiscaler-fsr4-preset",
-        "valueName": "Auto",
-        "fallbackValue": true
+        "valueName": "Auto"
       },
       {
         "id": "optiscaler-fsr4-preset-0",
@@ -783,6 +873,17 @@
         "valueName": "Ultra Performance"
       },
       {
+        "id": "optiscaler-vsync-none",
+        "group": "OptiScaler",
+        "name": "OptiScaler VSync",
+        "on": "",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler-vsync",
+        "valueName": "None",
+        "fallbackValue": true
+      },
+      {
         "id": "optiscaler-vsync-auto",
         "group": "OptiScaler",
         "name": "OptiScaler VSync",
@@ -790,8 +891,7 @@
         "off": "",
         "enableGlobally": false,
         "valueId": "optiscaler-vsync",
-        "valueName": "Auto",
-        "fallbackValue": true
+        "valueName": "Auto"
       },
       {
         "id": "optiscaler-vsync-on",
@@ -814,6 +914,17 @@
         "valueName": "Off"
       },
       {
+        "id": "optiscaler-vsync-sync-interval-none",
+        "group": "OptiScaler",
+        "name": "OptiScaler VSync Sync Interval",
+        "on": "",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler-vsync-sync-interval",
+        "valueName": "None",
+        "fallbackValue": true
+      },
+      {
         "id": "optiscaler-vsync-sync-interval-auto",
         "group": "OptiScaler",
         "name": "OptiScaler VSync Sync Interval",
@@ -821,8 +932,7 @@
         "off": "",
         "enableGlobally": false,
         "valueId": "optiscaler-vsync-sync-interval",
-        "valueName": "Auto",
-        "fallbackValue": true
+        "valueName": "Auto"
       },
       {
         "id": "optiscaler-vsync-sync-interval-0",
