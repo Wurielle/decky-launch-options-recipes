@@ -79,7 +79,7 @@ class HelixSRTests(unittest.TestCase):
         self.source.mkdir(parents=True)
         # Explicit offline fixtures, not usable HelixSR binaries.
         for name in ("amd_fidelityfx_dx12.dll", "amd_fidelityfx_upscaler_dx12.dll"):
-            (self.source / name).write_bytes(b"MZ offline fixture")
+            (self.source / name).write_bytes(b"MZ offline HelixSR fixture: " + name.encode())
         self.game = self.home / "game/Binaries/Win64"
         self.game.mkdir(parents=True)
         self.ini = self.game / "OptiScaler.ini"
@@ -183,6 +183,58 @@ class HelixSRTests(unittest.TestCase):
         self.assertIn("Keep=true", text)
         self.assertEqual(len(list((self.home / ".dlor/logs/helixsr/configure").glob("*.log"))), 1)
 
+
+    def check_existing_optiscaler_layout(self, supporting_directory, opti_dll_path):
+        # Characterize existing absolute FFX overrides, not OptiScaler's loader.
+        # The INI/proxy anchor is arbitrary and discovered without HELIXSR_CONFIG.
+        nested = self.home / "game/packages/render module/native runtime"
+        nested.parent.mkdir(parents=True)
+        self.game.rename(nested)
+        self.game = nested
+        self.ini = nested / "OptiScaler.ini"
+        original = ORIGINAL.replace("[Libraries]\n",
+                                    "[Libraries]\nOptiDllPath=" + opti_dll_path + "\n")
+        self.ini.write_text(original)
+        supporting = nested / supporting_directory
+        supporting.mkdir(parents=True, exist_ok=True)
+        for name in ("amd_fidelityfx_dx12.dll", "amd_fidelityfx_upscaler_dx12.dll",
+                     "vendor_backend.dll"):
+            (supporting / name).write_bytes(b"MZ offline original OptiScaler support: " + name.encode())
+        (nested / "dxgi.dll").write_bytes(b"MZ offline original OptiScaler proxy")
+
+        def snapshot(directory):
+            return {path.relative_to(directory): path.read_bytes()
+                    for path in directory.rglob("*") if path.is_file()}
+
+        install = self.home / "game"
+        before = snapshot(install)
+        cached = snapshot(self.source)
+        self.assertNotEqual(cached[Path("amd_fidelityfx_dx12.dll")],
+                            cached[Path("amd_fidelityfx_upscaler_dx12.dll")])
+        expected = original.replace("Dx12Upscaler=dlss", "Dx12Upscaler=fsr31")
+        for key, name in (("FfxDx12Path", "amd_fidelityfx_dx12.dll"),
+                          ("FfxDx12SRPath", "amd_fidelityfx_upscaler_dx12.dll")):
+            expected = expected.replace(key + "=auto", key + "=Z:" + str(self.source / name))
+
+        self.configure()
+        self.assertEqual(self.ini.read_text(), expected)
+        activated = dict(before)
+        activated[self.ini.relative_to(install)] = expected.encode()
+        # Exact path/byte snapshots also reject relocation or extra DLL copies.
+        self.assertEqual(snapshot(install), activated)
+        self.assertEqual(snapshot(self.source), cached)
+        self.configure("off")
+        self.assertEqual(snapshot(install), before)
+        self.assertEqual(snapshot(self.source), cached)
+
+    def test_optiscaler_09_root_supporting_dlls_round_trip(self):
+        self.check_existing_optiscaler_layout(".", "auto")
+
+    def test_optiscaler_v10_supporting_subfolder_round_trip(self):
+        self.check_existing_optiscaler_layout("OptiScaler", r".\OptiScaler")
+
+    def test_optiscaler_custom_supporting_path_round_trip(self):
+        self.check_existing_optiscaler_layout("custom libraries/vendor", r".\custom libraries\vendor")
 
     def test_missing_configuration_on_disable_releases_stale_state(self):
         self.configure()

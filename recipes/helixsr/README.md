@@ -22,11 +22,26 @@ not the game's existing prefix. No sudo, system package installation or global
 pip changes are made. The initial build can take several minutes; later launches
 reuse validated cached outputs.
 
-The selected game's original launch arguments identify its executable. If target
-selection remains ambiguous, the helper logs the error and leaves game files
-unchanged instead of opening a picker or guessing. A compatible existing
-OptiScaler installation is reused; otherwise the recipe installs its own verified
-dependency without replacing unknown mods or injectors.
+The helper searches recursively from the game's install root for
+`OptiScaler.ini`, matching its name case-insensitively. A unique existing INI
+anchors the installation; original launch arguments only disambiguate multiple
+installations or select a renderer when no INI exists. No game/project path is
+hardcoded. Ambiguous matches are logged without opening a picker or changing
+unknown files.
+
+Existing renamed OptiScaler proxies are recognized by their PE version-resource
+`OriginalFilename=OptiScaler.dll`, or equality with an available original copy.
+This identifies an existing installation; it is not an authenticity check or
+permission to remove its files. Unrecognized/conflicting existing proxies are
+left untouched rather than replaced with the recipe's stable dependency. A new
+dependency is installed only when needed, without replacing unknown mods.
+
+OptiScaler 0.9 and newer v10 use different supporting-library layouts. v10 keeps
+the main proxy and INI beside each other but defaults supporting DLLs to the
+`OptiScaler/` subfolder through `[Libraries] OptiDllPath`. The recipe preserves
+that setting, custom paths, and existing supporting DLLs. Both HelixSR libraries
+stay in the validated per-user build cache and are selected through the explicit
+absolute FFX overrides below; it does not flatten either installation's layout.
 
 This is **DX12 upscaling only**: it does not enable HelixSR frame generation,
 replace the game's native FSR DLLs, or build NVIDIA frame-generation components.
@@ -99,4 +114,5 @@ on-device verification requirements. The helpers have no desktop-UI dependency.
 - [NVIDIA DLSS license](https://github.com/NVIDIA/DLSS/blob/v310.7.0/LICENSE.txt)
 - [OptiScaler manual installation](https://github.com/optiscaler/OptiScaler/wiki/Manual-Installation)
 - [OptiScaler stable configuration](https://github.com/optiscaler/OptiScaler/blob/7534ad00bf9e590eedb99e8dd9fd8c89dae3654f/OptiScaler.ini)
+- [OptiScaler v10 supporting-library path configuration](https://github.com/optiscaler/OptiScaler/blob/0e42d5955405360157c22154b4a13fdf3fc196a6/OptiScaler.ini)
 - [Nightly legacy backend aliases](https://github.com/optiscaler/OptiScaler/blob/fd6c2870ec420c74bd47a067a7a0b5ba2358e677/OptiScaler/OptiTypes.cpp)

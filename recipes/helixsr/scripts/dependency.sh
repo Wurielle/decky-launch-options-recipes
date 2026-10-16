@@ -48,6 +48,7 @@ from pathlib import Path, PurePosixPath
 import re
 import shutil
 import stat
+import struct
 import subprocess
 import sys
 import tarfile
@@ -58,7 +59,8 @@ RELEASE = "v0.9.4"
 ASSET = "Optiscaler_0.9.4-final.20260718._MM.7z"
 URL = "https://github.com/optiscaler/OptiScaler/releases/download/" + RELEASE + "/" + ASSET
 DIGEST = "575cb4df866116093df75af607e37fd70e10f5163e0f23fd5c804142e80ef0ad"
-PROXIES = ("dxgi", "winmm", "version")
+INSTALL_PROXIES = ("dxgi", "winmm", "version")
+PROXIES = INSTALL_PROXIES + ("d3d12", "dbghelp", "wininet", "winhttp")
 
 
 def fail(message):
@@ -293,7 +295,7 @@ def credible_executable(path):
     return lowered.endswith(".exe") and not any(word in lowered for word in excluded)
 
 
-def target_directory(game):
+def rendering_directory(game):
     args = json.loads(os.environ.get("DLOR_HELIXSR_ARGS", "[]"))
     if not isinstance(args, list) or not all(isinstance(item, str) for item in args):
         fail("DLOR_HELIXSR_ARGS must be a JSON array of argument strings")
@@ -312,6 +314,19 @@ def target_directory(game):
     if len(candidates) > 1:
         fail("Several rendering executables found; leaving game files unchanged")
     return candidates[0].parent
+
+
+def target_directory(game):
+    # Existing installations define their own layout. Search the entire install
+    # tree, case-insensitively, before considering an executable-based fallback.
+    configs = [child_path(game, path.relative_to(game).as_posix()) for path in game_files(game)
+               if re.fullmatch(r"optiscaler\.ini", path.name, re.IGNORECASE)]
+    if len(configs) == 1:
+        return configs[0].parent
+    renderer = rendering_directory(game)
+    if configs and len([path for path in configs if path.parent == renderer]) != 1:
+        fail("Several OptiScaler.ini files found; no unique configuration for the selected renderer")
+    return renderer
 
 
 def child_path(root, relative):
@@ -397,21 +412,118 @@ def deactivate(game, manifest):
     print("Removed unchanged HelixSR-owned OptiScaler files.")
 
 
-def verified_existing(target):
+def identifies_optiscaler(path):
+    # Upstream setup renames the main DLL. Read its PE version resource instead
+    # of requiring the original filename. This identifies a borrowed install;
+    # it is neither a signature/authenticity check nor file-removal ownership.
+    image = path.read_bytes()
+    try:
+        if image[:2] != b"MZ":
+            return False
+        pe = struct.unpack_from("<I", image, 60)[0]
+        if image[pe:pe + 4] != b"PE\0\0":
+            return False
+        sections = struct.unpack_from("<H", image, pe + 6)[0]
+        optional_size = struct.unpack_from("<H", image, pe + 20)[0]
+        optional = pe + 24
+        magic = struct.unpack_from("<H", image, optional)[0]
+        directories = {0x10b: 96, 0x20b: 112}.get(magic)
+        if directories is None or optional_size < directories + 24:
+            return False
+        rva, size = struct.unpack_from("<II", image, optional + directories + 16)
+
+        def offset(address, length):
+            for index in range(sections):
+                _, start, raw_size, raw = struct.unpack_from("<IIII", image, optional + optional_size + index * 40 + 8)
+                if start <= address and address + length <= start + raw_size and raw + address - start + length <= len(image):
+                    return raw + address - start
+            raise ValueError("Unmapped PE resource")
+
+        root = offset(rva, size)
+
+        def entries(relative):
+            if relative < 0 or relative + 16 > size:
+                raise ValueError("Invalid PE resource directory")
+            named, ids = struct.unpack_from("<HH", image, root + relative + 12)
+            if relative + 16 + (named + ids) * 8 > size:
+                raise ValueError("Truncated PE resource directory")
+            return [struct.unpack_from("<II", image, root + relative + 16 + index * 8) for index in range(named + ids)]
+
+        def version_block(version, begin, limit):
+            if begin + 6 > limit:
+                raise ValueError("Truncated version block")
+            length, value_length, text = struct.unpack_from("<HHH", version, begin)
+            end = begin + length
+            if length < 8 or end > limit or text not in (0, 1):
+                raise ValueError("Invalid version block bounds")
+            cursor = begin + 6
+            while cursor + 2 <= end and version[cursor:cursor + 2] != b"\0\0":
+                cursor += 2
+            if cursor + 2 > end:
+                raise ValueError("Unterminated version key")
+            name = version[begin + 6:cursor].decode("utf-16le")
+            value = (cursor + 2 + 3) & ~3
+            value_end = value + value_length * (2 if text else 1)
+            if value_end > end:
+                raise ValueError("Version value exceeds declared block")
+            return name, text, version[value:value_end], (value_end + 3) & ~3, end
+
+        def version_children(version, parent):
+            cursor, end = parent[3:]
+            children = []
+            while cursor < end:
+                child = version_block(version, cursor, end)
+                children.append(child)
+                cursor = (child[4] + 3) & ~3
+            return children
+
+        for kind, types in entries(0):
+            if kind != 16 or not types & 0x80000000:
+                continue  # Only RT_VERSION, never coincidental strings elsewhere.
+            for _, names in entries(types & 0x7fffffff):
+                if not names & 0x80000000:
+                    continue
+                for _, leaf in entries(names & 0x7fffffff):
+                    if leaf & 0x80000000 or leaf + 16 > size:
+                        continue
+                    address, length = struct.unpack_from("<II", image, root + leaf)
+                    begin = offset(address, length)
+                    version = image[begin:begin + length]
+                    info = version_block(version, 0, len(version))
+                    if info[0] != "VS_VERSION_INFO" or info[1] != 0:
+                        continue
+                    # Walk only declared children, never scan values or bytes
+                    # outside the root/StringFileInfo/StringTable boundaries.
+                    for strings in version_children(version, info):
+                        if strings[:3] != ("StringFileInfo", 1, b""):
+                            continue
+                        for table in version_children(version, strings):
+                            if not re.fullmatch(r"[0-9a-fA-F]{8}", table[0]) or table[1:3] != (1, b""):
+                                continue
+                            for record in version_children(version, table):
+                                if record[0:2] == ("OriginalFilename", 1):
+                                    if record[2].decode("utf-16le").rstrip("\0").casefold() == "optiscaler.dll":
+                                        return True
+    except (struct.error, ValueError, UnicodeError):
+        pass
+    return False
+
+
+def existing_installation(target):
     ini = child_path(target, "OptiScaler.ini")
     if not ini.is_file() or not ini.stat().st_size:
         return None
     sources = [child_path(target, "OptiScaler.dll"), Path.home() / "fgmod/OptiScaler.dll"]
     known = {digest(path) for path in sources if path.is_file() and not path.is_symlink() and path.stat().st_size}
     matches = [name for name in PROXIES if (path := child_path(target, name + ".dll")).is_file()
-               and path.stat().st_size and digest(path) in known]
+               and path.stat().st_size and (digest(path) in known or identifies_optiscaler(path))]
     if len(matches) > 1:
         fail("Multiple verified OptiScaler proxies; refusing ambiguous Wine override")
     return (matches[0], ini) if matches else None
 
 
 def publish(runtime, target, proxy, config):
-    verified = verified_existing(target)
+    verified = existing_installation(target)
     if not verified or verified != (proxy, config):
         fail("OptiScaler proxy/config verification failed before runtime publication")
     atomic_write(Path(str(runtime) + ".config"), (str(config) + "\n").encode())
@@ -419,20 +531,24 @@ def publish(runtime, target, proxy, config):
 
 
 def activate(game, manifest):
-    # Select the renderer before considering reuse; a launcher install or stale
-    # journal must never redirect this launch's configuration and Wine override.
+    # Prefer the installation discovered from its INI, not a game-specific path.
+    # Owned installs still require restoration before moving to another renderer.
     target = target_directory(game)
     previous = load_state(manifest, game)
-    if previous and Path(previous["target"]) != target:
+    if previous and (Path(previous["target"]) != target or Path(previous["target"]) != rendering_directory(game)):
         fail("Rendering executable directory changed; disable HelixSR to restore and remove its previous dependency before enabling again")
     if any(ord(char) < 32 for char in str(target)):
         fail("Dependency directory paths cannot contain control characters")
     runtime = Path(os.environ["DLOR_HELIXSR_RUNTIME_FILE"])
-    existing = verified_existing(target)
+    existing = existing_installation(target)
     if existing and (not previous or previous.get("complete")):
         publish(runtime, target, *existing)
-        print("Reusing verified OptiScaler dependency; existing ownership is unchanged.")
+        print("Reusing identified OptiScaler dependency; existing ownership is unchanged.")
         return
+    if (child_path(target, "OptiScaler.ini").exists()
+            and any(child_path(target, name + ".dll").exists() for name in PROXIES)
+            and not (previous and not previous.get("complete"))):
+        fail("Could not identify a compatible OptiScaler proxy; leaving the existing installation unchanged")
     base = Path(os.environ.get("HELIXSR_CACHE_DIR", str(Path.home() / ".dlor/cache/helixsr"))).expanduser().resolve()
     cache = base / "optiscaler" / RELEASE
     cache.mkdir(parents=True, exist_ok=True)
@@ -447,7 +563,7 @@ def install_release(game, manifest, previous, target, runtime, cache):
     with tempfile.TemporaryDirectory(prefix=".extract-", dir=cache) as staging:
         source = Path(staging)
         extract(archive, source)
-        proxy = previous["proxy"] if previous else next((name for name in PROXIES if not child_path(target, name + ".dll").exists()), None)
+        proxy = previous["proxy"] if previous else next((name for name in INSTALL_PROXIES if not child_path(target, name + ".dll").exists()), None)
         if not proxy:
             fail("No unused OptiScaler proxy filename")
         files = {str(path.relative_to(source)): path for path in source.rglob("*") if path.is_file()

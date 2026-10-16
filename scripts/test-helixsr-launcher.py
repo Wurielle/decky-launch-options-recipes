@@ -23,7 +23,7 @@ if stage == os.environ.get("TEST_FAIL_STAGE") and os.environ["DLOR_HELIXSR_ACTIO
 if stage == "setup":
     pathlib.Path(str(runtime) + ".setup").write_text("ready\n")
 elif stage == "dependency" and os.environ["DLOR_HELIXSR_ACTION"] == "on":
-    runtime.write_text("dxgi\n")
+    runtime.write_text(os.environ.get("TEST_PROXY", "dxgi") + "\n")
     pathlib.Path(str(runtime) + ".config").write_text(os.environ["TEST_CONFIG"] + "\n")
     pathlib.Path(os.environ["TEST_ARGS"]).write_text(os.environ["DLOR_HELIXSR_ARGS"])
 elif stage == "configure":
@@ -75,6 +75,13 @@ class LauncherTests(unittest.TestCase):
         self.assertIn("launching game", logs[0].read_text())
         self.assertNotIn("argument with spaces", logs[0].read_text())
 
+
+    def test_supported_existing_proxy_names_reach_the_game_override(self):
+        for proxy in ("d3d12", "dbghelp", "wininet", "winhttp"):
+            with self.subTest(proxy=proxy):
+                self.env["TEST_PROXY"] = proxy
+                value, _, _ = self.launch()
+                self.assertIn(proxy + "=n,b", value["env"]["WINEDLLOVERRIDES"].split(";"))
 
     def test_generated_recipe_contains_automatic_setup_and_dependency(self):
         options = [option for recipe in json.loads((ROOT / "recipes.json").read_text())

@@ -86,7 +86,7 @@ if [[ "${DLOR_HELIXSR_ACTION:-off}" == on ]]; then
     fi
     IFS= read -r proxy < "$DLOR_HELIXSR_RUNTIME_FILE"
     case "$proxy" in
-        dxgi|winmm|version|dinput8) ;;
+        dxgi|winmm|version|dinput8|d3d12|dbghelp|wininet|winhttp) ;;
         *) failed "proxy selection"; launch_game "$@" ;;
     esac
     merged=$(host python3 - "$proxy" "${WINEDLLOVERRIDES:-}" <<'PY'

@@ -9,6 +9,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import struct
 import sys
 import tempfile
 import unittest
@@ -141,6 +142,37 @@ exec(compile(body, str(script) + ":embedded", "exec"), {"__name__": "__main__"})
 '''
 
 
+def proxy_fixture(original_filename="OptiScaler.dll", version="10.0.0-dev"):
+    """Non-executable PE fixture with a real RT_VERSION resource structure."""
+    def block(key, value=b"", children=b"", text=True):
+        result = struct.pack("<HHH", 0, len(value) // 2 if text else len(value), int(text))
+        result += (key + "\0").encode("utf-16le")
+        result += b"\0" * (-len(result) % 4) + value
+        result += b"\0" * (-len(result) % 4) + children
+        return struct.pack("<H", len(result)) + result[2:]
+    strings = block("OriginalFilename", (original_filename + "\0").encode("utf-16le"))
+    strings += block("ProductVersion", (version + "\0").encode("utf-16le"))
+    info = block("VS_VERSION_INFO", children=block("StringFileInfo", children=block("040904B0", children=strings)), text=False)
+    resources = bytearray(88)
+    for offset in (0, 24, 48):
+        struct.pack_into("<HH", resources, offset + 12, 0, 1)
+    struct.pack_into("<II", resources, 16, 16, 0x80000000 | 24)
+    struct.pack_into("<II", resources, 40, 1, 0x80000000 | 48)
+    struct.pack_into("<II", resources, 64, 1033, 72)
+    struct.pack_into("<IIII", resources, 72, 0x1000 + 88, len(info), 0, 0)
+    resources += info
+    image = bytearray(512)
+    image[:2] = b"MZ"
+    struct.pack_into("<I", image, 60, 128)
+    image[128:132] = b"PE\0\0"
+    struct.pack_into("<HHIIIHH", image, 132, 0x8664, 1, 0, 0, 0, 240, 0x2000)
+    struct.pack_into("<H", image, 152, 0x20b)
+    struct.pack_into("<I", image, 152 + 108, 16)
+    struct.pack_into("<II", image, 152 + 128, 0x1000, len(resources))
+    struct.pack_into("<8sIIII", image, 392, b".rsrc\0\0\0", len(resources), 0x1000, len(resources), 512)
+    return bytes(image + resources)
+
+
 class DependencyTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="dlor dependency ")
@@ -255,6 +287,187 @@ class DependencyTests(unittest.TestCase):
                 ini.unlink()
                 source.unlink()
 
+    def test_discovers_existing_ini_recursively_before_executable_fallback(self):
+        installed = self.game / "Custom runtime/loader"
+        installed.mkdir(parents=True)
+        ini = installed / "oPtIsCaLeR.InI"
+        ini.write_bytes(INI)
+        for name in ("OptiScaler.dll", "winmm.dll"):
+            (installed / name).write_bytes(FIXTURE["OptiScaler.dll"])
+        before = {path.relative_to(self.game): path.read_bytes()
+                  for path in self.game.rglob("*") if path.is_file()}
+        self.env["TEST_NO_DOWNLOAD"] = "1"
+        self.run_helper()
+        self.assertEqual(self.runtime.read_text(), "winmm\n")
+        self.assertEqual(Path(str(self.runtime) + ".config").read_text(), str(ini) + "\n")
+        self.assertFalse(self.manifest.exists())
+        self.assertEqual({path.relative_to(self.game): path.read_bytes()
+                          for path in self.game.rglob("*") if path.is_file()}, before)
+
+    def test_discovered_ini_ancestors_are_validated_from_game_root(self):
+        self.env["TEST_NO_DOWNLOAD"] = "1"
+        self.state_dir.mkdir(parents=True)
+        self.config_state.write_bytes(b"existing configuration state")
+        for nested, symlink, multiple in ((False, False, False), (True, False, False),
+                                          (False, True, False), (False, False, True)):
+            with self.subTest(nested=nested, symlink=symlink, multiple=multiple):
+                parent = self.game / "Loader" if nested else self.game
+                parent.mkdir(exist_ok=True)
+                installed = parent / "Render"
+                installed.mkdir()
+                alias = parent / "render"
+                if symlink:
+                    alias.symlink_to(installed, target_is_directory=True)
+                else:
+                    alias.mkdir()
+                (installed / "OptiScaler.ini").write_bytes(INI)
+                (installed / "winmm.dll").write_bytes(proxy_fixture())
+                selected = self.target / "OptiScaler.ini"
+                if multiple:
+                    selected.write_bytes(INI)
+                    (self.target / "winmm.dll").write_bytes(proxy_fixture())
+                before = {path.relative_to(self.game): ("link", os.readlink(path)) if path.is_symlink()
+                          else ("file", path.read_bytes()) if path.is_file() else ("dir", None)
+                          for path in self.game.rglob("*")}
+                try:
+                    result = self.run_helper(expected=1)
+                    self.assertIn("Ambiguous case-insensitive game path", result.stderr)
+                    self.assertNotIn("Traceback", result.stderr)
+                    self.assertFalse(any(Path(call[0]).name == "curl" for call in self.calls()))
+                    self.assertFalse(self.manifest.exists())
+                    self.assertEqual(self.config_state.read_bytes(), b"existing configuration state")
+                    self.assertEqual(self.runtime.read_bytes(), b"")
+                    self.assertFalse(Path(str(self.runtime) + ".config").exists())
+                    self.assertEqual({path.relative_to(self.game): ("link", os.readlink(path)) if path.is_symlink()
+                                      else ("file", path.read_bytes()) if path.is_file() else ("dir", None)
+                                      for path in self.game.rglob("*")}, before)
+                finally:
+                    if multiple:
+                        selected.unlink()
+                        (self.target / "winmm.dll").unlink()
+                    (installed / "OptiScaler.ini").unlink()
+                    (installed / "winmm.dll").unlink()
+                    alias.unlink() if symlink else alias.rmdir()
+                    installed.rmdir()
+                    if nested:
+                        parent.rmdir()
+
+    def test_rename_only_installs_are_identified_without_replacing_their_layout(self):
+        ini = self.target / "OptiScaler.ini"
+        for version, folder, proxy_name in (("0.9.4-final", ".", "winmm"),
+                                            ("10.0.0-dev", "OptiScaler", "winmm"),
+                                            ("10.0.0-dev", "OptiScaler", "winhttp")):
+            with self.subTest(version=version, proxy=proxy_name):
+                contents = INI.replace(b"[Libraries]\n", b"[Libraries]\nOptiDllPath=auto\n")
+                ini.write_bytes(contents)
+                proxy = self.target / (proxy_name + ".dll")
+                proxy.write_bytes(proxy_fixture(version=version))
+                support = self.target / folder / "amd_fidelityfx_upscaler_dx12.dll"
+                support.parent.mkdir(exist_ok=True)
+                support.write_bytes(b"MZ unrelated existing support library")
+                before = {path.relative_to(self.game): path.read_bytes()
+                          for path in self.game.rglob("*") if path.is_file()}
+                self.env["TEST_NO_DOWNLOAD"] = "1"
+                self.run_helper()
+                self.assertEqual(self.runtime.read_text(), proxy_name + "\n")
+                self.assertEqual(Path(str(self.runtime) + ".config").read_text(), str(ini) + "\n")
+                self.assertFalse(self.manifest.exists())
+                self.run_helper("off")
+                self.assertEqual({path.relative_to(self.game): path.read_bytes()
+                                  for path in self.game.rglob("*") if path.is_file()}, before)
+                ini.unlink()
+                proxy.unlink()
+                support.unlink()
+
+    def test_unrecognized_proxy_beside_existing_ini_is_not_downgraded_or_downloaded_over(self):
+        (self.target / "OptiScaler.ini").write_bytes(INI)
+        (self.target / "dxgi.dll").write_bytes(proxy_fixture(original_filename="OtherMod.dll"))
+        before = {path.relative_to(self.game): path.read_bytes()
+                  for path in self.game.rglob("*") if path.is_file()}
+        self.env["TEST_NO_DOWNLOAD"] = "1"
+        result = self.run_helper(expected=1)
+        self.assertIn("leaving the existing installation unchanged", result.stderr)
+        self.assertFalse(any(Path(call[0]).name == "curl" for call in self.calls()))
+        self.assertFalse(self.manifest.exists())
+        self.assertEqual(self.runtime.read_bytes(), b"")
+        self.assertEqual({path.relative_to(self.game): path.read_bytes()
+                          for path in self.game.rglob("*") if path.is_file()}, before)
+
+    def test_multiple_ini_matches_without_a_renderer_match_leave_all_files_unchanged(self):
+        for folder in ("First loader", "Second loader"):
+            directory = self.game / folder
+            directory.mkdir()
+            (directory / "OptiScaler.ini").write_bytes(INI)
+            (directory / "dxgi.dll").write_bytes(proxy_fixture())
+        before = {path.relative_to(self.game): path.read_bytes()
+                  for path in self.game.rglob("*") if path.is_file()}
+        self.env["TEST_NO_DOWNLOAD"] = "1"
+        result = self.run_helper(expected=1)
+        self.assertIn("Several OptiScaler.ini", result.stderr)
+        self.assertFalse(self.manifest.exists())
+        self.assertEqual(self.runtime.read_bytes(), b"")
+        self.assertEqual({path.relative_to(self.game): path.read_bytes()
+                          for path in self.game.rglob("*") if path.is_file()}, before)
+
+    def test_proxy_identification_rejects_malformed_pe_and_non_version_resources(self):
+        (self.target / "OptiScaler.ini").write_bytes(INI)
+        wrong_type = bytearray(proxy_fixture())
+        struct.pack_into("<I", wrong_type, 512 + 16, 10)  # RT_RCDATA, not RT_VERSION.
+        for payload in (b"MZ OptiScaler.dll", proxy_fixture()[:300], bytes(wrong_type),
+                        proxy_fixture(original_filename="Reshade.dll")):
+            with self.subTest(length=len(payload)):
+                (self.target / "dxgi.dll").write_bytes(payload)
+                self.env["TEST_NO_DOWNLOAD"] = "1"
+                result = self.run_helper(expected=1)
+                self.assertIn("leaving the existing installation unchanged", result.stderr)
+                self.assertNotIn("Traceback", result.stderr)
+                self.assertEqual(self.runtime.read_bytes(), b"")
+                self.assertFalse(self.manifest.exists())
+
+    def test_proxy_identification_respects_declared_version_block_bounds(self):
+        (self.target / "OptiScaler.ini").write_bytes(INI)
+        self.env["TEST_NO_DOWNLOAD"] = "1"
+        self.state_dir.mkdir(parents=True)
+        self.config_state.write_bytes(b"existing configuration state")
+        original = proxy_fixture()
+        mutations = []
+        for key in ("VS_VERSION_INFO", "StringFileInfo", "040904B0", "OriginalFilename"):
+            start = original.index((key + "\0").encode("utf-16le")) - 6
+            size = struct.unpack_from("<H", original, start)[0]
+            for declared in (0, 6, size - (4 if key == "OriginalFilename" else 2), len(original)):
+                payload = bytearray(original)
+                struct.pack_into("<H", payload, start, declared)
+                mutations.append((key, declared, bytes(payload)))
+        for key in ("VS_VERSION_INFO", "StringFileInfo", "040904B0"):
+            start = original.index((key + "\0").encode("utf-16le")) - 6
+            for field, value in ((2, 65535), (4, 1 if key == "VS_VERSION_INFO" else 0)):
+                payload = bytearray(original)
+                struct.pack_into("<H", payload, start + field, value)
+                mutations.append((key, "header field " + str(field), bytes(payload)))
+        for key in ("StringFileInfo", "040904B0"):
+            payload = bytearray(original)
+            payload[original.index((key + "\0").encode("utf-16le"))] = ord("Z")
+            mutations.append((key, "invalid enclosing key", bytes(payload)))
+        payload = bytearray(original)
+        root = original.index("VS_VERSION_INFO\0".encode("utf-16le")) - 6
+        struct.pack_into("<H", payload, root + 2, len(original) - root - 40)
+        mutations.append(("VS_VERSION_INFO", "strings inside binary value", bytes(payload)))
+        for key, declared, payload in mutations:
+            with self.subTest(block=key, declared=declared):
+                (self.target / "dxgi.dll").write_bytes(payload)
+                before = {path.relative_to(self.game): path.read_bytes()
+                          for path in self.game.rglob("*") if path.is_file()}
+                result = self.run_helper(expected=1)
+                self.assertIn("leaving the existing installation unchanged", result.stderr)
+                self.assertNotIn("Traceback", result.stderr)
+                self.assertFalse(any(Path(call[0]).name == "curl" for call in self.calls()))
+                self.assertFalse(self.manifest.exists())
+                self.assertEqual(self.config_state.read_bytes(), b"existing configuration state")
+                self.assertEqual(self.runtime.read_bytes(), b"")
+                self.assertFalse(Path(str(self.runtime) + ".config").exists())
+                self.assertEqual({path.relative_to(self.game): path.read_bytes()
+                                  for path in self.game.rglob("*") if path.is_file()}, before)
+
     def test_interrupted_install_can_retry_without_dropping_original_ownership(self):
         self.env["TEST_INTERRUPT"] = "after_link"
         self.run_helper(expected=79)
@@ -300,19 +513,24 @@ class DependencyTests(unittest.TestCase):
         self.assertFalse(self.manifest.exists())
         self.assertEqual({path.relative_to(self.game): path.read_bytes() for path in self.game.rglob("*") if path.is_file()}, before)
 
-    def test_selected_renderer_wins_over_unrelated_verified_launcher_installation(self):
+    def test_renderer_disambiguates_multiple_discovered_configurations(self):
         legacy = self.game / "ObsoleteLauncher"
         legacy.mkdir()
         borrowed = {"OptiScaler.dll": FIXTURE["OptiScaler.dll"],
                     "version.dll": FIXTURE["OptiScaler.dll"], "OptiScaler.ini": INI}
         for name, data in borrowed.items():
             (legacy / name).write_bytes(data)
+        current = dict(borrowed)
+        current["dxgi.dll"] = current.pop("version.dll")
+        for name, data in current.items():
+            (self.target / name).write_bytes(data)
         launcher = self.game / "Project.exe"
         launcher.write_bytes(b"MZ launcher fixture")
         drives = self.home / "compat/pfx/dosdevices"
         drives.mkdir(parents=True)
         (drives / "g:").symlink_to(self.game)
         self.env["STEAM_COMPAT_DATA_PATH"] = str(self.home / "compat")
+        self.env["TEST_NO_DOWNLOAD"] = "1"
         for mode in ("direct", "wine", "unreal", "discovery"):
             with self.subTest(mode=mode):
                 arguments = {"direct": [str(self.exe)],
@@ -320,16 +538,14 @@ class DependencyTests(unittest.TestCase):
                              "unreal": [str(launcher)], "discovery": []}
                 self.env["DLOR_HELIXSR_ARGS"] = json.dumps(arguments[mode])
                 self.run_helper()
-                self.assertTrue((self.target / "dxgi.dll").is_file())
                 self.assertEqual(self.runtime.read_text(), "dxgi\n")
                 self.assertEqual(Path(str(self.runtime) + ".config").read_text(),
                                  str(self.target / "OptiScaler.ini") + "\n")
-                self.assertEqual(json.loads(self.manifest.read_text())["target"], str(self.target))
+                self.assertFalse(self.manifest.exists())
                 self.run_helper("off")
-                self.assertFalse((self.target / "dxgi.dll").exists())
-                for name, data in borrowed.items():
-                    self.assertEqual((legacy / name).read_bytes(), data)
-                self.env["TEST_NO_DOWNLOAD"] = "1"
+                for directory, files in ((legacy, borrowed), (self.target, current)):
+                    for name, data in files.items():
+                        self.assertEqual((directory / name).read_bytes(), data)
 
     def test_changed_renderer_refuses_stale_manifest_until_owned_dependency_is_disabled(self):
         self.run_helper()
