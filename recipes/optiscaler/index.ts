@@ -350,8 +350,10 @@ const launchOptions: LaunchOption[] = [
         id: 'optiscaler',
         group: '',
         name: 'OptiScaler',
-        on: '~/fgmod/fgmod %command%',
-        off: '~/fgmod/fgmod-uninstaller.sh %command%',
+        on: 'DLOR_OPTISCALER_REQUESTED="1" ~/fgmod/fgmod %command%',
+        // A disabled independent option must not uninstall a dependency needed
+        // by HelixSR. The path appears before assignments for DLO parser safety.
+        off: 'bash -c \'if [[ -x "$HOME/fgmod/fgmod-uninstaller.sh" && "${DLOR_HELIXSR_ACTION:-off}" != on ]]; then exec "$HOME/fgmod/fgmod-uninstaller.sh" "$@"; fi; exec "$@"\' -- %command%',
     },
     {
         id: 'optiscaler-nightly-upgrade',

@@ -6,14 +6,14 @@
         "id": "optiscaler",
         "group": "",
         "name": "OptiScaler",
-        "on": "~/fgmod/fgmod %command%",
-        "off": "~/fgmod/fgmod-uninstaller.sh %command%"
+        "on": "DLOR_OPTISCALER_REQUESTED=\"1\" ~/fgmod/fgmod %command%",
+        "off": "bash -c 'if [[ -x \"$HOME/fgmod/fgmod-uninstaller.sh\" && \"${DLOR_HELIXSR_ACTION:-off}\" != on ]]; then exec \"$HOME/fgmod/fgmod-uninstaller.sh\" \"$@\"; fi; exec \"$@\"' -- %command%"
       },
       {
         "id": "optiscaler-nightly-upgrade",
         "group": "OptiScaler",
         "name": "OptiScaler Nightly Upgrade",
-        "on": "~/.dlor/run optiscaler update-nightly c2f7e092160825c6b4f84900f5d2cfbe833553b7 -- %command%",
+        "on": "~/.dlor/run optiscaler update-nightly 4d421e05bb2550deb8a2e9d2edcba4f840d5e4c9 -- %command%",
         "off": "",
         "enableGlobally": false,
         "priority": -1
@@ -2848,7 +2848,7 @@
         "id": "reframework-install-update",
         "group": "REFramework",
         "name": "REFramework",
-        "on": "WINEDLLOVERRIDES=\"dinput8.dll=n,b\" ~/.dlor/run reframework update c2f7e092160825c6b4f84900f5d2cfbe833553b7 -- %command%",
+        "on": "WINEDLLOVERRIDES=\"dinput8.dll=n,b\" ~/.dlor/run reframework update 4d421e05bb2550deb8a2e9d2edcba4f840d5e4c9 -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "reframework",
@@ -2858,11 +2858,25 @@
         "id": "reframework-uninstall",
         "group": "REFramework",
         "name": "REFramework",
-        "on": "~/.dlor/run reframework uninstall c2f7e092160825c6b4f84900f5d2cfbe833553b7 -- %command%",
+        "on": "~/.dlor/run reframework uninstall 4d421e05bb2550deb8a2e9d2edcba4f840d5e4c9 -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "reframework",
         "valueName": "Uninstall"
+      }
+    ]
+  },
+  {
+    "name": "HelixSR",
+    "launchOptions": [
+      {
+        "id": "helixsr",
+        "group": "HelixSR",
+        "name": "HelixSR (OptiScaler DX12)",
+        "on": "DLOR_HELIXSR_ACTION=\"on\" ~/.dlor/run --wrapper helixsr launch 4d421e05bb2550deb8a2e9d2edcba4f840d5e4c9 -- %command%",
+        "off": "DLOR_HELIXSR_ACTION=\"off\" ~/.dlor/run --wrapper helixsr launch 4d421e05bb2550deb8a2e9d2edcba4f840d5e4c9 -- %command%",
+        "enableGlobally": false,
+        "priority": -2
       }
     ]
   }
