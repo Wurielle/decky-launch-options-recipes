@@ -13,7 +13,7 @@
         "id": "optiscaler-nightly-upgrade",
         "group": "OptiScaler",
         "name": "OptiScaler Nightly Upgrade",
-        "on": "~/.dlor/run optiscaler update-nightly c2f7e092160825c6b4f84900f5d2cfbe833553b7 -- %command%",
+        "on": "~/.dlor/run optiscaler update-nightly d8db77dd784027999632d62a7ebf4e3d9b374d6c -- %command%",
         "off": "",
         "enableGlobally": false,
         "priority": -1
@@ -2848,7 +2848,7 @@
         "id": "reframework-install-update",
         "group": "REFramework",
         "name": "REFramework",
-        "on": "WINEDLLOVERRIDES=\"dinput8.dll=n,b\" ~/.dlor/run reframework update c2f7e092160825c6b4f84900f5d2cfbe833553b7 -- %command%",
+        "on": "WINEDLLOVERRIDES=\"dinput8.dll=n,b\" ~/.dlor/run reframework update d8db77dd784027999632d62a7ebf4e3d9b374d6c -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "reframework",
@@ -2858,11 +2858,25 @@
         "id": "reframework-uninstall",
         "group": "REFramework",
         "name": "REFramework",
-        "on": "~/.dlor/run reframework uninstall c2f7e092160825c6b4f84900f5d2cfbe833553b7 -- %command%",
+        "on": "~/.dlor/run reframework uninstall d8db77dd784027999632d62a7ebf4e3d9b374d6c -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "reframework",
         "valueName": "Uninstall"
+      }
+    ]
+  },
+  {
+    "name": "HelixSR",
+    "launchOptions": [
+      {
+        "id": "helixsr",
+        "group": "HelixSR",
+        "name": "HelixSR (OptiScaler DX12)",
+        "on": "DLOR_HELIXSR_ACTION=\"on\" ~/.dlor/run helixsr configure d8db77dd784027999632d62a7ebf4e3d9b374d6c -- %command%",
+        "off": "DLOR_HELIXSR_ACTION=\"off\" ~/.dlor/run helixsr configure d8db77dd784027999632d62a7ebf4e3d9b374d6c -- %command%",
+        "enableGlobally": false,
+        "priority": -2
       }
     ]
   }
