@@ -12,6 +12,7 @@ from runner_test_support import install_runner
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = {
+    "helixsr-configure": ROOT / "recipes/helixsr/scripts/configure.sh",
     "reframework-update": ROOT / "recipes/reframework/scripts/update.sh",
     "reframework-uninstall": ROOT / "recipes/reframework/scripts/uninstall.sh",
     "optiscaler-update-nightly": ROOT / "recipes/optiscaler/scripts/update-nightly.sh",

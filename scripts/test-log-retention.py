@@ -8,6 +8,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = {
+    "helixsr/configure": ROOT / "recipes/helixsr/scripts/configure.sh",
     "run": ROOT / "defaults/dlor-run.sh",
     "optiscaler/update-nightly": ROOT / "recipes/optiscaler/scripts/update-nightly.sh",
     "reframework/update": ROOT / "recipes/reframework/scripts/update.sh",
