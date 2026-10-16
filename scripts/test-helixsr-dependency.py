@@ -288,24 +288,17 @@ class DependencyTests(unittest.TestCase):
         self.assertTrue((self.target / "dxgi.dll").exists())
         self.assertFalse((self.game / "dxgi.dll").exists())
 
-    def test_ambiguous_renderers_use_desktop_picker_and_patch_only_selection(self):
+    def test_ambiguous_renderers_are_logged_without_dialogs_or_game_changes(self):
         other = self.game / "Other/Binaries/Win64/Other-Win64-Shipping.exe"
         other.parent.mkdir(parents=True)
         other.write_bytes(b"MZ second offline renderer")
         self.env["DLOR_HELIXSR_ARGS"] = "[]"
-        for tool in ("zenity", "kdialog"):
-            with self.subTest(tool=tool):
-                self.env["TEST_GUI_TOOL"] = tool
-                self.env["TEST_GUI_CHOICE"] = other.relative_to(self.game).as_posix()
-                self.run_helper()
-                self.assertTrue((other.parent / "dxgi.dll").exists())
-                self.assertFalse((self.target / "dxgi.dll").exists())
-                self.assertTrue(any(call[0] == "/offline/" + tool for call in self.calls()))
-                self.run_helper("off")
-        self.env["TEST_GUI_STATUS"] = "1"
         self.env["TEST_NO_DOWNLOAD"] = "1"
+        before = {path.relative_to(self.game): path.read_bytes() for path in self.game.rglob("*") if path.is_file()}
         self.run_helper(expected=1)
-        self.assertFalse((other.parent / "dxgi.dll").exists())
+        self.assertFalse(any(call[0] in ("/offline/zenity", "/offline/kdialog") for call in self.calls()))
+        self.assertFalse(self.manifest.exists())
+        self.assertEqual({path.relative_to(self.game): path.read_bytes() for path in self.game.rglob("*") if path.is_file()}, before)
 
     def test_selected_renderer_wins_over_unrelated_verified_launcher_installation(self):
         legacy = self.game / "ObsoleteLauncher"
@@ -320,15 +313,12 @@ class DependencyTests(unittest.TestCase):
         drives.mkdir(parents=True)
         (drives / "g:").symlink_to(self.game)
         self.env["STEAM_COMPAT_DATA_PATH"] = str(self.home / "compat")
-        for mode in ("direct", "wine", "unreal", "picker"):
+        for mode in ("direct", "wine", "unreal", "discovery"):
             with self.subTest(mode=mode):
                 arguments = {"direct": [str(self.exe)],
                              "wine": [r"G:\project\binaries\win64\project-win64-shipping.exe"],
-                             "unreal": [str(launcher)], "picker": []}
+                             "unreal": [str(launcher)], "discovery": []}
                 self.env["DLOR_HELIXSR_ARGS"] = json.dumps(arguments[mode])
-                if mode == "picker":
-                    (legacy / "Other-Win64-Shipping.exe").write_bytes(b"MZ alternate renderer fixture")
-                    self.env["TEST_GUI_CHOICE"] = self.exe.relative_to(self.game).as_posix()
                 self.run_helper()
                 self.assertTrue((self.target / "dxgi.dll").is_file())
                 self.assertEqual(self.runtime.read_text(), "dxgi\n")
@@ -429,7 +419,7 @@ class DependencyTests(unittest.TestCase):
         self.run_helper(expected=1)
         self.assertEqual(self.runtime.read_bytes(), b"")
         self.assertFalse(config_output.exists())
-        self.assertTrue(any(call[0] == "/offline/zenity" and "--error" in call for call in self.calls()))
+        self.assertFalse(any(call[0] in ("/offline/zenity", "/offline/kdialog") for call in self.calls()))
 
     def test_runtime_output_must_be_private_owned_regular_file_not_symlink(self):
         outside = self.home / "outside"
@@ -474,7 +464,7 @@ class DependencyTests(unittest.TestCase):
         self.assertFalse((target / "OptiScaler.ini").exists())
         self.assertFalse(self.manifest.exists())
 
-    def test_malformed_dependency_journal_is_refused_with_gui_not_traceback(self):
+    def test_malformed_dependency_journal_is_refused_without_dialogs_or_traceback(self):
         self.state_dir.mkdir(parents=True)
         self.manifest.write_text("[]")
         self.env["TEST_NO_DOWNLOAD"] = "1"
@@ -482,7 +472,7 @@ class DependencyTests(unittest.TestCase):
         self.assertIn("Error:", result.stderr)
         self.assertNotIn("Traceback", result.stderr)
         self.assertEqual(self.manifest.read_text(), "[]")
-        self.assertTrue(any(call[0] == "/offline/zenity" and "--error" in call for call in self.calls()))
+        self.assertFalse(any(call[0] in ("/offline/zenity", "/offline/kdialog") for call in self.calls()))
 
     def test_bad_download_checksum_never_reaches_an_extractor(self):
         self.env["TEST_CORRUPT_DOWNLOAD"] = "1"

@@ -11,10 +11,10 @@ entry: its updated disabled command must not uninstall a dependency HelixSR need
 ## First launch
 
 The recipe downloads the complete, checksum-verified HelixSR 1.9.0 release and
-prepares its network locally using the unmodified upstream Python builder. A
-first-run GUI asks for explicit consent before acquiring NVIDIA's DLSS component
-under NVIDIA's license. Canceling leaves the feature inactive and launches the
-game normally. It does not accept license terms silently.
+prepares its network locally using the unmodified upstream Python builder's
+unattended mode. NVIDIA's DLSS component is acquired under its
+[license](https://github.com/NVIDIA/DLSS/blob/v310.7.0/LICENSE.txt); the license
+notice is included in setup logs. No desktop prompts or progress windows open.
 
 Python/numpy and Microsoft's shader compiler are prepared in a per-user cache
 when needed. Shader compilation uses Proton/Wine and an isolated build prefix,
@@ -23,10 +23,10 @@ pip changes are made. The initial build can take several minutes; later launches
 reuse validated cached outputs.
 
 The selected game's original launch arguments identify its executable. If target
-selection is genuinely ambiguous, the helper asks through the GUI rather than
-patching every executable. A compatible existing OptiScaler installation is
-reused; otherwise the recipe installs its own verified dependency without
-replacing unknown mods or injectors.
+selection remains ambiguous, the helper logs the error and leaves game files
+unchanged instead of opening a picker or guessing. A compatible existing
+OptiScaler installation is reused; otherwise the recipe installs its own verified
+dependency without replacing unknown mods or injectors.
 
 This is **DX12 upscaling only**: it does not enable HelixSR frame generation,
 replace the game's native FSR DLLs, or build NVIDIA frame-generation components.
@@ -85,13 +85,13 @@ not required setup steps or native HelixSR runtime variables.
 Look for **FSR HelixSR** in OptiScaler's menu and successful loading of both
 library override paths in `OptiScaler.log`. A game opening successfully alone is
 not proof of activation: OptiScaler can fall back to stock libraries. Helpers
-continue the original game command after setup cancellation or failure; check
+continue the original game command after setup failure; check
 the stage log rather than assuming HelixSR was enabled.
 
 Offline tests exercise orchestration, fixture-backed builds, cache integrity,
 dependency ownership, restoration, interruptions and parser compatibility. They
-do not demonstrate neural-network execution, Steam Deck GUI behavior or gameplay
-performance. Those remain on-device verification requirements.
+do not demonstrate neural-network execution or gameplay performance. Those remain
+on-device verification requirements. The helpers have no desktop-UI dependency.
 
 ## References
 

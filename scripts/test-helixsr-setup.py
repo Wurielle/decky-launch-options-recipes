@@ -135,35 +135,27 @@ class SetupTests(unittest.TestCase):
                 module["validate_output"](folder)
 
 
-    def test_gui_consent_is_explicit_versioned_and_cancel_is_not_cached(self):
-        module = setup_module()
-        self.assertTrue(callable(module.get("ensure_consent")), "NVIDIA requires explicit first-run GUI consent")
+    def test_first_toggle_provisions_without_display_or_dialog_tools(self):
+        module = fixture_module()
         calls = []
-        def run(command, **kwargs):
-            calls.append(command)
-            return type("Result", (), {"returncode": 0 if accepted[0] else 1})()
-        accepted = [False]
-        with tempfile.TemporaryDirectory() as temporary, patch.dict(module["os"].environ, {"HELIXSR_ACCEPT_LICENSE": "1"}), patch.object(module["shutil"], "which", return_value="/fixture/zenity"), patch.object(module["subprocess"], "run", side_effect=run):
+        def build(cache, output, marker):
+            calls.append(output)
+            dll = built_fixture(output, module["DLSS_SHA"])
+            module["atomic_json"](marker, dict(module["source_identity"](), dll_sha256=hashlib.sha256(dll).hexdigest()))
+            return output
+        module["build_release"] = build
+        with tempfile.TemporaryDirectory() as temporary, patch.dict(os.environ, {}, clear=True), patch.object(
+                module["shutil"], "which", return_value=None), patch.object(
+                module["subprocess"], "run", side_effect=AssertionError("No desktop interaction is allowed")):
             cache = Path(temporary)
-            with self.assertRaises(RuntimeError):
-                module["ensure_consent"](cache)
+            output = cache / "HelixSR-1.9.0"
+            self.assertEqual(module["provision"](cache), output)
+            self.assertEqual(module["provision"](cache), output)
+            self.assertEqual(calls, [output])
             self.assertFalse((cache / "consent.json").exists())
-            accepted[0] = True
-            module["ensure_consent"](cache)
-            module["ensure_consent"](cache)
-            self.assertEqual(len(calls), 2)
-            self.assertIn("--question", calls[-1])
-            self.assertIn("LICENSE.txt", " ".join(calls[-1]))
-            self.assertIn("--ok-label=Accept and build", calls[-1])
-            module["DLSS_SHA"] = "changed version/source"
-            module["ensure_consent"](cache)
-            self.assertEqual(len(calls), 3)
-        with tempfile.TemporaryDirectory() as temporary, patch.object(module["shutil"], "which", return_value=None):
-            with self.assertRaises(RuntimeError):
-                module["ensure_consent"](Path(temporary))
 
 
-    def test_first_run_builds_complete_release_after_consent_then_reuses_validated_cache(self):
+    def test_first_run_builds_complete_release_unattended_then_reuses_validated_cache(self):
         module = fixture_module()
         self.assertTrue(callable(module.get("run_setup")), "First toggle must automatically provision")
         with tempfile.TemporaryDirectory(prefix="helixsr offline ") as temporary:
@@ -177,11 +169,8 @@ class SetupTests(unittest.TestCase):
             module["RELEASE_SHA"] = hashlib.sha256(release_bytes).hexdigest()
             module["DLSS_SHA"] = hashlib.sha256(dlss_bytes).hexdigest()
             events = []
-            def consent(path):
-                events.append("consent")
             def download(url, destination):
                 events.append(url)
-                self.assertIn("consent", events)
                 destination.write_bytes(release_bytes if url == module["RELEASE_URL"] else dlss_bytes)
             def tools(path):
                 events.append("tools")
@@ -193,8 +182,7 @@ class SetupTests(unittest.TestCase):
                 commands.append((command, kwargs))
                 built_fixture(cache / "HelixSR-1.9.0", module["DLSS_SHA"])
                 return type("Result", (), {"returncode": 0})()
-            module.update(download_file=download, ensure_consent=consent, ensure_tools=tools,
-                          build_progress=__import__("contextlib").nullcontext)
+            module.update(download_file=download, ensure_tools=tools)
             env = {"HOME": str(home), "HELIXSR_CACHE_DIR": str(home / "override cache"), "DLOR_HELIXSR_RUNTIME_FILE": str(runtime)}
             with patch.dict(module["os"].environ, env, clear=True), patch.object(module["subprocess"], "run", side_effect=build):
                 output = module["run_setup"]()
@@ -207,7 +195,7 @@ class SetupTests(unittest.TestCase):
                 self.assertEqual(kwargs["env"]["TMPDIR"], str(cache / "tmp"))
                 before = list(events)
                 module["run_setup"]()
-                self.assertEqual(events, before, "Valid cache must skip consent, downloads and build")
+                self.assertEqual(events, before, "Valid cache must skip downloads and build")
                 self.assertEqual(len(commands), 1)
                 (output / "fsr3-drop-in/amd_fidelityfx_dx12.dll").write_bytes(b"corrupt")
                 module["run_setup"]()
@@ -427,29 +415,11 @@ class SetupTests(unittest.TestCase):
                 self.assertEqual(report["debug"], "-all")
 
 
-    def test_first_build_progress_is_best_effort_and_always_closed_on_failure(self):
-        module = setup_module()
-        self.assertTrue(callable(module.get("build_progress")), "First build needs a best-effort GUI progress window")
-        class Window:
-            def __init__(self):
-                self.closed = False
-            def poll(self):
-                return None
-            def terminate(self):
-                self.closed = True
-            def wait(self, **kwargs):
-                return 0
-        window = Window()
-        with patch.object(module["shutil"], "which", return_value="/fixture/zenity"), patch.object(module["subprocess"], "Popen", return_value=window) as popen:
-            with self.assertRaisesRegex(RuntimeError, "fixture build failed"):
-                with module["build_progress"]():
-                    raise RuntimeError("fixture build failed")
-            self.assertIn("--pulsate", popen.call_args.args[0])
-            self.assertTrue(window.closed)
-        with patch.object(module["shutil"], "which", return_value="/fixture/zenity"), patch.object(module["subprocess"], "Popen", side_effect=OSError("no display")), patch("sys.stdout", new_callable=io.StringIO) as warning:
-            with module["build_progress"]():
-                pass
-            self.assertIn("progress window unavailable", warning.getvalue())
+    def test_runtime_helpers_have_no_desktop_dialog_dependency(self):
+        import re
+        for path in (ROOT / "recipes/helixsr").rglob("*.sh"):
+            with self.subTest(path=path.name):
+                self.assertIsNone(re.search(r"zenity|kdialog|--question|--yesno|--msgbox|--progress", path.read_text(), re.I))
 
 
     def test_version_cache_is_exclusively_locked_through_readiness_publication(self):
@@ -471,7 +441,7 @@ class SetupTests(unittest.TestCase):
             self.assertEqual(Path(str(runtime) + ".setup").read_text(), "ready")
 
 
-    def test_cancel_build_failure_and_invalid_output_never_publish_runtime_readiness(self):
+    def test_download_build_failure_and_invalid_output_never_publish_runtime_readiness(self):
         module = fixture_module()
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -482,23 +452,17 @@ class SetupTests(unittest.TestCase):
             payload = archive.read_bytes()
             module["RELEASE_SHA"] = hashlib.sha256(payload).hexdigest()
             module["DLSS_SHA"] = hashlib.sha256(b"offline DLL").hexdigest()
-            downloads = []
             def download(url, destination):
-                downloads.append(url)
                 destination.write_bytes(payload if url == module["RELEASE_URL"] else b"offline DLL")
-            def cancel(path):
-                raise RuntimeError("fixture consent cancelled")
-            module.update(download_file=download, ensure_consent=cancel,
-                          ensure_tools=lambda cache: (Path("/fixture/python3"), cache / "wrapper"),
-                          build_progress=__import__("contextlib").nullcontext)
+            module["ensure_tools"] = lambda cache: (Path("/fixture/python3"), cache / "wrapper")
             env = {"HOME": str(root), "DLOR_HELIXSR_RUNTIME_FILE": str(runtime)}
             with patch.dict(module["os"].environ, env, clear=True):
                 success.write_text("ready")
-                with self.assertRaisesRegex(RuntimeError, "cancelled"):
-                    module["run_setup"]()
+                with patch.dict(module, download_file=lambda *args: (_ for _ in ()).throw(OSError("fixture transfer failed"))):
+                    with self.assertRaisesRegex(OSError, "transfer failed"):
+                        module["run_setup"]()
                 self.assertFalse(success.exists())
-                self.assertFalse(downloads)
-                module["ensure_consent"] = lambda cache: None
+                module["download_file"] = download
                 for fault in (module["subprocess"].CalledProcessError(1, "fixture-build"), None):
                     success.write_text("ready")
                     with patch.object(module["subprocess"], "run", side_effect=fault) as run:
@@ -517,7 +481,7 @@ class SetupTests(unittest.TestCase):
             runtime = root / "runtime"
             def forbidden(*args, **kwargs):
                 self.fail("Prebuilt output must not build or download")
-            module.update(download_file=forbidden, ensure_consent=forbidden, ensure_tools=forbidden)
+            module.update(download_file=forbidden, ensure_tools=forbidden)
             with patch.dict(module["os"].environ, {"HOME": str(root), "HELIXSR_DIR": str(output), "DLOR_HELIXSR_RUNTIME_FILE": str(runtime)}, clear=True):
                 self.assertEqual(module["run_setup"](), output)
                 self.assertEqual(Path(str(runtime) + ".setup").read_text(), "ready")

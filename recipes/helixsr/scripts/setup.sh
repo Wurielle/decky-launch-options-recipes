@@ -54,38 +54,9 @@ import tarfile
 import posixpath
 import sys
 import re
-from contextlib import contextmanager
 
 
-@contextmanager
-def build_progress():
-    """A closeable activity window; missing GUI/progress failures never fail a build."""
-    window = None
-    text = "Preparing HelixSR on this PC. Downloading tools and building shaders may take several minutes. Your game will continue afterwards."
-    try:
-        zenity, kdialog = shutil.which("zenity"), shutil.which("kdialog")
-        command = ([zenity, "--progress", "--pulsate", "--no-cancel", "--title=HelixSR first-time setup", "--text=" + text]
-                   if zenity else [kdialog, "--title", "HelixSR first-time setup", "--msgbox", text, "--ok-label", "Hide progress"] if kdialog else None)
-        if command:
-            window = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    except OSError as error:
-        print(f"HelixSR progress window unavailable: {error}")
-    try:
-        yield
-    finally:
-        if window:
-            try:
-                if window.poll() is None:
-                    window.terminate()
-                window.wait(timeout=5)
-            except (OSError, subprocess.TimeoutExpired):
-                try:
-                    window.kill()
-                    window.wait(timeout=5)
-                except (OSError, subprocess.TimeoutExpired):
-                    pass
-            if getattr(window, "stdin", None):
-                window.stdin.close()
+
 
 DXC_URL = "https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.9.2607/dxc_2026_07_29.zip"
 DXC_SHA = "a1dfb116ba3eeae6a1582291b53a8e7bf65ad760676bd3194685c8f7367cd241"
@@ -126,30 +97,7 @@ def atomic_json(path, value):
         Path(name).unlink(missing_ok=True)
 
 
-def ensure_consent(cache):
-    """Only a successful GUI acknowledgement grants consent; environment flags do not."""
-    identity = source_identity()
-    marker = cache / "consent.json"
-    if read_json(marker) == identity:
-        return
-    message = ("HelixSR 1.9.0 first-time setup\n\n"
-               "This downloads NVIDIA DLSS 310.7.0 and builds its network locally for your own PC. "
-               "Do not share or upload the resulting DLLs. The first build may take several minutes.\n\n"
-               "Review NVIDIA's license before accepting:\n" + LICENSE_URL +
-               "\n\nBy choosing Accept and build, you accept that license and authorize the download and local build. "
-               "Cancel leaves HelixSR disabled; your game can continue.")
-    zenity, kdialog = shutil.which("zenity"), shutil.which("kdialog")
-    if zenity:
-        command = [zenity, "--question", "--title=HelixSR — NVIDIA license", "--width=650",
-                   "--no-markup", "--text=" + message, "--ok-label=Accept and build", "--cancel-label=Cancel"]
-    elif kdialog:
-        command = [kdialog, "--title", "HelixSR — NVIDIA license", "--yesno", message,
-                   "--yes-label", "Accept and build", "--no-label", "Cancel"]
-    else:
-        raise RuntimeError("HelixSR needs Zenity or KDialog for explicit NVIDIA license consent")
-    if subprocess.run(command).returncode != 0:
-        raise RuntimeError("HelixSR setup cancelled; no NVIDIA download authorized")
-    atomic_json(marker, identity)
+
 
 
 
@@ -424,9 +372,8 @@ def provision(cache):
     except ValueError:
         pass
     marker.unlink(missing_ok=True)
-    ensure_consent(cache)
-    with build_progress():
-        return build_release(cache, output, marker)
+    print(f"HelixSR uses NVIDIA DLSS under {LICENSE_URL}; built network DLLs stay local and must not be redistributed.", flush=True)
+    return build_release(cache, output, marker)
 
 
 def build_release(cache, output, marker):

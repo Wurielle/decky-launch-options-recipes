@@ -310,23 +310,7 @@ def target_directory(game):
     if not candidates:
         fail("No credible rendering executable found in this game")
     if len(candidates) > 1:
-        labels = {path.relative_to(game).as_posix(): path for path in candidates}
-        if any("\n" in label or "\r" in label for label in labels):
-            fail("Executable paths cannot contain line breaks")
-        if tool := shutil.which("zenity"):
-            command = [tool, "--list", "--title=HelixSR: select game executable", "--text=Select the rendering executable, not a launcher.",
-                       "--column=Executable", "--width=850", "--height=420", *labels]
-        elif tool := shutil.which("kdialog"):
-            command = [tool, "--title", "HelixSR", "--menu", "Select the rendering executable, not a launcher."]
-            for label in labels:
-                command.extend([label, label])
-        else:
-            fail("Several rendering executables found, but no Zenity/KDialog picker is available")
-        result = subprocess.run(command, capture_output=True, text=True, timeout=300)
-        selection = result.stdout.rstrip("\n")
-        if result.returncode or selection not in labels:
-            fail("Executable selection cancelled or invalid; no game files changed")
-        return labels[selection].parent
+        fail("Several rendering executables found; leaving game files unchanged")
     return candidates[0].parent
 
 
@@ -502,17 +486,7 @@ def install_release(game, manifest, previous, target, runtime, cache):
     print("OptiScaler dependency installed; game compatibility is not verified.")
 
 
-def report_error(message):
-    log = os.environ.get("DLOR_HELIXSR_DEPENDENCY_LOG", "~/.dlor/logs/helixsr/dependency/")
-    text = "HelixSR could not prepare OptiScaler.\n" + message + "\nLog: " + log
-    try:
-        if tool := shutil.which("zenity"):
-            subprocess.run([tool, "--error", "--no-markup", "--title=HelixSR", "--text=" + text],
-                           timeout=20, capture_output=True)
-        elif tool := shutil.which("kdialog"):
-            subprocess.run([tool, "--title", "HelixSR", "--error", text], timeout=20, capture_output=True)
-    except (OSError, subprocess.SubprocessError):
-        pass  # Desktop reporting must never conceal the helper's original error.
+
 
 
 def prepare_runtime():
@@ -559,6 +533,5 @@ try:
             activate(game, manifest)
 except (OSError, ValueError, KeyError, subprocess.SubprocessError) as error:
     print(f"Error: {error}", file=sys.stderr)
-    report_error(str(error))
     sys.exit(1)
 PY
