@@ -75,7 +75,7 @@ class HelixSRTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory(prefix="dlor helixsr ")
         self.addCleanup(self.temp.cleanup)
         self.home = Path(self.temp.name)
-        self.source = self.home / ".local/share/helixsr/fsr3-drop-in"
+        self.source = self.home / ".dlor/cache/helixsr/1.9.0/HelixSR-1.9.0/fsr3-drop-in"
         self.source.mkdir(parents=True)
         # Explicit offline fixtures, not usable HelixSR binaries.
         for name in ("amd_fidelityfx_dx12.dll", "amd_fidelityfx_upscaler_dx12.dll"):
@@ -114,7 +114,8 @@ class HelixSRTests(unittest.TestCase):
         state_path, = (self.home / ".dlor/state/helixsr").glob("*.json")
         replacements = [event[2] for event in events if event[0] == "replace"]
         self.assertEqual(replacements, [str(state_path), str(self.ini), str(state_path)])
-        directories = [self.home / ".dlor", self.home / ".dlor/state", state_path.parent]
+        # The download cache has already created .dlor before configuration.
+        directories = [self.home / ".dlor/state", state_path.parent]
         self.assertEqual([event[1] for event in events if event[0] == "mkdir"],
                          [str(path) for path in directories])
         for index, event in enumerate(events):
@@ -182,6 +183,26 @@ class HelixSRTests(unittest.TestCase):
         self.assertIn("Keep=true", text)
         self.assertEqual(len(list((self.home / ".dlor/logs/helixsr/configure").glob("*.log"))), 1)
 
+
+    def test_missing_configuration_on_disable_releases_stale_state(self):
+        self.configure()
+        self.ini.unlink()
+        self.configure("off")
+        self.assertEqual(list((self.home / ".dlor/state/helixsr").glob("*.json")), [])
+
+    def test_success_emits_per_launch_configuration_marker(self):
+        runtime = self.home / "runtime"
+        self.env["DLOR_HELIXSR_RUNTIME_FILE"] = str(runtime)
+        self.configure()
+        marker = Path(str(runtime) + ".configured")
+        self.assertTrue(marker.is_file(), "Successful configuration must signal readiness to the launcher")
+        self.assertEqual(marker.read_text(), "ready\n")
+
+    def test_configuration_ignores_game_pythonhome(self):
+        self.env["PYTHONHOME"] = str(self.home / "game bundled python")
+        self.configure()
+        self.configure("off")
+        self.assertEqual(self.ini.read_text(), ORIGINAL)
 
     def test_provider_index_is_reset_and_restored(self):
         self.ini.write_text(ORIGINAL + "\n[FSR]\nUpscalerIndex=7\n")
@@ -258,6 +279,13 @@ class HelixSRTests(unittest.TestCase):
         self.configure()
         self.assertIn("FfxDx12Path=H:/custom HelixSR/fsr3-drop-in/amd_fidelityfx_dx12.dll", self.ini.read_text())
 
+    def test_first_launch_before_proton_prefix_exists(self):
+        (self.compat / "pfx/dosdevices/z:").unlink()
+        (self.compat / "pfx/dosdevices").rmdir()
+        (self.compat / "pfx").rmdir()
+        self.configure()
+        self.assertIn("FfxDx12Path=Z:" + str(self.source / "amd_fidelityfx_dx12.dll"), self.ini.read_text())
+
     def test_unmapped_source_fails_without_guessing_z_drive(self):
         (self.compat / "pfx/dosdevices/z:").unlink()
         self.configure(expected=1)
@@ -322,7 +350,7 @@ class HelixSRTests(unittest.TestCase):
             self.assertEqual(snapshot, [["argument with spaces", "$literal"],
                                         "/test/steam/runtime", "/test/steam/libs"])
             if action == "on":
-                self.assertIn("Recipe helper failed", result.stderr)
+                self.assertIn("Recipe helper failed", result.stdout + result.stderr)
         self.assertEqual(self.ini.read_text(), ORIGINAL)
 
     def test_line_break_in_library_path_is_rejected(self):

@@ -1,11 +1,19 @@
+import { readFileSync } from 'node:fs'
 import type { Recipe } from '../shared/types.js'
 import { remoteScript } from '../shared/remote-script.js'
 
-const configure = remoteScript('helixsr', 'configure')
+const shellQuote = (value: string) => `'${value.replace(/'/g, "'\\''")}'`
+// pnpm runs generation at the repository root. The embedded launcher preserves
+// original argv and exports the selected Wine override after host setup.
+let launcher = readFileSync('recipes/helixsr/launcher.sh', 'utf8')
+for (const script of ['setup', 'dependency', 'configure']) {
+    const command = remoteScript('helixsr', script)
+        .replace('~/.dlor/run', '"$HOME/.dlor/run"')
+        .replace('%command%', '/bin/true')
+    launcher = launcher.split(`@@${script.toUpperCase()}@@`).join(command)
+}
+const launch = `bash -c ${shellQuote(launcher)} -- %command%`
 
-// fgmod persists OptiScaler settings into the game's INI; disabling must restore
-// owned settings rather than merely remove environment variables. Run after
-// OptiScaler (default priority) and its nightly upgrade (priority -1).
 const recipe = {
     name: 'HelixSR',
     launchOptions: [
@@ -13,8 +21,8 @@ const recipe = {
             id: 'helixsr',
             group: 'HelixSR',
             name: 'HelixSR (OptiScaler DX12)',
-            on: `DLOR_HELIXSR_ACTION="on" ${configure}`,
-            off: `DLOR_HELIXSR_ACTION="off" ${configure}`,
+            on: `DLOR_HELIXSR_ACTION="on" ${launch}`,
+            off: `DLOR_HELIXSR_ACTION="off" ${launch}`,
             enableGlobally: false,
             priority: -2,
         },

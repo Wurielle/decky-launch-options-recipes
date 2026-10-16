@@ -36,12 +36,12 @@ trap 'exit 143' TERM
 trap 'printf "Error: helixsr/configure line %s (exit %s)\n" "$LINENO" "$?" >&2' ERR
 
 # Keep the configurator self-contained: the shared runner downloads only this file.
-# No upstream script is modified or executed, and no DLL or model is downloaded/copied.
+# Installation/building is handled by setup; this helper only owns INI settings.
 if [[ "${1:-}" == --help || "${1:-}" == -h ]]; then
     printf 'Usage: configure.sh /path/to/installed/game\nSet DLOR_HELIXSR_ACTION=on or off.\n'
     exit 0
 fi
-python3 - "$@" <<'PY'
+python3 -I - "$@" <<'PY'
 import fcntl
 import hashlib
 import json
@@ -112,6 +112,10 @@ def windows_path(path):
     compat = os.environ.get("STEAM_COMPAT_DATA_PATH")
     prefix = Path(compat) / "pfx" if compat else Path(os.environ.get("WINEPREFIX", "/nonexistent"))
     mappings = []
+    # On a game's first launch Proton creates pfx and its Z: -> / mapping after
+    # this prefix wrapper runs. Existing/custom prefixes must still map explicitly.
+    if compat and not prefix.exists():
+        mappings.append((1, "Z", Path("/")))
     for drive in (prefix / "dosdevices").glob("[a-zA-Z]:"):
         root = drive.resolve()
         if drive.is_symlink() and path.is_relative_to(root):
@@ -134,6 +138,11 @@ def configure(game, state_path, action):
             print("HelixSR has no owned settings to restore for this game.")
             return
         path = Path(state["config"])
+        if not path.exists() and not path.is_symlink():
+            state_path.unlink()
+            fsync_directory(state_path.parent)
+            print("OptiScaler configuration was removed; released stale HelixSR ownership.")
+            return
         lines = read_ini(path, game)
         for item in state["settings"]:
             location = field(lines, item["section"], item["key"], optional=True)
@@ -151,7 +160,8 @@ def configure(game, state_path, action):
         print(f"Restored HelixSR-owned settings in {path}")
         return
 
-    source = Path(os.environ.get("HELIXSR_DIR", str(Path.home() / ".local/share/helixsr"))).expanduser().resolve()
+    default_source = Path(os.environ.get("HELIXSR_CACHE_DIR", str(Path.home() / ".dlor/cache/helixsr"))) / "1.9.0/HelixSR-1.9.0"
+    source = Path(os.environ.get("HELIXSR_DIR", str(default_source))).expanduser().resolve()
     libraries = [source / "fsr3-drop-in" / name for name in
                  ("amd_fidelityfx_dx12.dll", "amd_fidelityfx_upscaler_dx12.dll")]
     for library in libraries:
@@ -204,6 +214,10 @@ def configure(game, state_path, action):
 
 
 try:
+    runtime = os.environ.get("DLOR_HELIXSR_RUNTIME_FILE")
+    marker = Path(runtime + ".configured") if runtime else None
+    if marker:
+        marker.unlink(missing_ok=True)
     if len(sys.argv) != 2 or not sys.argv[1]:
         fail("Usage: configure.sh /path/to/installed/game (normally supplied by Steam)")
     game = Path(sys.argv[1]).resolve(strict=True)
@@ -222,6 +236,8 @@ try:
     with (state_dir / f"{identity}.lock").open("a") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         configure(game, state_path, action)
+    if marker:
+        marker.write_text("ready\n")
 except (OSError, ValueError, KeyError, StopIteration) as error:
     print(f"Error: {error}", file=sys.stderr)
     sys.exit(1)

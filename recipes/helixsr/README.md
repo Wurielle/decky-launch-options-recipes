@@ -1,43 +1,41 @@
 # HelixSR through OptiScaler (experimental)
 
-Opt-in **DX12 upscaling only**, using an existing OptiScaler installation and
-locally prepared [HelixSR 1.9.0](https://github.com/lonewolf0622/HelixSR/releases/tag/v1.9.0)
-DLLs. This recipe does not install OptiScaler, build HelixSR, download NVIDIA
-components, replace a game's original FSR DLLs, or configure frame generation.
-It requires Python 3 on the host, as does the existing fgmod setup.
+**Enable HelixSR (OptiScaler DX12), then launch the game.** The toggle performs
+its own first-run setup, dependency installation and configuration. There are no
+terminal commands, manually built DLLs, edited paths, or separate OptiScaler
+toggles required for ordinary use. It is disabled globally by default.
 
-## Prepare once
+Refetch and re-import the updated PR recipes, including any existing OptiScaler
+entry: its updated disabled command must not uninstall a dependency HelixSR needs.
 
-1. Follow HelixSR's official setup and license prompts to build its network locally.
-   Keep the complete upstream installation and license files. Do not distribute
-   the resulting network-containing DLLs. The recipe neither accepts licenses
-   on your behalf nor changes or executes upstream's scripts.
-2. Put that installation at `~/.local/share/helixsr`, or add a custom DLO launch
-   option containing `HELIXSR_DIR="/absolute/path/to/HelixSR-1.9.0"`. This is a
-   recipe-specific input, not a native HelixSR setting. Point to the directory
-   containing `fsr3-drop-in`, not to the DLL itself. Both locally prepared files
-   must exist and be nonempty:
-   - `fsr3-drop-in/amd_fidelityfx_dx12.dll`
-   - `fsr3-drop-in/amd_fidelityfx_upscaler_dx12.dll`
-3. Enable the existing **OptiScaler** option for a compatible single-player DX12
-   game. This recipe runs after OptiScaler and its optional nightly updater.
-4. Import the **HelixSR** recipe, enable **HelixSR (OptiScaler DX12)** for that
-   game, and launch. It is disabled globally by default.
+## First launch
 
-Use only the OptiScaler injection route for this test; do not also install
-HelixSR's native FSR replacement into the game. Do not assume DLL injection is
-safe with anti-cheat. Steam Deck performance and gameplay compatibility still
-need on-device testing.
+The recipe downloads the complete, checksum-verified HelixSR 1.9.0 release and
+prepares its network locally using the unmodified upstream Python builder. A
+first-run GUI asks for explicit consent before acquiring NVIDIA's DLSS component
+under NVIDIA's license. Canceling leaves the feature inactive and launches the
+game normally. It does not accept license terms silently.
 
-## What activation changes
+Python/numpy and Microsoft's shader compiler are prepared in a per-user cache
+when needed. Shader compilation uses Proton/Wine and an isolated build prefix,
+not the game's existing prefix. No sudo, system package installation or global
+pip changes are made. The initial build can take several minutes; later launches
+reuse validated cached outputs.
 
-The helper finds one `OptiScaler.ini` under the selected game's install directory.
-If there are multiple configurations, set a custom DLO option such as
-`HELIXSR_CONFIG="Binaries/Win64/OptiScaler.ini"` to select one explicitly. Absolute
-paths are also accepted, but the file must remain inside this game. Symlinked
-configuration files are refused.
+The selected game's original launch arguments identify its executable. If target
+selection is genuinely ambiguous, the helper asks through the GUI rather than
+patching every executable. A compatible existing OptiScaler installation is
+reused; otherwise the recipe installs its own verified dependency without
+replacing unknown mods or injectors.
 
-It saves the original values and sets:
+This is **DX12 upscaling only**: it does not enable HelixSR frame generation,
+replace the game's native FSR DLLs, or build NVIDIA frame-generation components.
+Use single-player games; do not assume DLL injection is safe with anti-cheat.
+
+## Enabling and disabling
+
+On enable, the helpers prepare HelixSR, install/reuse OptiScaler, save the
+previous INI values, then set:
 
 ```ini
 [Upscalers]
@@ -48,69 +46,57 @@ FfxDx12Path=<mapped drive>:/.../fsr3-drop-in/amd_fidelityfx_dx12.dll
 FfxDx12SRPath=<mapped drive>:/.../fsr3-drop-in/amd_fidelityfx_upscaler_dx12.dll
 ```
 
-If `[FSR] UpscalerIndex` exists, it is temporarily set to `0` as well. Missing or
-ambiguous required INI keys are reported rather than silently ignored. The
-`fsr31` backend value is supported by stable OptiScaler 0.9.4 and remains an
-explicit alias for `ffx` in the inspected nightly-20261015 source. New upstream
-versions may require retesting.
+An existing `[FSR] UpscalerIndex` is temporarily reset to `0`. Paths come from
+the actual Wine drive mappings; on a game's first-ever launch, Proton's default
+new-prefix root mapping is used. The launcher adds the selected native proxy to
+`WINEDLLOVERRIDES` while preserving unrelated overrides, original arguments,
+file descriptors and Steam's game environment.
 
-The helper derives Windows-visible paths from the actual prefix's drive mappings,
-using `STEAM_COMPAT_DATA_PATH/pfx/dosdevices` (or `WINEPREFIX/dosdevices` outside
-Steam). It does not assume that `Z:` maps to `/`. The files must also be visible
-inside the game's Steam runtime/container.
+**Disable the toggle and launch once to undo the feature.** This restores only
+INI settings still owned by the recipe and removes only unchanged dependency
+files it installed. Existing OptiScaler files and later user changes are not
+removed. If the independent OptiScaler option remains enabled, its dependency
+is retained. Disabling requires no download or build; reusable caches remain.
 
-Avoid simultaneously setting other OptiScaler backend/library overrides or
-`PRESERVE_INI=false`: another updater can replace the managed values. Explicit
-conflicts on a later activation are reported; disable HelixSR to release its
-saved settings before selecting another backend.
+The ownership journal retains original, previous and pending values until INI
+updates commit, so an interrupted source update can be retried or disabled.
+Keep `~/.dlor/state/helixsr/` until restoration finishes. Deleting the imported
+option without running its disabled command does not execute restoration.
 
-## Verify on the Deck
+## Cache and diagnostics
 
-- Look for **FSR HelixSR** in OptiScaler's backend menu.
-- Check `OptiScaler.log` for the two library override paths and successful loading
-  from those paths. A successful game launch alone is not proof: OptiScaler can
-  fall back to its normal libraries after a loading failure.
-- Recipe diagnostics are in `~/.dlor/logs/helixsr/configure/`; launcher/download
-  diagnostics are in `~/.dlor/logs/run/`. Each folder retains its latest 10 logs.
-- If configuration or downloads fail, DLOR still launches the game. Read the log
-  rather than assuming that HelixSR was activated.
+- HelixSR release, build tools and locally built output:
+  `~/.dlor/cache/helixsr/1.9.0/`.
+- Separate logs for launcher, setup, dependency and configuration:
+  `~/.dlor/logs/helixsr/<stage>/`.
+- Remote-helper download logs: `~/.dlor/logs/run/`.
+- Each log folder retains its latest 10 logs. Game stdout/stderr is not captured
+  in recipe logs, and the original launch arguments are not logged.
 
-## Disable and restore
+Generated network-containing DLLs belong on your own machine. Do not upload or
+redistribute them. Upstream licenses and notices remain with cached releases.
 
-Turn **HelixSR (OptiScaler DX12)** off and launch once while OptiScaler is still
-installed. The disabled command restores only settings that still match what
-this recipe wrote. Unrelated INI edits, changed managed values and deleted keys
-are preserved. Turning it off does not delete DLLs, models, or OptiScaler.
+An optional `HELIXSR_DIR` can select an already prepared installation, and
+`HELIXSR_CACHE_DIR` changes the cache base. These are advanced recipe inputs,
+not required setup steps or native HelixSR runtime variables.
 
-The per-game original settings are stored under `~/.dlor/state/helixsr/`. Keep
-this state until restoration completes. Removing the imported option without
-launching its disabled command does **not** run restoration. If necessary, run:
+## Device verification
 
-```sh
-STEAM_COMPAT_INSTALL_PATH="/absolute/path/to/game" \
-DLOR_HELIXSR_ACTION=off ~/.dlor/run helixsr configure <commit-sha> -- /bin/true
-```
+Look for **FSR HelixSR** in OptiScaler's menu and successful loading of both
+library override paths in `OptiScaler.log`. A game opening successfully alone is
+not proof of activation: OptiScaler can fall back to stock libraries. Helpers
+continue the original game command after setup cancellation or failure; check
+the stage log rather than assuming HelixSR was enabled.
 
-Use the pinned commit from the imported option in place of `<commit-sha>`.
-Restoration does not require the source DLLs or the Proton prefix. Disable this
-recipe before uninstalling OptiScaler or deleting/moving the game's configuration.
+Offline tests exercise orchestration, fixture-backed builds, cache integrity,
+dependency ownership, restoration, interruptions and parser compatibility. They
+do not demonstrate neural-network execution, Steam Deck GUI behavior or gameplay
+performance. Those remain on-device verification requirements.
 
-## Offline verification
+## References
 
-```sh
-python3 scripts/test-helixsr.py
-```
-
-These tests use explicit nonfunctional DLL fixtures. They validate configuration,
-restoration, paths and launch behavior, not shader execution or game compatibility.
-
-## Configuration references
-
-- [HelixSR release setup](https://github.com/lonewolf0622/HelixSR/releases/tag/v1.9.0):
-  `setup/helixsr_install.py` documents the manual OptiScaler configuration.
-- [OptiScaler 0.9.4 configuration](https://github.com/optiscaler/OptiScaler/blob/7534ad00bf9e590eedb99e8dd9fd8c89dae3654f/OptiScaler.ini)
+- [HelixSR 1.9.0](https://github.com/lonewolf0622/HelixSR/releases/tag/v1.9.0)
+- [NVIDIA DLSS license](https://github.com/NVIDIA/DLSS/blob/v310.7.0/LICENSE.txt)
+- [OptiScaler manual installation](https://github.com/optiscaler/OptiScaler/wiki/Manual-Installation)
+- [OptiScaler stable configuration](https://github.com/optiscaler/OptiScaler/blob/7534ad00bf9e590eedb99e8dd9fd8c89dae3654f/OptiScaler.ini)
 - [Nightly legacy backend aliases](https://github.com/optiscaler/OptiScaler/blob/fd6c2870ec420c74bd47a067a7a0b5ba2358e677/OptiScaler/OptiTypes.cpp)
-
-The `OptiScaler_Section_Key` environment variables used by the existing recipe
-are consumed by fgmod's INI updater, not by OptiScaler itself. They persist on
-disk, which is why this recipe uses explicit setting ownership and restoration.
