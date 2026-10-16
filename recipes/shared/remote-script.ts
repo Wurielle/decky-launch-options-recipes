@@ -1,5 +1,5 @@
 // Generate a self-contained command. The runner downloads the script on every launch.
-export function remoteScript(recipe: string, script: string) {
+export function remoteScript(recipe: string, script: string, mode: 'helper' | 'wrapper' = 'helper') {
     const required = (name: string, pattern: RegExp) => {
         const value = process.env[name]
         if (!value || !pattern.test(value)) throw new Error(`Missing or invalid ${name}`)
@@ -12,5 +12,5 @@ export function remoteScript(recipe: string, script: string) {
     const prefix = sourceRepository === 'Wurielle/decky-launch-options-recipes'
         ? '' : `DLOR_REPOSITORY="${sourceRepository}" `
     // Keep generated commands pinned even though the runner accepts an omitted SHA.
-    return `${prefix}~/.dlor/run ${recipe} ${script} ${revision} -- %command%`
+    return `${prefix}~/.dlor/run ${mode === 'wrapper' ? '--wrapper ' : ''}${recipe} ${script} ${revision} -- %command%`
 }

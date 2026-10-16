@@ -9,7 +9,7 @@ import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
-LAUNCHER = ROOT / "recipes/helixsr/launcher.sh"
+LAUNCHER = ROOT / "recipes/helixsr/scripts/launch.sh"
 HELPER = r'''
 import json, os, pathlib, sys
 stage = sys.argv[1]
@@ -38,6 +38,10 @@ class LauncherTests(unittest.TestCase):
         self.home = Path(self.temp.name)
         self.helper = self.home / "offline_helper.py"
         self.helper.write_text(HELPER)
+        runner = self.home / ".dlor/run"
+        runner.parent.mkdir()
+        runner.write_text("#!/bin/bash\nexec " + shlex.join([sys.executable, "-I", str(self.helper)]) + ' "$2"\n')
+        runner.chmod(0o755)
         self.config = self.home / "game/OptiScaler.ini"
         self.config.parent.mkdir()
         self.config.write_text("fixture configuration")
@@ -45,13 +49,12 @@ class LauncherTests(unittest.TestCase):
                         TEST_CONFIG=str(self.config), TEST_ARGS=str(self.home / "args"),
                         STEAM_RUNTIME="/original/steam/runtime", SYSTEM_LD_LIBRARY_PATH="",
                         LD_LIBRARY_PATH="/original/steam/libs", SYSTEM_PATH=os.environ["PATH"],
-                        WINEDLLOVERRIDES="dxgi=b;dinput8=n,b;foo,version=b")
+                        WINEDLLOVERRIDES="dxgi=b;dinput8=n,b;foo,version=b",
+                        DLOR_SCRIPT_REVISION="a" * 40)
 
     def launch(self, action="on"):
         self.assertTrue(LAUNCHER.exists(), "HelixSR needs a complete single-toggle launcher")
         template = LAUNCHER.read_text()
-        for stage in ("setup", "dependency", "configure"):
-            template = template.replace("@@" + stage.upper() + "@@", shlex.join([sys.executable, str(self.helper), stage]))
         game = [sys.executable, "-I", "-c", "import json,os,sys; print(json.dumps({'args':sys.argv[1:],'env':{k:os.environ.get(k) for k in ['LD_LIBRARY_PATH','STEAM_RUNTIME','WINEDLLOVERRIDES','PYTHONHOME']}}));sys.exit(42)",
                 "argument with spaces", 'literal "quote"', "$literal", "line\nbreak"]
         result = subprocess.run(["bash", "-c", template, "--", *game],
@@ -70,7 +73,7 @@ class LauncherTests(unittest.TestCase):
         self.assertEqual(order, ["setup:on", "dependency:on", "configure:on"])
         self.assertEqual(value["env"]["WINEDLLOVERRIDES"], "dinput8=n,b;foo,version=b;dxgi=n,b")
         self.assertEqual(json.loads((self.home / "args").read_text()), game)
-        logs = list((self.home / ".dlor/logs/helixsr/launcher").glob("*.log"))
+        logs = list((self.home / ".dlor/logs/helixsr/launch").glob("*.log"))
         self.assertEqual(len(logs), 1)
         self.assertIn("launching game", logs[0].read_text())
         self.assertNotIn("argument with spaces", logs[0].read_text())
@@ -83,12 +86,28 @@ class LauncherTests(unittest.TestCase):
                 value, _, _ = self.launch()
                 self.assertIn(proxy + "=n,b", value["env"]["WINEDLLOVERRIDES"].split(";"))
 
+    def test_recipe_fields_are_short_script_invocations(self):
+        option = next(option for recipe in json.loads((ROOT / "recipes.json").read_text())
+                      for option in recipe["launchOptions"] if option["id"] == "helixsr")
+        for action in ("on", "off"):
+            with self.subTest(action=action):
+                command = option[action]
+                self.assertNotIn("\n", command)
+                self.assertNotIn("bash -c", command)
+                self.assertLess(len(command), 300)
+                self.assertIn('DLOR_HELIXSR_ACTION="' + action + '"', command)
+                self.assertNotIn("DLOR_RUN_MODE", command)
+                self.assertIn("~/.dlor/run --wrapper helixsr launch ", command)
+                self.assertEqual(command.count("%command%"), 1)
+
     def test_generated_recipe_contains_automatic_setup_and_dependency(self):
         options = [option for recipe in json.loads((ROOT / "recipes.json").read_text())
                    for option in recipe["launchOptions"] if option["id"] == "helixsr"]
         option, = options
-        self.assertIn("helixsr setup", option["on"])
-        self.assertIn("helixsr dependency", option["on"])
+        self.assertIn("helixsr launch", option["on"])
+        self.assertIn("helixsr launch", option["off"])
+        self.assertIn("run_helper setup", LAUNCHER.read_text())
+        self.assertIn("run_helper dependency", LAUNCHER.read_text())
 
         self.assertEqual(option["on"].count("%command%"), 1)
         self.assertEqual(option["off"].count("%command%"), 1)
@@ -149,8 +168,6 @@ class LauncherTests(unittest.TestCase):
 
     def test_game_inherits_existing_file_descriptors(self):
         template = LAUNCHER.read_text()
-        for stage in ("setup", "dependency", "configure"):
-            template = template.replace("@@" + stage.upper() + "@@", shlex.join([sys.executable, str(self.helper), stage]))
         result = subprocess.run(["bash", "-c", 'exec 7<<<"keep-me"; exec bash -c "$1" -- bash -c "$2"',
                                  "--", template, 'IFS= read -r -u 7 value; [[ "$value" == keep-me ]]'],
                                 env=dict(self.env, DLOR_HELIXSR_ACTION="off"), capture_output=True, text=True, timeout=20)
@@ -171,7 +188,7 @@ class LauncherTests(unittest.TestCase):
         self.assertEqual(order, ["setup:on", "dependency:on", "configure:on"])
 
     def test_launcher_log_retention_preserves_unrelated_entries(self):
-        directory = self.home / ".dlor/logs/helixsr/launcher"
+        directory = self.home / ".dlor/logs/helixsr/launch"
         directory.mkdir(parents=True)
         for number in range(15):
             (directory / f"2000-01-01T00-00-{number:02d}.log").write_text("old fixture log")
@@ -191,6 +208,7 @@ class LauncherTests(unittest.TestCase):
         install_runner(self.home)
         payloads = self.home / "payloads"
         payloads.mkdir()
+        (payloads / "launch.sh").write_text(LAUNCHER.read_text())
         for stage in ("setup", "dependency", "configure"):
             (payloads / (stage + ".sh")).write_text("#!/bin/bash\nexec " + shlex.join([sys.executable, "-I", str(self.helper), stage]) + "\n")
         tools = self.home / "bin"
@@ -201,13 +219,12 @@ class LauncherTests(unittest.TestCase):
         option = next(option for recipe in json.loads((ROOT / "recipes.json").read_text())
                       for option in recipe["launchOptions"] if option["id"] == "helixsr")
         tokens = shlex.split(option["on"])
-        assignment = tokens.pop(0)
-        key, value = assignment.split("=", 1)
-        # DLO expands ~ in every prefix token, including an entire bash -c body.
+        assignments = dict([tokens.pop(0).split("=", 1)])
+        # DLO expands the runner path, not a multiline shell program.
         prefix = [token.replace("~", str(self.home)) for token in tokens[:tokens.index("%command%")]]
         env = dict(self.env, PATH=str(tools) + ":" + self.env["PATH"],
                    SYSTEM_PATH=str(tools) + ":" + self.env["PATH"],
-                   STEAM_COMPAT_INSTALL_PATH=str(self.config.parent), **{key: value})
+                   STEAM_COMPAT_INSTALL_PATH=str(self.config.parent), **assignments)
         result = subprocess.run([*prefix, "/bin/bash", "-c", "exit 42"],
                                 env=env, capture_output=True, text=True, timeout=20)
         self.assertEqual(result.returncode, 42, result.stdout + result.stderr)

@@ -381,11 +381,23 @@ class HelixSRTests(unittest.TestCase):
         self.assertEqual(option["priority"], -2)
         bin_dir = self.home / "bin"
         bin_dir.mkdir()
+        payloads = self.home / "payloads"
+        payloads.mkdir()
+        (payloads / "launch.sh").write_text((ROOT / "recipes/helixsr/scripts/launch.sh").read_text())
+        (payloads / "configure.sh").write_text(SCRIPT.read_text())
+        # Explicit offline readiness boundaries; execute the real wrapper and
+        # configurator, with its missing SR DLL causing the intended failure.
+        (payloads / "setup.sh").write_text('#!/bin/bash\nprintf ready > "$DLOR_HELIXSR_RUNTIME_FILE.setup"\n')
+        (payloads / "dependency.sh").write_text(
+            '#!/bin/bash\nif [[ "$DLOR_HELIXSR_ACTION" == on ]]; then\n'
+            'printf "dxgi\\n" > "$DLOR_HELIXSR_RUNTIME_FILE"\n'
+            'printf "%s\\n" "$TEST_CONFIG" > "$DLOR_HELIXSR_RUNTIME_FILE.config"\nfi\n')
         curl = bin_dir / "curl"
-        curl.write_text("#!/bin/bash\nwhile [[ $1 != --output ]]; do shift; done\n"
-                        + "cp -- " + shlex.quote(str(SCRIPT)) + ' "$2"\n')
+        curl.write_text('#!/bin/bash\nurl="${@: -1}"; name="${url##*/}"; '
+                        'while [[ "$1" != --output ]]; do shift; done; '
+                        'cp -- "$HOME/payloads/$name" "$2"\n')
         curl.chmod(0o755)
-        self.env.update(PATH=str(bin_dir) + ":" + self.env["PATH"],
+        self.env.update(PATH=str(bin_dir) + ":" + self.env["PATH"], TEST_CONFIG=str(self.ini),
                         STEAM_COMPAT_INSTALL_PATH=str(self.home / "game"),
                         STEAM_RUNTIME="/test/steam/runtime", LD_LIBRARY_PATH="/test/steam/libs")
         self.env["SYSTEM_PATH"] = self.env["PATH"]

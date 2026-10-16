@@ -5,8 +5,21 @@ its own first-run setup, dependency installation and configuration. There are no
 terminal commands, manually built DLLs, edited paths, or separate OptiScaler
 toggles required for ordinary use. It is disabled globally by default.
 
-Refetch and re-import the updated PR recipes, including any existing OptiScaler
-entry: its updated disabled command must not uninstall a dependency HelixSR needs.
+Update to this PR's **DLOR plugin build**, then refetch and re-import the recipes,
+including any existing OptiScaler entry: its disabled command must not uninstall
+a dependency HelixSR needs. The DLOR update installs the wrapper-capable shared
+runner; refetching recipes alone does not update it. DLO itself is unchanged.
+
+On/Off now contain only an action variable and a commit-pinned DLOR script call:
+
+```sh
+DLOR_HELIXSR_ACTION="on" ~/.dlor/run --wrapper helixsr launch <commit-sha> -- %command%
+DLOR_HELIXSR_ACTION="off" ~/.dlor/run --wrapper helixsr launch <commit-sha> -- %command%
+```
+
+All orchestration lives in `scripts/launch.sh`, downloaded afresh each launch.
+Its helper stages use the same pinned revision; neither field embeds shell
+functions, logging, Python or the launcher body.
 
 ## First launch
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# This header must remain: DLO must not classify the quoted shell body as an env assignment.
-# This launcher is embedded in the recipe; only auxiliary commands leave Steam's runtime.
+# Downloaded wrapper: only auxiliary commands leave Steam's runtime.
+# DLOR supplies original game argv/environment and the validated source revision.
 host() (
     unset LD_PRELOAD PYTHONHOME PYTHONPATH
     if [[ "${STEAM_RUNTIME:-}" == /* ]]; then
@@ -12,7 +12,7 @@ host() (
 )
 exec {stdout_fd}>&1 {stderr_fd}>&2
 logger_pid=''
-log_dir="$HOME/.dlor/logs/helixsr/launcher"
+log_dir="$HOME/.dlor/logs/helixsr/launch"
 printf -v timestamp '%(%Y-%m-%dT%H-%M-%S)T' -1
 log_file="$log_dir/$timestamp.${EPOCHREALTIME##*.}.$BASHPID.log"
 if host mkdir -p -- "$log_dir" && host command -v tee >/dev/null && : >> "$log_file"; then
@@ -33,6 +33,13 @@ if host mkdir -p -- "$log_dir" && host command -v tee >/dev/null && : >> "$log_f
 else
     printf 'Warning: could not enable logging to %s; continuing.\n' "$log_file" >&2
 fi
+run_helper() {
+    host "$HOME/.dlor/run" helixsr "$1" "$DLOR_SCRIPT_REVISION" -- /bin/true
+}
+if [[ ! "${DLOR_SCRIPT_REVISION:-}" =~ ^[a-f0-9]{40}$ ]]; then
+    printf 'Error: HelixSR requires the updated DLOR wrapper runner; update the DLOR plugin before importing this recipe.\n' >&2
+    exit 1
+fi
 cleanup() {
     if [[ -n "${DLOR_HELIXSR_RUNTIME_FILE:-}" ]]; then
         host rm -f -- "$DLOR_HELIXSR_RUNTIME_FILE" "$DLOR_HELIXSR_RUNTIME_FILE.setup" \
@@ -42,7 +49,7 @@ cleanup() {
 launch_game() {
     cleanup
     trap - EXIT
-    unset DLOR_HELIXSR_ARGS DLOR_HELIXSR_RUNTIME_FILE
+    unset DLOR_HELIXSR_ARGS DLOR_HELIXSR_RUNTIME_FILE DLOR_SCRIPT_REVISION
     printf 'HelixSR launcher preparation finished; launching game.\n'
     # Finish logging before exec; game output must not become recipe log output.
     exec 1>&"$stdout_fd" 2>&"$stderr_fd"
@@ -63,25 +70,25 @@ DLOR_HELIXSR_RUNTIME_FILE=$(host mktemp "$runtime_dir/launch.XXXXXXXX") || { fai
 DLOR_HELIXSR_ARGS=$(host python3 -c 'import json,sys; print(json.dumps(sys.argv[1:]))' "$@") || { failed "argument preparation"; launch_game "$@"; }
 export DLOR_HELIXSR_RUNTIME_FILE DLOR_HELIXSR_ARGS
 if [[ "${DLOR_HELIXSR_ACTION:-off}" == on ]]; then
-    host env @@SETUP@@
+    run_helper setup
     if [[ ! -f "$DLOR_HELIXSR_RUNTIME_FILE.setup" ]]; then
         failed "setup"
         launch_game "$@"
     fi
-    host env @@DEPENDENCY@@
+    run_helper dependency
     if [[ ! -s "$DLOR_HELIXSR_RUNTIME_FILE" || ! -s "$DLOR_HELIXSR_RUNTIME_FILE.config" ]]; then
         failed "OptiScaler dependency"
         launch_game "$@"
     fi
     IFS= read -r HELIXSR_CONFIG < "$DLOR_HELIXSR_RUNTIME_FILE.config"
     export HELIXSR_CONFIG
-    host env @@CONFIGURE@@
+    run_helper configure
     if [[ ! -f "$DLOR_HELIXSR_RUNTIME_FILE.configured" ]]; then
         failed "configuration"
         # Undo only this launch's owned dependency after configuration rollback succeeds.
         export DLOR_HELIXSR_ACTION=off
-        host env @@CONFIGURE@@
-        if [[ -f "$DLOR_HELIXSR_RUNTIME_FILE.configured" ]]; then host env @@DEPENDENCY@@; fi
+        run_helper configure
+        if [[ -f "$DLOR_HELIXSR_RUNTIME_FILE.configured" ]]; then run_helper dependency; fi
         launch_game "$@"
     fi
     IFS= read -r proxy < "$DLOR_HELIXSR_RUNTIME_FILE"
@@ -106,9 +113,9 @@ PY
     ) || { failed "Wine overrides"; launch_game "$@"; }
     export WINEDLLOVERRIDES="$merged"
 else
-    host env @@CONFIGURE@@
+    run_helper configure
     if [[ -f "$DLOR_HELIXSR_RUNTIME_FILE.configured" ]]; then
-        host env @@DEPENDENCY@@
+        run_helper dependency
     else
         printf 'HelixSR restoration failed; keeping dependency ownership for the next attempt.\n' >&2
     fi

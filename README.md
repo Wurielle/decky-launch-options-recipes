@@ -110,6 +110,32 @@ the generator does this automatically for builds from another repository.
 
 Runner logs are saved to `~/.dlor/logs/run/`.
 
+The default helper receives the game's install path as its only argument. It runs
+in the host-tool environment; exporting a variable there does not change the
+later game process.
+
+For a script that must wrap the game itself, use the invocation-scoped option:
+
+```sh
+~/.dlor/run --wrapper <recipe-name> <script-name> <commit-sha> -- %command%
+```
+
+Generate this with `remoteScript(recipe, script, 'wrapper')`. The runner fully
+downloads the script, removes its temporary download, and starts the wrapper with
+the original game arguments and Steam environment. `DLOR_SCRIPT_REVISION` contains
+the validated source revision. No wrapper source is embedded in the recipe fields
+or cached for later launches. Download failures still launch the original game.
+
+A wrapper is responsible for starting the original game with `exec "$@"`, keeping
+its exit status, and continuing after its own auxiliary setup failures. Clean the
+host environment only for auxiliary subprocesses, not the game. Use `--wrapper`
+on the individual invocation, not an environment-wide mode flag that could affect
+other recipes in the same launch chain.
+
+Wrapper mode requires the updated DLOR plugin build, which installs the shared
+runner on plugin startup. Refetching recipes alone does not update that runner.
+The separate Decky Launch Options host plugin does not need modification.
+
 ### Build-time environment variables
 
 Recipe string fields can use `{{env:VARIABLE_NAME}}` placeholders. The recipe generator replaces each placeholder with
