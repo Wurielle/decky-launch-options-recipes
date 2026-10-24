@@ -4,6 +4,8 @@ A self-contained OptiScaler installer recipe. No OptiScaler, driver, SDK, or plu
 
 ## Options
 
+Nightly configuration controls, including FSR4 model/GPU support and XeFG/DLSSG MFG, are available in the separate [OptiScaler settings recipe](../optiscaler/README.md). Import the wanted settings alongside this installer, not the legacy Framegen installer/nightly-upgrade wrappers. Unselected dropdowns preserve the INI; selected settings are explicit environment overrides.
+
 - **DLOR OptiScaler:** install/manage when enabled; uninstall when disabled.
 - **Core:** always the official nightly from `optiscaler/OptiScaler-nightly`, using its newer supporting-DLL directory layout. There is no stable-core selector or flat 0.9 package fallback; stale release-channel environment settings cannot select stable.
 - **Injection proxy:** fixed `dxgi.dll`, paired with `WINEDLLOVERRIDES="dxgi=n,b"` in the ON option. There is no automatic proxy selection or proxy dropdown. An occupied foreign DXGI proxy is refused rather than silently replaced or switched to another proxy.
