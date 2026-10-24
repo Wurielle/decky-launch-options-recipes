@@ -13,7 +13,7 @@
         "id": "optiscaler-nightly-upgrade",
         "group": "OptiScaler",
         "name": "OptiScaler Nightly Upgrade",
-        "on": "~/.dlor/run optiscaler update-nightly 71f88ca2a82356ae0979a18651b6499f1ffcbfba -- %command%",
+        "on": "~/.dlor/run optiscaler update-nightly fe646f272b7419a94cfe40e776519a0d6a1a0893 -- %command%",
         "off": "",
         "enableGlobally": false,
         "priority": -1
@@ -2848,7 +2848,7 @@
         "id": "reframework-install-update",
         "group": "REFramework",
         "name": "REFramework",
-        "on": "WINEDLLOVERRIDES=\"dinput8.dll=n,b\" ~/.dlor/run reframework update 71f88ca2a82356ae0979a18651b6499f1ffcbfba -- %command%",
+        "on": "WINEDLLOVERRIDES=\"dinput8.dll=n,b\" ~/.dlor/run reframework update fe646f272b7419a94cfe40e776519a0d6a1a0893 -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "reframework",
@@ -2858,7 +2858,7 @@
         "id": "reframework-uninstall",
         "group": "REFramework",
         "name": "REFramework",
-        "on": "~/.dlor/run reframework uninstall 71f88ca2a82356ae0979a18651b6499f1ffcbfba -- %command%",
+        "on": "~/.dlor/run reframework uninstall fe646f272b7419a94cfe40e776519a0d6a1a0893 -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "reframework",
@@ -2873,8 +2873,8 @@
         "id": "dlor-optiscaler",
         "group": "DLOR OptiScaler",
         "name": "DLOR OptiScaler",
-        "on": "DLOR_OPTISCALER_ACTION=\"install\" bash -c 'h() { case \"${STEAM_RUNTIME-}\" in /*)export PATH=\"${SYSTEM_PATH:-/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin}\" LD_LIBRARY_PATH=\"${SYSTEM_LD_LIBRARY_PATH-}\";unset STEAM_RUNTIME;; esac; unset LD_PRELOAD; exec \"$@\"; }; set +m;a() { local COPROC COPROC_PID p f;c() { trap \"\" INT TERM; kill -9 %+ 2>/dev/null; wait %+ 2>/dev/null; exit \"$1\"; };trap \"c 130\" INT; trap \"c 143\" TERM;coproc { read -r; h curl -fsSL --proto '\\''=https'\\'' --proto-redir '\\''=https'\\'' --connect-timeout 10 --max-time 60 \"https://raw.githubusercontent.com/Wurielle/decky-launch-options-recipes/71f88ca2a82356ae0979a18651b6499f1ffcbfba/recipes/dlor-optiscaler/scripts/launch.sh\" </dev/null; };p=$!;exec {f}<&\"${COPROC[0]}\";echo >&\"${COPROC[1]}\";IFS= read -rd \"\" REPLY <&\"$f\";exec {f}<&-;wait \"$p\" || REPLY=;trap - INT TERM;[[ $(printf %s \"$REPLY\" | h sha256sum) == \"2bbff283996b4ab83606a96955024cd0ae387571844981aa51d828258fec4fbc  -\" ]] || REPLY=; };set -- \"${REPLY+x}\" \"${REPLY-}\" \"$@\";a;set -- \"$REPLY\" \"$@\";[[ $2 ]] && REPLY=$3 || unset REPLY;if [[ $1 ]]; then export DLOR_OPTISCALER_SOURCE_REVISION=\"71f88ca2a82356ae0979a18651b6499f1ffcbfba\" DLOR_OPTISCALER_SOURCE_REPOSITORY=\"Wurielle/decky-launch-options-recipes\";exec bash -c \"$1\" -- \"${@:4}\"; fi;printf \"DLOR OptiScaler: invalid launcher; continuing original game.\\n\" >&2;shift 3; exec \"$@\"' -- %command%",
-        "off": "DLOR_OPTISCALER_ACTION=\"uninstall\" bash -c 'h() { case \"${STEAM_RUNTIME-}\" in /*)export PATH=\"${SYSTEM_PATH:-/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin}\" LD_LIBRARY_PATH=\"${SYSTEM_LD_LIBRARY_PATH-}\";unset STEAM_RUNTIME;; esac; unset LD_PRELOAD; exec \"$@\"; }; set +m;a() { local COPROC COPROC_PID p f;c() { trap \"\" INT TERM; kill -9 %+ 2>/dev/null; wait %+ 2>/dev/null; exit \"$1\"; };trap \"c 130\" INT; trap \"c 143\" TERM;coproc { read -r; h curl -fsSL --proto '\\''=https'\\'' --proto-redir '\\''=https'\\'' --connect-timeout 10 --max-time 60 \"https://raw.githubusercontent.com/Wurielle/decky-launch-options-recipes/71f88ca2a82356ae0979a18651b6499f1ffcbfba/recipes/dlor-optiscaler/scripts/launch.sh\" </dev/null; };p=$!;exec {f}<&\"${COPROC[0]}\";echo >&\"${COPROC[1]}\";IFS= read -rd \"\" REPLY <&\"$f\";exec {f}<&-;wait \"$p\" || REPLY=;trap - INT TERM;[[ $(printf %s \"$REPLY\" | h sha256sum) == \"2bbff283996b4ab83606a96955024cd0ae387571844981aa51d828258fec4fbc  -\" ]] || REPLY=; };set -- \"${REPLY+x}\" \"${REPLY-}\" \"$@\";a;set -- \"$REPLY\" \"$@\";[[ $2 ]] && REPLY=$3 || unset REPLY;if [[ $1 ]]; then export DLOR_OPTISCALER_SOURCE_REVISION=\"71f88ca2a82356ae0979a18651b6499f1ffcbfba\" DLOR_OPTISCALER_SOURCE_REPOSITORY=\"Wurielle/decky-launch-options-recipes\";exec bash -c \"$1\" -- \"${@:4}\"; fi;printf \"DLOR OptiScaler: invalid launcher; continuing original game.\\n\" >&2;shift 3; exec \"$@\"' -- %command%",
+        "on": "DLOR_OPTISCALER_ACTION=\"install\" bash -c 'h() { case \"${STEAM_RUNTIME-}\" in /*)export PATH=\"${SYSTEM_PATH:-/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin}\" LD_LIBRARY_PATH=\"${SYSTEM_LD_LIBRARY_PATH-}\";unset STEAM_RUNTIME;; esac; unset LD_PRELOAD; exec \"$@\"; }; set +m;a() { local COPROC COPROC_PID p f;c() { trap \"\" INT TERM; kill -9 %+ 2>/dev/null; wait %+ 2>/dev/null; exit \"$1\"; };trap \"c 130\" INT; trap \"c 143\" TERM;coproc { read -r; h curl -fsSL --proto '\\''=https'\\'' --proto-redir '\\''=https'\\'' --connect-timeout 10 --max-time 60 \"https://raw.githubusercontent.com/Wurielle/decky-launch-options-recipes/fe646f272b7419a94cfe40e776519a0d6a1a0893/recipes/dlor-optiscaler/scripts/launch.sh\" </dev/null; };p=$!;exec {f}<&\"${COPROC[0]}\";echo >&\"${COPROC[1]}\";IFS= read -rd \"\" REPLY <&\"$f\";exec {f}<&-;wait \"$p\" || REPLY=;trap - INT TERM;[[ $(printf %s \"$REPLY\" | h sha256sum) == \"2bbff283996b4ab83606a96955024cd0ae387571844981aa51d828258fec4fbc  -\" ]] || REPLY=; };set -- \"${REPLY+x}\" \"${REPLY-}\" \"$@\";a;set -- \"$REPLY\" \"$@\";[[ $2 ]] && REPLY=$3 || unset REPLY;if [[ $1 ]]; then export DLOR_OPTISCALER_SOURCE_REVISION=\"fe646f272b7419a94cfe40e776519a0d6a1a0893\" DLOR_OPTISCALER_SOURCE_REPOSITORY=\"Wurielle/decky-launch-options-recipes\";exec bash -c \"$1\" -- \"${@:4}\"; fi;printf \"DLOR OptiScaler: invalid launcher; continuing original game.\\n\" >&2;shift 3; exec \"$@\"' -- %command%",
+        "off": "DLOR_OPTISCALER_ACTION=\"uninstall\" bash -c 'h() { case \"${STEAM_RUNTIME-}\" in /*)export PATH=\"${SYSTEM_PATH:-/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin}\" LD_LIBRARY_PATH=\"${SYSTEM_LD_LIBRARY_PATH-}\";unset STEAM_RUNTIME;; esac; unset LD_PRELOAD; exec \"$@\"; }; set +m;a() { local COPROC COPROC_PID p f;c() { trap \"\" INT TERM; kill -9 %+ 2>/dev/null; wait %+ 2>/dev/null; exit \"$1\"; };trap \"c 130\" INT; trap \"c 143\" TERM;coproc { read -r; h curl -fsSL --proto '\\''=https'\\'' --proto-redir '\\''=https'\\'' --connect-timeout 10 --max-time 60 \"https://raw.githubusercontent.com/Wurielle/decky-launch-options-recipes/fe646f272b7419a94cfe40e776519a0d6a1a0893/recipes/dlor-optiscaler/scripts/launch.sh\" </dev/null; };p=$!;exec {f}<&\"${COPROC[0]}\";echo >&\"${COPROC[1]}\";IFS= read -rd \"\" REPLY <&\"$f\";exec {f}<&-;wait \"$p\" || REPLY=;trap - INT TERM;[[ $(printf %s \"$REPLY\" | h sha256sum) == \"2bbff283996b4ab83606a96955024cd0ae387571844981aa51d828258fec4fbc  -\" ]] || REPLY=; };set -- \"${REPLY+x}\" \"${REPLY-}\" \"$@\";a;set -- \"$REPLY\" \"$@\";[[ $2 ]] && REPLY=$3 || unset REPLY;if [[ $1 ]]; then export DLOR_OPTISCALER_SOURCE_REVISION=\"fe646f272b7419a94cfe40e776519a0d6a1a0893\" DLOR_OPTISCALER_SOURCE_REPOSITORY=\"Wurielle/decky-launch-options-recipes\";exec bash -c \"$1\" -- \"${@:4}\"; fi;printf \"DLOR OptiScaler: invalid launcher; continuing original game.\\n\" >&2;shift 3; exec \"$@\"' -- %command%",
         "enableGlobally": false
       },
       {
