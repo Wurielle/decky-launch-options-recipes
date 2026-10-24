@@ -67,10 +67,208 @@ def main(argv=None):
         for name in ('artifacts.py', 'game_discovery.py'):
             (self.scripts / name).write_text('FIXTURE = True\n')
 
+    def test_physical_loader_and_no_inline_python(self):
+        loader = SCRIPTS / 'loader.py'
+        self.assertTrue(loader.is_file(), 'physical loader.py is missing')
+        metadata = self.generate()
+        import hashlib
+        self.assertEqual(metadata['LOADER_SHA256'], hashlib.sha256((self.scripts / 'loader.py').read_bytes()).hexdigest())
+        import re
+        without_manifest = lambda text: re.sub(r'^SOURCE_SHA256 = .*$', 'SOURCE_SHA256 = {}', text, flags=re.MULTILINE)
+        self.assertEqual(without_manifest(loader.read_text()),
+                         without_manifest((self.scripts / 'loader.py').read_text()))
+        for name in ('install.sh', 'uninstall.sh'):
+            shell = (self.scripts / name).read_text()
+            self.assertIn('host python3 -I -B "$private_work/loader.py" "$entry_name" "$@"', shell)
+            self.assertNotIn('python3 -I -B -c', shell)
+            self.assertNotIn('import hashlib', shell)
+            self.assertNotIn('eval ', shell)
+            self.assertNotIn('<<', shell)
+
+    def test_bootstrap_rejects_malformed_stat_mode_before_fetch(self):
+        self.generate()
+        (self.bin / 'stat').write_text('#!/bin/bash\nprintf "%s:bogus\\n" "$EUID"\n')
+        (self.bin / 'stat').chmod(0o755)
+        result = self.run_script('install.sh', self.game)
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertFalse(self.fetches.exists())
+        self.assertFalse(self.trace.exists())
+
+    def test_loader_transfer_failure_never_publishes_or_executes(self):
+        self.generate()
+        curl = self.bin / 'curl'
+        normal = curl.read_text()
+        cache = self.home / '.dlor/cache/dlor-optiscaler/source' / REVISION
+        for action in ('install', 'uninstall'):
+            for variant in ('offline', 'partial', 'wrong-sha', 'empty'):
+                with self.subTest(action=action, transfer=variant):
+                    payload = b'' if variant == 'empty' else b'raise Exception("UNVERIFIED-LOADER")\n'
+                    body = (f"pathlib.Path(args[args.index('-o') + 1]).write_bytes({payload!r})\n"
+                            f"sys.exit({18 if variant == 'partial' else 22 if variant == 'offline' else 0})\n")
+                    curl.write_text(normal.replace("if os.environ.get('FIXTURE_OFFLINE') == '1': sys.exit(22)",
+                        "if name == 'loader.py':\n" + ''.join('    ' + line + '\n' for line in body.splitlines())))
+                    result = self.run_script(action + '.sh', self.game)
+                    self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+                    self.assertFalse(self.trace.exists())
+                    self.assertNotIn('UNVERIFIED-LOADER', result.stdout + result.stderr)
+                    self.assertEqual(list(cache.iterdir()), [])
+        self.assertEqual(set(self.fetches.read_text().splitlines()), {'loader.py'})
+
+    def test_loader_tamper_repair_offline_refusal_and_bytecode(self):
+        self.generate()
+        self.assertEqual(self.run_script('install.sh', self.game).returncode, 0)
+        cache = self.home / '.dlor/cache/dlor-optiscaler/source' / REVISION
+        poison = self.root / 'poison.py'
+        poison.write_text('raise Exception("UNVERIFIED-LOADER")\n')
+        # Both adjacent legacy and import-cache bytecode must be irrelevant to
+        # direct execution of the physical verified source file.
+        code = ('import pathlib,py_compile,sys; '
+                'py_compile.compile(sys.argv[1], cfile=sys.argv[2], '
+                'invalidation_mode=py_compile.PycInvalidationMode.UNCHECKED_HASH)')
+        subprocess.run([sys.executable, '-I', '-B', '-c', code, str(poison), str(cache / 'loader.pyc')], check=True)
+        (cache / '__pycache__').mkdir()
+        import importlib.util
+        subprocess.run([sys.executable, '-I', '-B', '-c', code, str(poison),
+                        str(Path(importlib.util.cache_from_source(str(cache / 'loader.py'))))], check=True)
+        self.env['FIXTURE_OFFLINE'] = '1'
+        result = self.run_script('uninstall.sh', self.game)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        (cache / 'loader.py').write_bytes(poison.read_bytes())
+        self.trace.unlink()
+        result = self.run_script('uninstall.sh', self.game)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse(self.trace.exists())
+        self.assertNotIn('UNVERIFIED-LOADER', result.stdout + result.stderr)
+        self.assertFalse(list(cache.glob('.loader.*')))
+        self.env['FIXTURE_OFFLINE'] = '0'
+        result = self.run_script('install.sh', self.game)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual((cache / 'loader.py').read_bytes(), (self.scripts / 'loader.py').read_bytes())
+        self.assertNotIn('UNVERIFIED-LOADER', result.stdout + result.stderr)
+
+    def test_private_loader_snapshot_is_reverified_before_execution(self):
+        self.generate()
+        (self.bin / 'cp').write_text('#!/bin/bash\n/usr/bin/cp "$@" || exit\nprintf \'raise Exception("UNVERIFIED-SNAPSHOT")\\n\' > "${@: -1}"\n')
+        (self.bin / 'cp').chmod(0o755)
+        result = self.run_script('install.sh', self.game)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('snapshot checksum mismatch', result.stdout)
+        self.assertNotIn('UNVERIFIED-SNAPSHOT', result.stdout + result.stderr)
+        self.assertFalse(self.trace.exists())
+        cache = self.home / '.dlor/cache/dlor-optiscaler/source' / REVISION
+        self.assertEqual([p.name for p in cache.iterdir()], ['loader.py'])
+
+    def test_loader_cache_link_and_foreign_owner_refused_before_fetch(self):
+        self.generate()
+        cache = self.home / '.dlor/cache/dlor-optiscaler/source' / REVISION
+        cache.mkdir(parents=True, mode=0o700)
+        outside = self.root / 'foreign-loader'
+        outside.write_text('foreign bytes')
+        (cache / 'loader.py').symlink_to(outside)
+        result = self.run_script('install.sh', self.game)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse(self.fetches.exists())
+        self.assertEqual(outside.read_text(), 'foreign bytes')
+        (cache / 'loader.py').unlink()
+        (self.bin / 'stat').write_text('#!/bin/bash\nprintf "%s:700\\n" "$((EUID + 1))"\n')
+        (self.bin / 'stat').chmod(0o755)
+        result = self.run_script('uninstall.sh', self.game)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse(self.fetches.exists())
+
+    def test_bootstrap_cancels_only_owned_loader_download(self):
+        import signal
+        import time
+        self.generate()
+        curl = self.bin / 'curl'
+        normal = curl.read_text()
+        ready = self.root / 'bootstrap-pids'
+        self.env['FIXTURE_READY'] = str(ready)
+        curl.write_text(normal.replace('args = sys.argv[1:]',
+            "import time\n"
+            "if sys.argv[-1].endswith('/loader.py'):\n"
+            "    pathlib.Path(sys.argv[sys.argv.index('-o') + 1]).write_bytes(b'partial')\n"
+            "    pathlib.Path(os.environ['FIXTURE_READY']).write_text(str(os.getpid()) + ':' + str(os.getppid()))\n"
+            "    while True: time.sleep(0.02)\nargs = sys.argv[1:]"))
+        sentinel = subprocess.Popen([sys.executable, '-I', '-B', '-c', 'import time; time.sleep(30)'])
+        try:
+            for signum in (signal.SIGINT, signal.SIGTERM):
+                with self.subTest(signal=signum):
+                    ready.unlink(missing_ok=True)
+                    process = subprocess.Popen(['bash', str(self.scripts / 'install.sh'), str(self.game)],
+                                               env=self.env, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                               start_new_session=True)
+                    try:
+                        deadline = time.monotonic() + 5
+                        while not ready.exists() and time.monotonic() < deadline:
+                            time.sleep(0.01)
+                        self.assertTrue(ready.exists(), 'bootstrap never reached loader downloader')
+                        downloader, bootstrap = map(int, ready.read_text().split(':'))
+                        os.kill(bootstrap, signum)
+                        stdout, stderr = process.communicate(timeout=4)
+                        self.assertEqual(process.returncode, 128 + signum, stdout + stderr)
+                        self.assertFalse(Path(f'/proc/{downloader}').exists())
+                        self.assertFalse(self.trace.exists())
+                        cache = self.home / '.dlor/cache/dlor-optiscaler/source' / REVISION
+                        self.assertEqual(list(cache.iterdir()), [])
+                        self.assertIsNone(sentinel.poll())
+                    finally:
+                        if process.poll() is None:
+                            if ready.exists():
+                                for pid in map(int, ready.read_text().split(':')):
+                                    try: os.kill(pid, signal.SIGKILL)
+                                    except ProcessLookupError: pass
+                            process.kill()
+                        process.communicate(timeout=5)
+        finally:
+            sentinel.terminate()
+            sentinel.wait(timeout=5)
+
+    def test_bootstrap_host_tools_atomic_publish_and_newline_home(self):
+        self.generate()
+        renamed = self.root / 'home space\n café'
+        self.home.rename(renamed)
+        self.home = renamed
+        self.env.update(HOME=str(renamed), STEAM_RUNTIME='/steam/runtime',
+                        LD_LIBRARY_PATH='/steam/lib', SYSTEM_LD_LIBRARY_PATH='',
+                        PYTHONHOME='/steam/python', PYTHONPATH='/steam/modules')
+        for tool in ('readlink', 'stat', 'mkdir', 'mktemp', 'mv', 'cp', 'sha256sum', 'rm'):
+            (self.bin / tool).write_text(f'''#!{sys.executable} -I
+import os, pathlib, sys
+assert 'LD_PRELOAD' not in os.environ
+assert 'PYTHONHOME' not in os.environ and 'PYTHONPATH' not in os.environ
+assert not os.environ.get('STEAM_RUNTIME', '').startswith('/')
+assert os.environ['PATH'] == os.environ['SYSTEM_PATH']
+assert os.environ.get('LD_LIBRARY_PATH', '') == os.environ.get('SYSTEM_LD_LIBRARY_PATH', '')
+if {tool!r} == 'sha256sum': assert len(sys.argv) == 1, 'hash filenames only via stdin'
+if {tool!r} == 'mv':
+    source, target = map(pathlib.Path, sys.argv[-2:])
+    assert source.parent.parent == target.parent, 'publication must stay on cache filesystem'
+    assert source.read_bytes() == (pathlib.Path(os.environ['FIXTURE_SCRIPTS']) / 'loader.py').read_bytes()
+os.execv('/usr/bin/{tool}', ['{tool}', *sys.argv[1:]])
+''')
+            (self.bin / tool).chmod(0o755)
+        result = self.run_script('install.sh', self.game)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertTrue(self.trace.exists())
+        cache = self.home / '.dlor/cache/dlor-optiscaler/source' / REVISION
+        self.assertFalse(list(cache.glob('.loader.*')))
+
+    def test_verified_snapshot_survives_cache_change_after_copy(self):
+        self.generate()
+        (self.bin / 'cp').write_text('#!/bin/bash\n/usr/bin/cp "$@" || exit\nprintf \'raise Exception("MUTABLE-CACHE-EXECUTED")\\n\' > "${@: -2:1}"\n')
+        (self.bin / 'cp').chmod(0o755)
+        result = self.run_script('install.sh', self.game)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertTrue(self.trace.exists())
+        self.assertNotIn('MUTABLE-CACHE-EXECUTED', result.stdout + result.stderr)
+
     def generate(self):
         updater = SCRIPTS / 'update-source-hashes.py'
         self.assertTrue(updater.is_file(), 'maintainer entrypoint generator is missing')
         shutil.copyfile(updater, self.scripts / updater.name)
+        if not (self.scripts / 'loader.py').exists():
+            shutil.copyfile(SCRIPTS / 'loader.py', self.scripts / 'loader.py')
         result = subprocess.run([sys.executable, '-I', '-B', str(self.scripts / updater.name)],
                                 capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
@@ -113,7 +311,7 @@ def main(argv=None):
         self.assertEqual(trace['argv'], ['install', str(self.game)])
         self.assertEqual(trace['isolated'], 1)
         self.assertTrue(trace['bytecode'])
-        self.assertEqual(self.fetches.read_text().splitlines(), ['installer.py', 'artifacts.py', 'game_discovery.py'])
+        self.assertEqual(self.fetches.read_text().splitlines(), ['loader.py', 'installer.py', 'artifacts.py', 'game_discovery.py'])
         logs = list((self.home / '.dlor/logs/dlor-optiscaler/install').glob('*.log'))
         self.assertEqual(len(logs), 1)
         self.assertIn('fixture installer stderr', logs[0].read_text())
@@ -353,7 +551,7 @@ os.execv('/usr/bin/sha256sum', ['sha256sum', *sys.argv[1:]])
         index = self.root / 'index.ts'
         index.write_text('recipe source must remain untouched\n')
         metadata = self.generate()
-        self.assertEqual(set(metadata), {'SOURCE_SHA256'})
+        self.assertEqual(set(metadata), {'SOURCE_SHA256', 'LOADER_SHA256'})
         self.assertEqual(set(metadata['SOURCE_SHA256']), {'installer.py', 'artifacts.py', 'game_discovery.py'})
         self.assertEqual(index.read_text(), 'recipe source must remain untouched\n')
         self.assertFalse((self.scripts / 'launch.sh').exists())
@@ -361,7 +559,8 @@ os.execv('/usr/bin/sha256sum', ['sha256sum', *sys.argv[1:]])
         self.generate()
         self.assertEqual(before, {name: (self.scripts / name).read_bytes() for name in before})
         for name in before:
-            self.assertIn(b'SOURCE_SHA256 = ', before[name])
+            self.assertIn(b'LOADER_SHA256=', before[name])
+            self.assertNotIn(b'SOURCE_SHA256', before[name])
             self.assertNotIn(b'ENTRY_SHA256', before[name])
             result = subprocess.run(['bash', '-n', str(self.scripts / name)], capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -545,7 +744,7 @@ os.execv('/usr/bin/sha256sum', ['sha256sum', *sys.argv[1:]])
         self.assertEqual(json.loads((self.root / 'game-result.json').read_text())['env']['WINEDLLOVERRIDES'], 'version=n')
         self.assertNotIn('WINEDLLOVERRIDES', variables)
         self.assertEqual(list(self.game.iterdir()), [])
-        self.assertEqual(self.fetches.read_text().splitlines(), ['uninstall.sh', 'installer.py', 'artifacts.py', 'game_discovery.py'])
+        self.assertEqual(self.fetches.read_text().splitlines(), ['uninstall.sh', 'loader.py', 'installer.py', 'artifacts.py', 'game_discovery.py'])
 
     def test_actual_consumer_failed_entry_transfer_continues_with_declared_policy(self):
         recipe = self.fixture_recipe()
@@ -589,18 +788,20 @@ os.execv('/usr/bin/sha256sum', ['sha256sum', *sys.argv[1:]])
                 payload = b'' if variant == 'empty' else b'raise Exception("UNVERIFIED-MODULE")\n'
                 body = (f"pathlib.Path(args[args.index('-o') + 1]).write_bytes({payload!r})\n"
                         f"sys.exit({18 if variant == 'partial' else 0})\n")
-                curl.write_text(normal if variant == 'offline' else
-                                f'#!{sys.executable} -I\nimport pathlib, sys\nargs = sys.argv[1:]\n' + body)
-                self.env['FIXTURE_OFFLINE'] = '1' if variant == 'offline' else '0'
+                if variant == 'offline':
+                    body = 'sys.exit(22)\n'
+                curl.write_text(normal.replace("if os.environ.get('FIXTURE_OFFLINE') == '1': sys.exit(22)",
+                    "if name == 'installer.py':\n" + ''.join('    ' + line + '\n' for line in body.splitlines())))
+                self.env['FIXTURE_OFFLINE'] = '0'
                 result = self.run_script('install.sh', self.game)
                 self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
                 self.assertFalse(self.trace.exists())
                 self.assertNotIn('UNVERIFIED-MODULE', result.stdout + result.stderr)
-                self.assertEqual(list(cache.iterdir()), [])
+                self.assertEqual(sorted(p.name for p in cache.iterdir()), ['loader.py'])
         curl.write_text(normal)
         self.env['FIXTURE_OFFLINE'] = '0'
         self.assertEqual(self.run_script('install.sh', self.game).returncode, 0)
-        self.assertEqual(sorted(p.name for p in cache.iterdir()), ['artifacts.py', 'game_discovery.py', 'installer.py'])
+        self.assertEqual(sorted(p.name for p in cache.iterdir()), ['artifacts.py', 'game_discovery.py', 'installer.py', 'loader.py'])
         self.trace.unlink()
         # A corrupt prior cache is not executable when repair is unavailable.
         (cache / 'installer.py').write_text('raise Exception("UNVERIFIED-MODULE")\n')
@@ -659,8 +860,9 @@ os.execv('/usr/bin/sha256sum', ['sha256sum', *sys.argv[1:]])
         self.env['FIXTURE_READY'] = str(ready)
         curl.write_text(normal.replace('args = sys.argv[1:]',
             "import time\n"
-            "pathlib.Path(os.environ['FIXTURE_READY']).write_text(str(os.getpid()) + ':' + str(os.getppid()))\n"
-            "while True: time.sleep(0.02)\n"
+            "if sys.argv[-1].endswith('/installer.py'):\n"
+            "    pathlib.Path(os.environ['FIXTURE_READY']).write_text(str(os.getpid()) + ':' + str(os.getppid()))\n"
+            "    while True: time.sleep(0.02)\n"
             "args = sys.argv[1:]"))
         sentinel = subprocess.Popen([sys.executable, '-I', '-B', '-c', 'import time; time.sleep(30)'])
         try:
@@ -684,7 +886,7 @@ os.execv('/usr/bin/sha256sum', ['sha256sum', *sys.argv[1:]])
                         self.assertFalse(Path(f'/proc/{downloader}').exists())
                         self.assertFalse(self.trace.exists())
                         cache = self.home / '.dlor/cache/dlor-optiscaler/source' / REVISION
-                        self.assertEqual(list(cache.iterdir()), [])
+                        self.assertEqual(sorted(p.name for p in cache.iterdir()), ['loader.py'])
                         self.assertIsNone(sentinel.poll())
                     finally:
                         if process.poll() is None:
