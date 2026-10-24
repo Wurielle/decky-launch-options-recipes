@@ -190,14 +190,20 @@ class InstallationTests(unittest.TestCase):
             self.assertEqual(provenance[0]["sha256"], self.installer.digest(archive))
             self.assertEqual(provenance[0]["repository"], "optiscaler/OptiScaler-nightly")
             calls.clear()
+            os.environ["DLOR_OPTISCALER_CHANNEL"] = "stable"
+            os.environ["DLOR_OPTISCALER_PROXY"] = "winmm"
+            self.installer.main(["install", str(self.game), "--result", str(result)])
+            self.assertEqual(calls, [("optiscaler/OptiScaler-nightly", "nightly")])
+            self.assertEqual(json.loads(result.read_text())["proxy"], "dxgi")
+            calls.clear()
             self.installer.main(["uninstall", str(self.game)])
             self.assertEqual(calls, [])
             self.assertFalse((self.target / "dxgi.dll").exists())
             (self.target / "dxgi.dll").write_bytes(b"a different user mod installed later")
-            os.environ["DLOR_OPTISCALER_CHANNEL"] = "stable"
-            self.installer.main(["install", str(self.game), "--result", str(result)])
-            self.assertEqual(calls, [("optiscaler/OptiScaler-nightly", "nightly")])
-            self.assertEqual(json.loads(result.read_text())["proxy"], "winmm")
+            with self.assertRaises(self.installer.InstallerError):
+                self.installer.main(["install", str(self.game), "--result", str(result)])
+            self.assertEqual(calls, [])
+            self.assertFalse((self.target / "winmm.dll").exists())
             self.assertEqual((self.target / "dxgi.dll").read_bytes(), b"a different user mod installed later")
 
     def test_owned_plugin_settings_restore_without_losing_other_user_edits(self):

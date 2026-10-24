@@ -58,9 +58,9 @@ finish_log() {
 entry_name=install
 start_log "$entry_name"
 host python3 -I -B -c 'ACTION = '\''install'\''
-SOURCE_SHA256 = {'\''installer.py'\'': '\''1eb74db32cb4f49415834bf0fd36ca0c103fd9d60d478d0a1f74b610e48984a7'\'', '\''artifacts.py'\'': '\''1ad5feff0adfbe09829bc1b7d93ec0c67e823f1e04711a00359a3ee1705671b7'\'', '\''game_discovery.py'\'': '\''f5d2aeb6bf3abd9c8e1968427abb21d848e3d273c2f9fc792666042f37b0fe49'\''}
+SOURCE_SHA256 = {'\''installer.py'\'': '\''f48dda18c2ac5d3260d82cc00f0b79e7d4256d7e52c5a439cc78306178c4b06a'\'', '\''artifacts.py'\'': '\''1ad5feff0adfbe09829bc1b7d93ec0c67e823f1e04711a00359a3ee1705671b7'\'', '\''game_discovery.py'\'': '\''f5d2aeb6bf3abd9c8e1968427abb21d848e3d273c2f9fc792666042f37b0fe49'\''}
 
-import hashlib, importlib.abc, importlib.util, json, os, pathlib, re, signal, stat, subprocess, sys, tempfile
+import hashlib, importlib.abc, importlib.util, os, pathlib, re, signal, stat, subprocess, sys, tempfile
 
 active_child = None
 
@@ -81,12 +81,12 @@ def cancel_auxiliary(signum, frame):
 signal.signal(signal.SIGINT, cancel_auxiliary)
 signal.signal(signal.SIGTERM, cancel_auxiliary)
 
-def run_auxiliary(command, data=None):
+def run_auxiliary(command):
     global active_child
-    active_child = subprocess.Popen(command, stdin=subprocess.PIPE if data is not None else subprocess.DEVNULL,
+    active_child = subprocess.Popen(command, stdin=subprocess.DEVNULL,
                                     start_new_session=True)
     try:
-        active_child.communicate(input=data)
+        active_child.communicate()
         if active_child.returncode:
             raise subprocess.CalledProcessError(active_child.returncode, command)
     except BaseException:

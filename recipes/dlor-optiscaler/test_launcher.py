@@ -11,7 +11,6 @@ import unittest
 SCRIPTS = Path(__file__).with_name('scripts')
 REVISION = 'a' * 40
 
-
 class LauncherTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix='dlor-launcher-', dir=os.environ.get('TMPDIR'))
@@ -29,7 +28,7 @@ class LauncherTests(unittest.TestCase):
                         FIXTURE_SCRIPTS=str(self.scripts), FIXTURE_TRACE=str(self.trace),
                         FIXTURE_FETCHES=str(self.fetches), PATH=f'{self.bin}:/usr/bin:/bin',
                         SYSTEM_PATH=f'{self.bin}:/usr/bin:/bin', TMPDIR=str(self.root), PYTHONDONTWRITEBYTECODE='1')
-        self.game = self.root / 'Game Space'
+        self.game = self.root / 'Game Space \" café'
         self.game.mkdir()
         self.env['STEAM_COMPAT_INSTALL_PATH'] = str(self.game)
         (self.bin / 'curl').write_text(f'''#!{sys.executable} -I
@@ -59,14 +58,10 @@ def main(argv=None):
         return 2
     record = {'argv': argv, 'env': {k: v for k, v in os.environ.items() if k in ('STEAM_RUNTIME', 'LD_LIBRARY_PATH', 'LD_PRELOAD', 'PATH', 'PYTHONHOME', 'PYTHONPATH', 'WINEDLLOVERRIDES', 'work', 'status', 'entry_name', 'helper_pid', 'logger_pid', 'merged', 'console_out', 'console_err')}, 'isolated': sys.flags.isolated,
               'bytecode': sys.dont_write_bytecode}
-    if '--argv-file' in argv:
-        record['game_argv'] = json.loads(pathlib.Path(argv[argv.index('--argv-file') + 1]).read_text())
     pathlib.Path(os.environ['FIXTURE_TRACE']).write_text(json.dumps(record))
     print('fixture installer output', flush=True)
     print('fixture installer stderr', file=sys.stderr, flush=True)
     if os.environ.get('FIXTURE_FAIL') == '1': return 7
-    if '--result' in argv:
-        pathlib.Path(argv[argv.index('--result') + 1]).write_text(json.dumps({'proxy': os.environ.get('FIXTURE_PROXY', 'dxgi'), 'target': argv[1]}))
     return 0
 ''')
         for name in ('artifacts.py', 'game_discovery.py'):
@@ -74,11 +69,12 @@ def main(argv=None):
 
     def generate(self):
         updater = SCRIPTS / 'update-source-hashes.py'
-        self.assertTrue(updater.is_file(), 'maintainer bootstrap generator is missing')
+        self.assertTrue(updater.is_file(), 'maintainer entrypoint generator is missing')
         shutil.copyfile(updater, self.scripts / updater.name)
         result = subprocess.run([sys.executable, '-I', '-B', str(self.scripts / updater.name)],
                                 capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        return json.loads(result.stdout)
 
     def run_script(self, name, *args):
         return subprocess.run(['bash', str(self.scripts / name), *map(str, args)],
@@ -95,10 +91,6 @@ def main(argv=None):
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
                 self.assertTrue(self.trace.exists(), result.stdout + result.stderr)
                 self.trace.unlink()
-        self.env['DLOR_OPTISCALER_ACTION'] = 'install'
-        result = self.run_script('launch.sh', *self.game_command())
-        self.assertEqual(result.returncode, 23, result.stdout + result.stderr)
-        self.assertTrue(self.trace.exists(), result.stdout + result.stderr)
 
     def test_sources_still_reject_a_symlink_inside_the_home_cache(self):
         self.generate()
@@ -134,32 +126,6 @@ def main(argv=None):
                 "print('GAMEPLAY-SENTINEL', flush=True); sys.exit(23)")
         return [sys.executable, '-I', '-B', '-c', code, str(output), *extra]
 
-    def test_cold_launcher_preserves_game_handoff_merges_wine_and_drains_logs(self):
-        self.generate()
-        self.env.update(STEAM_RUNTIME='/steam/runtime', LD_LIBRARY_PATH='/steam/libraries',
-                        PYTHONHOME='/steam/python', PYTHONPATH='/steam/python-modules',
-                        WINEDLLOVERRIDES='dinput8=n;DXGI,version=b;foo=;dxgi.dll=b',
-                        DLOR_OPTISCALER_ACTION='install')
-        command = self.game_command('space arg', '', 'semi;colon', 'quote"arg', 'line\nbreak')
-        result = self.run_script('launch.sh', *command)
-        self.assertEqual(result.returncode, 23, result.stdout + result.stderr)
-        game = json.loads((self.root / 'game-result.json').read_text())
-        self.assertEqual(game['argv'], command[6:])
-        self.assertEqual(game['env']['WINEDLLOVERRIDES'], 'dinput8=n;version=b;foo=;dxgi=n,b')
-        for key in ('STEAM_RUNTIME', 'LD_LIBRARY_PATH', 'PYTHONHOME', 'PYTHONPATH', 'PATH'):
-            self.assertEqual(game['env'][key], self.env[key])
-        trace = json.loads(self.trace.read_text())
-        self.assertEqual(trace['game_argv'], command)
-        self.assertNotIn('PYTHONHOME', trace['env'])
-        self.assertNotIn('PYTHONPATH', trace['env'])
-        self.assertNotIn('STEAM_RUNTIME', trace['env'])
-        self.assertEqual(sorted(self.fetches.read_text().splitlines()),
-                         sorted(['install.sh', 'uninstall.sh', 'installer.py', 'artifacts.py', 'game_discovery.py']))
-        logs = list((self.home / '.dlor/logs/dlor-optiscaler').rglob('*.log'))
-        self.assertEqual(len(logs), 2)
-        self.assertTrue(all('GAMEPLAY-SENTINEL' not in p.read_text() for p in logs))
-        self.assertIn('GAMEPLAY-SENTINEL', result.stdout)
-
     def compiled_recipe(self):
         repo = SCRIPTS.parents[2]
         compiled = self.root / 'compiled'
@@ -177,6 +143,43 @@ def main(argv=None):
                                 capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         return json.loads(result.stdout)
+
+    def test_file_backed_toggle_through_actual_consumer(self):
+        import runpy
+        self.generate()
+        runpy.run_path(str(SCRIPTS.parents[2] / 'scripts/runner_test_support.py'))['install_runner'](self.home)
+        recipe = self.compiled_recipe()
+        context = (f'DLOR_OPTISCALER_SOURCE_REVISION="{REVISION}" '
+                   'DLOR_OPTISCALER_SOURCE_REPOSITORY="Wurielle/decky-launch-options-recipes" ')
+        for enabled, action in ((True, 'install'), (False, 'uninstall')):
+            with self.subTest(enabled=enabled):
+                expected = (('WINEDLLOVERRIDES="dxgi=n,b" ' if enabled else '') + context
+                            + f'~/.dlor/run dlor-optiscaler {action} {REVISION} -- %command%')
+                self.assertEqual(recipe['launchOptions'][0]['on' if enabled else 'off'], expected)
+                self.env.pop('DLOR_SCRIPT_REVISION', None)
+                final, env, variables = self.consumer_launch(recipe, self.game_command('quoted " café path'), enabled)
+                self.assertEqual(final[:5], [str(self.home / '.dlor/run'), 'dlor-optiscaler', action, REVISION, '--'])
+                result = subprocess.run(final, env=env, capture_output=True, text=True, timeout=20)
+                self.assertEqual(result.returncode, 23, result.stdout + result.stderr)
+                self.assertEqual(json.loads(self.trace.read_text())['argv'], [action, str(self.game)])
+                observed = json.loads((self.root / 'game-result.json').read_text())
+                self.assertEqual(observed['argv'], ['quoted " café path', '--original-arg'])
+                if enabled:
+                    self.assertEqual(variables['WINEDLLOVERRIDES'], 'dxgi=n,b')
+                else:
+                    self.assertNotIn('WINEDLLOVERRIDES', variables)
+
+    def test_actual_consumer_executes_file_backed_entrypoint(self):
+        import runpy
+        self.generate()
+        runpy.run_path(str(SCRIPTS.parents[2] / 'scripts/runner_test_support.py'))['install_runner'](self.home)
+        self.env.pop('DLOR_SCRIPT_REVISION')
+        recipe = self.compiled_recipe()
+        final, env, _ = self.consumer_launch(recipe, self.game_command())
+        result = subprocess.run(final, env=env, capture_output=True, text=True, timeout=20)
+        self.assertEqual(result.returncode, 23, result.stdout + result.stderr)
+        self.assertTrue(self.trace.exists(), result.stdout + result.stderr)
+        self.assertEqual(self.fetches.read_text().splitlines()[0], 'install.sh')
 
     def test_actual_consumer_requires_explicit_source_location(self):
         from unittest.mock import patch
@@ -220,54 +223,21 @@ def main(argv=None):
         return final, child_env, variables
 
     def fixture_recipe(self):
-        import hashlib
+        import runpy
         self.generate()
-        recipe = self.compiled_recipe()
-        # Only the source transport is substituted: full real shell entrypoints
-        # still verify and run the explicitly synthetic installer modules.
-        actual = hashlib.sha256((SCRIPTS / 'launch.sh').read_bytes()).hexdigest()
-        fixture = hashlib.sha256((self.scripts / 'launch.sh').read_bytes()).hexdigest()
-        for action in ('on', 'off'):
-            self.assertIn(actual, recipe['launchOptions'][0][action])
-            recipe['launchOptions'][0][action] = recipe['launchOptions'][0][action].replace(actual, fixture)
-        return recipe
-
-    def test_actual_consumer_runs_independent_bootstrap_without_revision_from_runner(self):
-        recipe = self.fixture_recipe()
-        acquisition_pid = self.root / 'successful-downloader.pid'
-        curl = self.bin / 'curl'
-        curl.write_text(curl.read_text().replace("name = url.rsplit('/', 1)[-1]",
-            "name = url.rsplit('/', 1)[-1]\n"
-            f"if name == 'launch.sh': pathlib.Path({str(acquisition_pid)!r}).write_text(str(os.getpid()))"))
-        self.env.pop('DLOR_SCRIPT_REVISION')
-        self.env.update(DLOR_REPOSITORY='ignored/foreign', DLOR_OPTISCALER_ACTION='install',
-                        WINEDLLOVERRIDES='dinput8=n;dxgi,version=b')
-        game = self.game_command('space arg', '', 'semi;colon', 'quote"arg', 'line\nbreak')
-        final, env, variables = self.consumer_launch(recipe, game)
-        self.assertEqual(final[:2], ['bash', '-c'])
-        self.assertNotIn('--wrapper', final)
-        self.assertEqual(variables, {'ORIGINAL_TEST_VALUE': 'original value',
-                                    'DLOR_OPTISCALER_ACTION': 'install', 'DLOR_OPTISCALER_OPTIPATCHER': '0'})
-        result = subprocess.run(final, env=env, capture_output=True, text=True, timeout=20)
-        self.assertEqual(result.returncode, 23, result.stdout + result.stderr)
-        self.assertTrue(self.trace.exists(), result.stdout + result.stderr)
-        observed = json.loads((self.root / 'game-result.json').read_text())
-        self.assertEqual(observed['argv'], game[6:] + ['--original-arg'])
-        self.assertEqual(observed['env']['WINEDLLOVERRIDES'], 'dinput8=n;version=b;dxgi=n,b')
-        for key in ('REPLY', 'p', 'f', 'COPROC', 'COPROC_PID'):
-            if key not in self.env:
-                self.assertNotIn(key, observed['env'], 'bootstrap leaked acquisition bookkeeping')
-        self.assertEqual(self.fetches.read_text().splitlines()[0], 'launch.sh')
-        self.assertFalse(Path(f'/proc/{int(acquisition_pid.read_text())}').exists(), 'successful downloader was not reaped')
+        # Only transport/installer modules are synthetic; parser, backend runner
+        # installation and generated install/uninstall entrypoints are real.
+        runpy.run_path(str(SCRIPTS.parents[2] / 'scripts/runner_test_support.py'))['install_runner'](self.home)
+        return self.compiled_recipe()
 
     def test_actual_consumer_preserves_shared_source_context_for_nested_recipes(self):
         import runpy
         recipe = self.fixture_recipe()
         runpy.run_path(str(SCRIPTS.parents[2] / 'scripts/runner_test_support.py'))['install_runner'](self.home)
         marker = self.root / 'custom-helper-context'
-        self.env.update(DLOR_SCRIPT_REVISION='b' * 40, DLOR_REPOSITORY='Other/Recipes',
+        self.env.update(DLOR_SCRIPT_REVISION='b' * 40, DLOR_REPOSITORY='Wurielle/decky-launch-options-recipes',
                         FIXTURE_CUSTOM_CONTEXT=str(marker),
-                        FIXTURE_CUSTOM_HELPER_URL=f'https://raw.githubusercontent.com/Other/Recipes/{REVISION}/recipes/fixture/scripts/custom.sh')
+                        FIXTURE_CUSTOM_HELPER_URL=f'https://raw.githubusercontent.com/Wurielle/decky-launch-options-recipes/{REVISION}/recipes/fixture/scripts/custom.sh')
         (self.scripts / 'custom.sh').write_text(
             '#!/bin/bash\nprintf "%s\\n" "$DLOR_REPOSITORY:$DLOR_SCRIPT_REVISION" > "$FIXTURE_CUSTOM_CONTEXT"\n')
         helper = {'id': 'custom', 'on': f'~/.dlor/run fixture custom {REVISION} -- %command%',
@@ -277,7 +247,7 @@ def main(argv=None):
         self.assertEqual(result.returncode, 23, result.stdout + result.stderr)
         self.assertTrue(self.trace.exists(), result.stdout + result.stderr)
         self.assertTrue(marker.exists(), result.stdout + result.stderr)
-        self.assertEqual(marker.read_text().strip(), 'Other/Recipes:' + 'b' * 40)
+        self.assertEqual(marker.read_text().strip(), 'Wurielle/decky-launch-options-recipes:' + 'b' * 40)
         game = json.loads((self.root / 'game-result.json').read_text())
         for key in ('DLOR_SCRIPT_REVISION', 'DLOR_REPOSITORY'):
             self.assertEqual(game['env'][key], self.env[key])
@@ -303,6 +273,8 @@ def main(argv=None):
                 f'#!/bin/bash\nprintf "%s\\n" "{script}:$1" >> "$FIXTURE_HELPER_TRACE"\n')
             helpers.append({'id': script, 'on': f'~/.dlor/run fixture {script} {REVISION} -- %command%',
                             'off': '', 'priority': priority})
+        helpers.append({'id': 'other-wine', 'on': 'WINEDLLOVERRIDES="dinput8=n;version=b"',
+                        'off': '', 'priority': -20})
         self.env.pop('DLOR_SCRIPT_REVISION')
         self.env.update(STEAM_RUNTIME='/steam/runtime', LD_LIBRARY_PATH='/steam/libraries',
                         SYSTEM_LD_LIBRARY_PATH='', PYTHONHOME='/steam/python', PYTHONPATH='/steam/modules',
@@ -341,16 +313,16 @@ os.execv('/usr/bin/sha256sum', ['sha256sum', *sys.argv[1:]])
                 for key in ('STEAM_RUNTIME', 'LD_LIBRARY_PATH', 'PYTHONHOME', 'PYTHONPATH', 'PATH', 's', *acquisition_keys):
                     self.assertEqual(observed['env'][key], self.env[key])
                 self.assertEqual(observed['env']['ORIGINAL_TEST_VALUE'], 'original value')
-                expected = 'dinput8=n;version=b;dxgi=n,b' if enabled and not fail else self.env['WINEDLLOVERRIDES']
+                expected = 'dinput8=n;version=b;dxgi=n,b' if enabled else 'dinput8=n;version=b'
                 self.assertEqual(observed['env']['WINEDLLOVERRIDES'], expected)
                 self.assertNotIn('DLOR_SCRIPT_REVISION', variables)
 
     def test_actual_consumer_preserves_stdin_and_extra_fds_across_source_acquisition(self):
         recipe = self.fixture_recipe()
-        # A downloader that tries to consume stdin must see EOF, not game input.
+        # Module downloaders see EOF; the unchanged runner curl does not read input.
         curl = self.bin / 'curl'
         curl.write_text(curl.read_text().replace('args = sys.argv[1:]',
-            "assert sys.stdin.buffer.read() == b'', 'downloader consumed game stdin'\nargs = sys.argv[1:]"))
+            "if sys.argv[-1].endswith('.py'): assert sys.stdin.buffer.read() == b'', 'module downloader consumed game stdin'\nargs = sys.argv[1:]"))
         output = self.root / 'consumer-fds.json'
         fd_path = self.root / 'consumer-inherited'
         with fd_path.open('wb') as stream:
@@ -362,6 +334,8 @@ os.execv('/usr/bin/sha256sum', ['sha256sum', *sys.argv[1:]])
                     "    try: os.fstat(int(item)); fds.append(int(item))\n"
                     "    except OSError: pass\n"
                     "pathlib.Path(sys.argv[1]).write_text(json.dumps(sorted(fds)))\n"
+                    "print('GAME-STDOUT-SENTINEL', flush=True)\n"
+                    "print('GAME-STDERR-SENTINEL', file=sys.stderr, flush=True)\n"
                     "sys.exit(23)\n")
             game = [sys.executable, '-I', '-B', '-c', code, str(output), str(fd)]
             final, env, _ = self.consumer_launch(recipe, game)
@@ -370,102 +344,59 @@ os.execv('/usr/bin/sha256sum', ['sha256sum', *sys.argv[1:]])
         self.assertTrue(self.trace.exists(), result.stdout + result.stderr)
         self.assertEqual(fd_path.read_bytes(), b'inherited:game stdin\n')
         self.assertEqual(json.loads(output.read_text()), sorted({0, 1, 2, fd}))
+        self.assertIn(b'GAME-STDERR-SENTINEL', result.stderr)
+        self.assertTrue(all('GAME-STDOUT-SENTINEL' not in log.read_text()
+                            and 'GAME-STDERR-SENTINEL' not in log.read_text()
+                            for log in (self.home / '.dlor/logs').rglob('*.log')))
 
-    def test_actual_consumer_rejects_partial_or_wrong_launcher_and_falls_back(self):
-        recipe = self.fixture_recipe()
-        curl = self.bin / 'curl'
-        normal = curl.read_text()
-        self.env['WINEDLLOVERRIDES'] = 'version=b'
-        for variant in ('offline', 'partial', 'wrong-sha', 'empty'):
-            with self.subTest(variant=variant):
-                self.trace.unlink(missing_ok=True)
-                self.env['FIXTURE_OFFLINE'] = '1' if variant == 'offline' else '0'
-                if variant == 'partial':
-                    curl.write_text(f'#!{sys.executable}\nimport sys\nprint("echo UNVERIFIED-LAUNCHER")\nsys.exit(18)\n')
-                elif variant == 'wrong-sha':
-                    curl.write_text(f'#!{sys.executable}\nprint("echo UNVERIFIED-LAUNCHER")\n')
-                elif variant == 'empty':
-                    curl.write_text('#!/bin/bash\nexit 0\n')
-                else:
-                    curl.write_text(normal)
-                final, env, _ = self.consumer_launch(recipe, self.game_command('fallback arg'))
-                result = subprocess.run(final, env=env, capture_output=True, text=True, timeout=20)
-                self.assertEqual(result.returncode, 23, result.stdout + result.stderr)
-                self.assertFalse(self.trace.exists())
-                self.assertNotIn('UNVERIFIED-LAUNCHER', result.stdout)
-                self.assertIn('continuing original game', result.stderr)
-                game = json.loads((self.root / 'game-result.json').read_text())
-                self.assertEqual(game['argv'], ['fallback arg', '--original-arg'])
-                self.assertEqual(game['env']['WINEDLLOVERRIDES'], 'version=b')
-
-    def test_actual_consumer_hashes_complete_launcher_including_trailing_newlines(self):
-        import hashlib
-        recipe = self.fixture_recipe()
-        launcher = self.scripts / 'launch.sh'
-        original = launcher.read_bytes()
-        digest = hashlib.sha256(original).hexdigest()
-        for ending in (b'', b'\n', b'\n\n\n'):
-            with self.subTest(ending=ending):
-                self.trace.unlink(missing_ok=True)
-                source = original.rstrip(b'\n') + ending
-                launcher.write_bytes(source)
-                pinned = hashlib.sha256(source).hexdigest()
-                option = recipe['launchOptions'][0]
-                option['on'] = option['on'].replace(digest, pinned)
-                digest = pinned
-                final, env, _ = self.consumer_launch(recipe, self.game_command())
-                result = subprocess.run(final, env=env, capture_output=True, text=True, timeout=20)
-                self.assertEqual(result.returncode, 23, result.stdout + result.stderr)
-                self.assertTrue(self.trace.exists(), result.stdout + result.stderr)
-
-    def test_generator_refreshes_recipe_digest_and_is_deterministic(self):
-        import hashlib
+    def test_generator_emits_only_two_deterministic_entrypoints(self):
         index = self.root / 'index.ts'
-        index.write_text("const launchSha256 = '" + '0' * 64 + "'\n")
-        self.generate()
-        expected = hashlib.sha256((self.scripts / 'launch.sh').read_bytes()).hexdigest()
-        self.assertIn("const launchSha256 = '" + expected + "'", index.read_text())
-        before = {name: (self.scripts / name).read_bytes() for name in ('launch.sh', 'install.sh', 'uninstall.sh')}
+        index.write_text('recipe source must remain untouched\n')
+        metadata = self.generate()
+        self.assertEqual(set(metadata), {'SOURCE_SHA256'})
+        self.assertEqual(set(metadata['SOURCE_SHA256']), {'installer.py', 'artifacts.py', 'game_discovery.py'})
+        self.assertEqual(index.read_text(), 'recipe source must remain untouched\n')
+        self.assertFalse((self.scripts / 'launch.sh').exists())
+        before = {name: (self.scripts / name).read_bytes() for name in ('install.sh', 'uninstall.sh')}
         self.generate()
         self.assertEqual(before, {name: (self.scripts / name).read_bytes() for name in before})
         for name in before:
+            self.assertIn(b'SOURCE_SHA256 = ', before[name])
+            self.assertNotIn(b'ENTRY_SHA256', before[name])
             result = subprocess.run(['bash', '-n', str(self.scripts / name)], capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr)
 
-    def test_recipe_has_short_typed_toggle_and_none_only_dropdown_defaults(self):
-        import hashlib
+    def test_recipe_has_short_file_calls_and_none_only_dropdown_defaults(self):
         recipe = self.compiled_recipe()
         self.assertEqual(recipe['name'], 'DLOR OptiScaler')
         toggle = recipe['launchOptions'][0]
-        digest = hashlib.sha256((SCRIPTS / 'launch.sh').read_bytes()).hexdigest()
         consumer = self.actual_consumer()
         for action, key in [('install', 'on'), ('uninstall', 'off')]:
             option = toggle[key]
-            self.assertTrue(option.startswith(f'DLOR_OPTISCALER_ACTION="{action}" bash -c '))
-            self.assertLess(len(option), 1400)
-            self.assertNotIn('\n', option)
-            self.assertNotIn('--wrapper', option)
-            self.assertIn(digest, option)
-            self.assertIn(f'/{REVISION}/recipes/dlor-optiscaler/scripts/launch.sh', option)
+            self.assertLess(len(option), 320)
             parsed = consumer.parse_launch_option(option)
-            self.assertEqual(parsed['env_vars'], {'DLOR_OPTISCALER_ACTION': action})
-            self.assertEqual(parsed['prefix'][:2], ['bash', '-c'])
-            self.assertEqual(parsed['prefix'][3:], ['--'])
+            expected = {'DLOR_OPTISCALER_SOURCE_REVISION': REVISION,
+                        'DLOR_OPTISCALER_SOURCE_REPOSITORY': 'Wurielle/decky-launch-options-recipes'}
+            if key == 'on': expected['WINEDLLOVERRIDES'] = 'dxgi=n,b'
+            self.assertEqual(parsed['env_vars'], expected)
+            self.assertEqual(parsed['prefix'], ['~/.dlor/run', 'dlor-optiscaler', action, REVISION, '--'])
             self.assertEqual(parsed['pre_commands'], [])
             self.assertEqual(parsed['suffix'], [])
-            body = parsed['prefix'][2]
-            import shlex
-            self.assertEqual(parsed['prefix'], shlex.split(option)[1:-1], 'DLO changed the exact Bash body')
-            self.assertIn('/', body.split('=', 1)[0])
-            self.assertNotIn('python', body)
-            self.assertNotIn('eval', body)
+        for option in recipe['launchOptions']:
+            for key in ('on', 'off'):
+                parsed = consumer.parse_launch_option(option[key])
+                self.assertNotIn('bash', parsed['prefix'])
+                self.assertNotIn('curl', option[key])
+                self.assertNotIn('eval', option[key])
+                self.assertNotIn('coproc', option[key])
+                self.assertNotIn('\n', option[key])
         options = recipe['launchOptions'][1:]
         groups = {}
         for option in options:
             if 'valueId' in option:
                 groups.setdefault(option['valueId'], []).append(option)
-        self.assertEqual(set(groups), {'dlor-optiscaler-proxy', 'dlor-optiscaler-fsr-profile'})
-        self.assertFalse(any('DLOR_OPTISCALER_CHANNEL' in o.get('on', '') for o in options))
+        self.assertEqual(set(groups), {'dlor-optiscaler-fsr-profile'})
+        self.assertFalse(any('DLOR_OPTISCALER_CHANNEL' in o['on'] or 'DLOR_OPTISCALER_PROXY' in o['on'] for o in options))
         fsr = groups['dlor-optiscaler-fsr-profile']
         self.assertEqual([v['on'] for v in fsr], ['',
                          'DLOR_OPTISCALER_FSR_PROFILE="bundled"',
@@ -473,191 +404,35 @@ os.execv('/usr/bin/sha256sum', ['sha256sum', *sys.argv[1:]])
                          'DLOR_OPTISCALER_FSR_PROFILE="rdna34-official-411"',
                          'DLOR_OPTISCALER_FSR_PROFILE="rdna2-valve-411"'])
         self.assertTrue(all('third-party' in v['name'] for v in fsr))
-        for values in groups.values():
-            defaults = [v for v in values if v.get('fallbackValue')]
-            self.assertEqual(len(defaults), 1)
-            self.assertEqual((defaults[0]['valueName'], defaults[0]['on'], defaults[0]['off']), ('None', '', ''))
+        defaults = [v for v in fsr if v.get('fallbackValue')]
+        self.assertEqual(len(defaults), 1)
+        self.assertEqual((defaults[0]['valueName'], defaults[0]['on'], defaults[0]['off']), ('None', '', ''))
         self.assertTrue(any(o['on'] == 'DLOR_OPTISCALER_OPTIPATCHER="1"' for o in options))
 
-    def test_actual_consumer_parent_only_termination_during_initial_download(self):
-        import signal
-        self.assert_initial_download_cancelled(signal.SIGTERM, 143)
-
-    def test_actual_consumer_parent_only_interrupt_during_initial_download(self):
-        import signal
-        self.assert_initial_download_cancelled(signal.SIGINT, 130)
-
-    def assert_initial_download_cancelled(self, signum, expected):
-        import signal
-        import time
+    def test_shell_bookkeeping_does_not_overwrite_game_environment(self):
         recipe = self.fixture_recipe()
-        pid_file = self.root / 'downloader.pid'
-        release = self.root / 'download-release'
-        self.env.update(FIXTURE_DOWNLOAD_PID=str(pid_file), FIXTURE_DOWNLOAD_RELEASE=str(release))
-        curl = self.bin / 'curl'
-        curl.write_text(curl.read_text().replace("name = url.rsplit('/', 1)[-1]",
-            "name = url.rsplit('/', 1)[-1]\n"
-            "if name == 'launch.sh':\n"
-            "    import time\n"
-            "    print('INITIAL-DOWNLOAD-STDERR', file=sys.stderr, flush=True)\n"
-            "    pid_file = pathlib.Path(os.environ['FIXTURE_DOWNLOAD_PID'])\n"
-            "    ready = pid_file.with_suffix('.ready')\n"
-            "    ready.write_text(str(os.getpid()))\n"
-            "    ready.replace(pid_file)\n"
-            "    while not pathlib.Path(os.environ['FIXTURE_DOWNLOAD_RELEASE']).exists(): time.sleep(0.02)"))
-        command, env, variables = self.consumer_launch(recipe, self.game_command())
-        self.assertEqual(command[:2], ['bash', '-c'])
-        self.assertEqual(variables, {'ORIGINAL_TEST_VALUE': 'original value',
-                                    'DLOR_OPTISCALER_ACTION': 'install', 'DLOR_OPTISCALER_OPTIPATCHER': '0'})
-        # Same process group, deliberately not owned by the bootstrap: a broad
-        # process-group/parent kill would wrongly terminate this sentinel.
-        sentinel = subprocess.Popen([sys.executable, '-I', '-B', '-c', 'import time; time.sleep(30)'])
-        process = subprocess.Popen(command, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        downloader = None
-        try:
-            deadline = time.monotonic() + 5
-            while not pid_file.exists() and time.monotonic() < deadline:
-                time.sleep(0.01)
-            self.assertTrue(pid_file.exists(), 'fixture never entered initial launch.sh download')
-            downloader = int(pid_file.read_text())
-            owned = []
-            pid = downloader
-            while pid != process.pid:
-                self.assertGreater(pid, 1, 'downloader is not a descendant of this bootstrap')
-                owned.append(pid)
-                status = Path(f'/proc/{pid}/status').read_text()
-                pid = int(next(line.split()[1] for line in status.splitlines() if line.startswith('PPid:')))
-            self.assertFalse(self.trace.exists(), 'signal must precede installer entry')
-            self.assertFalse((self.root / 'game-result.json').exists())
-            process.send_signal(signum)
-            try:
-                stdout, stderr = process.communicate(timeout=2)
-            except subprocess.TimeoutExpired:
-                self.fail('parent-only initial-download signal left bootstrap/downloader alive or output pipes open')
-            self.assertEqual(process.returncode, expected, stdout + stderr)
-            self.assertIn(b'INITIAL-DOWNLOAD-STDERR', stderr)
-            for pid in owned:
-                self.assertFalse(Path(f'/proc/{pid}').exists(), f'owned auxiliary {pid} was not terminated and reaped')
-            self.assertIsNone(sentinel.poll(), 'cancellation signalled an unrelated process')
-            self.assertFalse(self.trace.exists())
-            self.assertFalse((self.root / 'game-result.json').exists(), 'cancelled launch executed Game')
-        finally:
-            # Never leak fixtures even when the pre-fix bootstrap ignores INT.
-            # Kill the held downloader before releasing any source to the shell.
-            if downloader is not None and Path(f'/proc/{downloader}').exists():
-                try: os.kill(downloader, signal.SIGKILL)
-                except ProcessLookupError: pass
-            if process.poll() is None:
-                process.kill()
-            process.communicate(timeout=5)
-            sentinel.terminate()
-            sentinel.wait(timeout=5)
-
-    def test_parent_only_termination_cancels_helpers_and_removes_private_handoff(self):
-        import signal
-        self.assert_cancelled(signal.SIGTERM, 143)
-
-    def test_parent_only_interrupt_cancels_helpers_and_removes_private_handoff(self):
-        import signal
-        self.assert_cancelled(signal.SIGINT, 130)
-
-    def test_actual_consumer_parent_only_termination_preserves_launch_cancellation(self):
-        import signal
-        self.assert_cancelled(signal.SIGTERM, 143, through_consumer=True)
-
-    def test_actual_consumer_parent_only_interrupt_preserves_launch_cancellation(self):
-        import signal
-        self.assert_cancelled(signal.SIGINT, 130, through_consumer=True)
-
-    def assert_cancelled(self, signum, expected, through_consumer=False):
-        self.generate()
-        other = self.root / 'dlor-optiscaler.otherlaunch'
-        other.mkdir()
-        (other / 'argv.json').write_text('other launch')
-        self.env.update(DLOR_OPTISCALER_ACTION='install', FIXTURE_WAIT=str(self.root / 'release'))
-        source = self.scripts / 'installer.py'
-        source.write_text(source.read_text().replace("    print('fixture installer output', flush=True)",
-            "    if os.environ.get('FIXTURE_WAIT'):\n"
-            "        import time\n"
-            "        while not pathlib.Path(os.environ['FIXTURE_WAIT']).exists(): time.sleep(0.02)\n"
-            "    print('fixture installer output', flush=True)"))
-        # Regenerate hashes around this explicitly slow, harmless fixture.
-        result = subprocess.run([sys.executable, '-I', '-B', str(self.scripts / 'update-source-hashes.py')],
-                                capture_output=True, text=True)
-        self.assertEqual(result.returncode, 0, result.stderr)
-        import signal
-        import time
-        command = ['bash', str(self.scripts / 'launch.sh'), *self.game_command()]
-        env = self.env
-        if through_consumer:
-            recipe = self.fixture_recipe()
-            command, env, _ = self.consumer_launch(recipe, self.game_command())
-        process = subprocess.Popen(command, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                   start_new_session=True)
-        try:
-            deadline = time.monotonic() + 5
-            while not self.trace.exists() and time.monotonic() < deadline:
-                time.sleep(0.02)
-            self.assertTrue(self.trace.exists(), 'fixture never reached installer')
-            trace = json.loads(self.trace.read_text())
-            argv_file = Path(trace['argv'][trace['argv'].index('--argv-file') + 1])
-            process.send_signal(signum)
-            try:
-                stdout, stderr = process.communicate(timeout=2)
-            except subprocess.TimeoutExpired:
-                (self.root / 'release').touch()
-                process.communicate(timeout=5)
-                self.fail('parent-only signal left helper running')
-            self.assertEqual(process.returncode, expected, stdout + stderr)
-            self.assertFalse(argv_file.parent.exists())
-            self.assertEqual((other / 'argv.json').read_text(), 'other launch')
-            self.assertFalse((self.root / 'game-result.json').exists())
-        finally:
-            (self.root / 'release').touch()
-            if process.poll() is None:
-                os.killpg(process.pid, signal.SIGKILL)
-                process.communicate()
-
-    def test_shell_bookkeeping_does_not_overwrite_unrelated_exported_environment(self):
-        self.generate()
-        self.env['DLOR_OPTISCALER_ACTION'] = 'install'
         keys = ('work', 'status', 'entry_name', 'helper_pid', 'logger_pid', 'merged', 'console_out', 'console_err')
         for key in keys:
             self.env[key] = 'original-' + key
-        result = self.run_script('launch.sh', *self.game_command())
+        final, env, _ = self.consumer_launch(recipe, self.game_command())
+        result = subprocess.run(final, env=env, capture_output=True, text=True, timeout=20)
         self.assertEqual(result.returncode, 23, result.stdout + result.stderr)
         game = json.loads((self.root / 'game-result.json').read_text())
         for key in keys:
             self.assertEqual(game['env'][key], self.env[key])
+        self.assertTrue(all('GAMEPLAY-SENTINEL' not in p.read_text()
+                            for p in (self.home / '.dlor/logs').rglob('*.log')))
 
-    def test_warm_install_and_cached_uninstall_are_offline(self):
+    def test_warm_install_and_cached_uninstall_modules_are_offline(self):
         self.generate()
-        self.env['DLOR_OPTISCALER_ACTION'] = 'install'
-        self.assertEqual(self.run_script('launch.sh', *self.game_command()).returncode, 23)
+        self.assertEqual(self.run_script('install.sh', self.game).returncode, 0)
         fetched = self.fetches.read_text()
         self.env['FIXTURE_OFFLINE'] = '1'
-        self.assertEqual(self.run_script('launch.sh', *self.game_command()).returncode, 23)
-        self.env['DLOR_OPTISCALER_ACTION'] = 'uninstall'
-        self.env['WINEDLLOVERRIDES'] = 'dxgi=b;version=n'
-        self.assertEqual(self.run_script('launch.sh', *self.game_command()).returncode, 23)
+        self.assertEqual(self.run_script('install.sh', self.game).returncode, 0)
+        self.assertEqual(self.run_script('uninstall.sh', self.game).returncode, 0)
         self.assertEqual(self.fetches.read_text(), fetched)
         self.assertEqual(json.loads(self.trace.read_text())['argv'][0], 'uninstall')
-        game = json.loads((self.root / 'game-result.json').read_text())
-        self.assertEqual(game['env']['WINEDLLOVERRIDES'], self.env['WINEDLLOVERRIDES'])
-
-    def test_failure_and_invalid_result_never_add_override(self):
-        self.generate()
-        self.env.update(DLOR_OPTISCALER_ACTION='install', WINEDLLOVERRIDES='version=b')
-        for setting in ({'FIXTURE_FAIL': '1'}, {'FIXTURE_PROXY': 'not-a-proxy'}):
-            with self.subTest(setting=setting):
-                self.env.pop('FIXTURE_FAIL', None)
-                self.env.pop('FIXTURE_PROXY', None)
-                self.env.update(setting)
-                result = self.run_script('launch.sh', *self.game_command())
-                self.assertEqual(result.returncode, 23, result.stdout + result.stderr)
-                game = json.loads((self.root / 'game-result.json').read_text())
-                self.assertEqual(game['env']['WINEDLLOVERRIDES'], 'version=b')
-        self.assertIn('continuing original game', result.stdout)
+        # Outer entrypoints still download on every launch under stock dlor/run.
 
     def test_tampered_source_is_refetched_and_pyc_is_not_executed(self):
         self.generate()
@@ -684,22 +459,6 @@ os.execv('/usr/bin/sha256sum', ['sha256sum', *sys.argv[1:]])
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(self.fetches.read_text().splitlines().count('artifacts.py'), 2)
         self.assertIn('checksum mismatch', result.stdout)
-
-    def test_offline_tampered_entry_does_not_execute_or_reuse_a_success_result(self):
-        self.generate()
-        self.env.update(DLOR_OPTISCALER_ACTION='install', WINEDLLOVERRIDES='version=b')
-        self.assertEqual(self.run_script('launch.sh', *self.game_command()).returncode, 23)
-        self.trace.unlink()
-        cache = self.home / '.dlor/cache/dlor-optiscaler/source' / REVISION
-        (cache / 'install.sh').write_text('printf "UNVERIFIED-ENTRY"\n')
-        self.env['FIXTURE_OFFLINE'] = '1'
-        result = self.run_script('launch.sh', *self.game_command())
-        self.assertEqual(result.returncode, 23, result.stdout + result.stderr)
-        self.assertFalse(self.trace.exists())
-        self.assertNotIn('UNVERIFIED-ENTRY', result.stdout)
-        game = json.loads((self.root / 'game-result.json').read_text())
-        self.assertEqual(game['env']['WINEDLLOVERRIDES'], 'version=b')
-        self.assertIn('continuing original game', result.stdout)
 
     def test_symlink_source_cache_is_rejected(self):
         self.generate()
@@ -755,7 +514,7 @@ os.execv('/usr/bin/sha256sum', ['sha256sum', *sys.argv[1:]])
 
     def test_invalid_arguments_still_log_diagnostics_and_exact_status(self):
         self.generate()
-        for name in ('install', 'uninstall', 'launch'):
+        for name in ('install', 'uninstall'):
             with self.subTest(entry=name):
                 result = self.run_script(name + '.sh')
                 self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
@@ -764,43 +523,182 @@ os.execv('/usr/bin/sha256sum', ['sha256sum', *sys.argv[1:]])
                 self.assertIn(f'DLOR OptiScaler {name} exit status: 2', logs[0].read_text())
 
     def test_failed_logger_falls_back_to_console_without_stopping_game(self):
-        self.generate()
-        (self.bin / 'tee').write_text('#!/bin/bash\nexit 1\n')
+        recipe = self.fixture_recipe()
+        # Only fail the recipe's tee, not the unchanged runner's independent tee.
+        (self.bin / 'tee').write_text('#!/bin/bash\ncase "$*" in *dlor-optiscaler*) exit 1;; esac\nexec /usr/bin/tee "$@"\n')
         (self.bin / 'tee').chmod(0o755)
-        self.env['DLOR_OPTISCALER_ACTION'] = 'install'
-        result = self.run_script('launch.sh', *self.game_command())
+        final, env, _ = self.consumer_launch(recipe, self.game_command())
+        result = subprocess.run(final, env=env, capture_output=True, text=True, timeout=20)
         self.assertEqual(result.returncode, 23, result.stdout + result.stderr)
-        self.assertTrue(self.trace.exists())
+        self.assertTrue(self.trace.exists(), result.stdout + result.stderr)
         self.assertIn('fixture installer output', result.stdout)
         self.assertIn('GAMEPLAY-SENTINEL', result.stdout)
 
-    def test_game_inherits_original_extra_fd_without_logger_descriptors(self):
-        self.generate()
-        self.env['DLOR_OPTISCALER_ACTION'] = 'install'
-        destination = self.root / 'fd-output'
-        with destination.open('wb') as stream:
-            fd = stream.fileno()
-            code = ("import json, os, sys\n"
-                    "os.write(int(sys.argv[1]), b'original descriptor:' + sys.stdin.buffer.read())\n"
-                    "fds = []\n"
-                    "for name in os.listdir('/proc/self/fd'):\n"
-                    "    try: os.fstat(int(name)); fds.append(int(name))\n"
-                    "    except OSError: pass\n"
-                    "print('GAME-FDS=' + json.dumps(sorted(fds)), flush=True)\n"
-                    "print('GAMEPLAY-SENTINEL', flush=True)\n"
-                    "print('GAME-STDERR-SENTINEL', file=sys.stderr, flush=True)\n")
-            result = subprocess.run(['bash', str(self.scripts / 'launch.sh'), sys.executable,
-                                     '-I', '-B', '-c', code, str(fd)], env=self.env,
-                                    pass_fds=(fd,), input=b'original stdin\n', capture_output=True, timeout=15)
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual(destination.read_bytes(), b'original descriptor:original stdin\n')
-        observed = next(line.removeprefix('GAME-FDS=') for line in result.stdout.decode().splitlines()
-                        if line.startswith('GAME-FDS='))
-        self.assertEqual(json.loads(observed), sorted({0, 1, 2, fd}))
-        self.assertIn(b'GAME-STDERR-SENTINEL', result.stderr)
-        self.assertTrue(all('GAMEPLAY-SENTINEL' not in p.read_text() and 'GAME-STDERR-SENTINEL' not in p.read_text()
-                            for p in (self.home / '.dlor/logs').rglob('*.log')))
+    def test_actual_consumer_cold_off_adds_no_wine_override(self):
+        recipe = self.fixture_recipe()
+        self.env.pop('DLOR_SCRIPT_REVISION')
+        self.env['WINEDLLOVERRIDES'] = 'version=n'
+        final, env, variables = self.consumer_launch(recipe, self.game_command(), enabled=False)
+        result = subprocess.run(final, env=env, capture_output=True, text=True, timeout=20)
+        self.assertEqual(result.returncode, 23, result.stdout + result.stderr)
+        self.assertEqual(json.loads(self.trace.read_text())['argv'], ['uninstall', str(self.game)])
+        self.assertEqual(json.loads((self.root / 'game-result.json').read_text())['env']['WINEDLLOVERRIDES'], 'version=n')
+        self.assertNotIn('WINEDLLOVERRIDES', variables)
+        self.assertEqual(list(self.game.iterdir()), [])
+        self.assertEqual(self.fetches.read_text().splitlines(), ['uninstall.sh', 'installer.py', 'artifacts.py', 'game_discovery.py'])
 
+    def test_actual_consumer_failed_entry_transfer_continues_with_declared_policy(self):
+        recipe = self.fixture_recipe()
+        curl = self.bin / 'curl'
+        normal = curl.read_text()
+        for enabled in (True, False):
+            for variant in ('offline', 'partial', 'empty'):
+                with self.subTest(enabled=enabled, transfer=variant):
+                    self.trace.unlink(missing_ok=True)
+                    # The stock runner checks completion/nonempty, not an outer
+                    # SHA. Failed bytes must not execute even if valid shell.
+                    body = ("target = args[args.index('--output') + 1]\n"
+                            "pathlib.Path(target).write_text('echo UNVERIFIED-ENTRY\\n')\n"
+                            "sys.exit(18)\n") if variant == 'partial' else (
+                            "target = args[args.index('--output') + 1]\n"
+                            "pathlib.Path(target).write_bytes(b'')\nsys.exit(0)\n")
+                    curl.write_text(normal if variant == 'offline' else
+                                    f'#!{sys.executable} -I\nimport pathlib, sys\nargs = sys.argv[1:]\n' + body)
+                    self.env['FIXTURE_OFFLINE'] = '1' if variant == 'offline' else '0'
+                    self.env['WINEDLLOVERRIDES'] = 'ambient=n'
+                    final, env, variables = self.consumer_launch(recipe, self.game_command('fallback arg'), enabled)
+                    result = subprocess.run(final, env=env, capture_output=True, text=True, timeout=20)
+                    self.assertEqual(result.returncode, 23, result.stdout + result.stderr)
+                    self.assertFalse(self.trace.exists())
+                    self.assertNotIn('UNVERIFIED-ENTRY', result.stdout)
+                    self.assertIn('continuing game launch', result.stderr)
+                    observed = json.loads((self.root / 'game-result.json').read_text())
+                    self.assertEqual(observed['argv'], ['fallback arg', '--original-arg'])
+                    self.assertEqual(observed['env']['WINEDLLOVERRIDES'], 'dxgi=n,b' if enabled else 'ambient=n')
+                    self.assertEqual('WINEDLLOVERRIDES' in variables, enabled)
+                    self.assertEqual(list(self.root.glob('dlor-script.*.sh')), [])
+
+    def test_module_transfer_failure_never_publishes_partial_or_executes_source(self):
+        self.generate()
+        curl = self.bin / 'curl'
+        normal = curl.read_text()
+        cache = self.home / '.dlor/cache/dlor-optiscaler/source' / REVISION
+        for variant in ('offline', 'partial', 'wrong-sha', 'empty'):
+            with self.subTest(transfer=variant):
+                self.trace.unlink(missing_ok=True)
+                payload = b'' if variant == 'empty' else b'raise Exception("UNVERIFIED-MODULE")\n'
+                body = (f"pathlib.Path(args[args.index('-o') + 1]).write_bytes({payload!r})\n"
+                        f"sys.exit({18 if variant == 'partial' else 0})\n")
+                curl.write_text(normal if variant == 'offline' else
+                                f'#!{sys.executable} -I\nimport pathlib, sys\nargs = sys.argv[1:]\n' + body)
+                self.env['FIXTURE_OFFLINE'] = '1' if variant == 'offline' else '0'
+                result = self.run_script('install.sh', self.game)
+                self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertFalse(self.trace.exists())
+                self.assertNotIn('UNVERIFIED-MODULE', result.stdout + result.stderr)
+                self.assertEqual(list(cache.iterdir()), [])
+        curl.write_text(normal)
+        self.env['FIXTURE_OFFLINE'] = '0'
+        self.assertEqual(self.run_script('install.sh', self.game).returncode, 0)
+        self.assertEqual(sorted(p.name for p in cache.iterdir()), ['artifacts.py', 'game_discovery.py', 'installer.py'])
+        self.trace.unlink()
+        # A corrupt prior cache is not executable when repair is unavailable.
+        (cache / 'installer.py').write_text('raise Exception("UNVERIFIED-MODULE")\n')
+        self.env['FIXTURE_OFFLINE'] = '1'
+        result = self.run_script('uninstall.sh', self.game)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse(self.trace.exists())
+        self.assertNotIn('UNVERIFIED-MODULE', result.stdout + result.stderr)
+        self.assertFalse(list(cache.glob('.*')))
+
+    def test_module_hash_covers_trailing_source_newlines(self):
+        self.generate()
+        source = self.scripts / 'installer.py'
+        source.write_bytes(source.read_bytes() + b'\n')
+        result = self.run_script('install.sh', self.game)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('source checksum mismatch', result.stdout)
+        self.assertFalse(self.trace.exists())
+
+    def test_private_cache_file_guards_remain_enforced(self):
+        self.generate()
+        cache = self.home / '.dlor/cache/dlor-optiscaler/source' / REVISION
+        cache.mkdir(parents=True, mode=0o700)
+        cache.chmod(0o755)
+        result = self.run_script('install.sh', self.game)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('source cache must be private', result.stdout)
+        cache.chmod(0o700)
+        outside = self.root / 'foreign.py'
+        outside.write_text('foreign bytes')
+        (cache / 'installer.py').symlink_to(outside)
+        result = self.run_script('install.sh', self.game)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('unsafe source cache file', result.stdout)
+        self.assertEqual(outside.read_text(), 'foreign bytes')
+        self.assertFalse(self.fetches.exists())
+
+    def test_failed_preparation_returns_nonzero_and_logs_exact_status(self):
+        self.generate()
+        self.env['FIXTURE_FAIL'] = '1'
+        for action in ('install', 'uninstall'):
+            with self.subTest(action=action):
+                result = self.run_script(action + '.sh', self.game)
+                self.assertEqual(result.returncode, 7, result.stdout + result.stderr)
+                logs = list((self.home / '.dlor/logs/dlor-optiscaler' / action).glob('*.log'))
+                self.assertEqual(len(logs), 1)
+                self.assertIn(f'{action} exit status: 7', logs[0].read_text())
+
+    def test_source_loader_cancels_only_its_auxiliary_download(self):
+        import signal
+        import time
+        self.generate()
+        curl = self.bin / 'curl'
+        normal = curl.read_text()
+        ready = self.root / 'source-download-pids'
+        self.env['FIXTURE_READY'] = str(ready)
+        curl.write_text(normal.replace('args = sys.argv[1:]',
+            "import time\n"
+            "pathlib.Path(os.environ['FIXTURE_READY']).write_text(str(os.getpid()) + ':' + str(os.getppid()))\n"
+            "while True: time.sleep(0.02)\n"
+            "args = sys.argv[1:]"))
+        sentinel = subprocess.Popen([sys.executable, '-I', '-B', '-c', 'import time; time.sleep(30)'])
+        try:
+            for signum in (signal.SIGINT, signal.SIGTERM):
+                with self.subTest(signal=signum):
+                    ready.unlink(missing_ok=True)
+                    process = subprocess.Popen(['bash', str(self.scripts / 'install.sh'), str(self.game)],
+                                               env=self.env, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                               start_new_session=True)
+                    try:
+                        deadline = time.monotonic() + 5
+                        while not ready.exists() and time.monotonic() < deadline:
+                            time.sleep(0.01)
+                        self.assertTrue(ready.exists(), 'source loader never reached downloader')
+                        downloader, loader = map(int, ready.read_text().split(':'))
+                        # This is the source loader's own signal contract, NOT
+                        # parent-only cancellation of the unchanged stock runner.
+                        os.kill(loader, signum)
+                        stdout, stderr = process.communicate(timeout=4)
+                        self.assertEqual(process.returncode, 128 + signum, stdout + stderr)
+                        self.assertFalse(Path(f'/proc/{downloader}').exists())
+                        self.assertFalse(self.trace.exists())
+                        cache = self.home / '.dlor/cache/dlor-optiscaler/source' / REVISION
+                        self.assertEqual(list(cache.iterdir()), [])
+                        self.assertIsNone(sentinel.poll())
+                    finally:
+                        if process.poll() is None:
+                            # Release only the known fixture downloader/loader.
+                            if ready.exists():
+                                downloader, loader = map(int, ready.read_text().split(':'))
+                                for pid in (downloader, loader):
+                                    try: os.kill(pid, signal.SIGKILL)
+                                    except ProcessLookupError: pass
+                            process.kill()
+                        process.communicate(timeout=5)
+        finally:
+            sentinel.terminate()
+            sentinel.wait(timeout=5)
 
 if __name__ == '__main__':
     unittest.main()

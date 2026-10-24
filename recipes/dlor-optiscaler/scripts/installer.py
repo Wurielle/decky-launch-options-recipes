@@ -662,9 +662,7 @@ def cached_package(asset, cache):
         os.close(descriptor)
 
 
-def choose_proxy(target, requested="auto", previous=None):
-    if requested not in (*PROXIES, "auto"):
-        raise InstallerError("Unsupported proxy DLL")
+def choose_proxy(target, previous=None):
     found = []
     for proxy in PROXIES:
         path = safe_target(target, proxy + ".dll")
@@ -672,20 +670,12 @@ def choose_proxy(target, requested="auto", previous=None):
             found.append(proxy)
     if len(found) > 1:
         raise InstallerError("Multiple existing OptiScaler proxies")
-    if found:
-        if requested != "auto" and requested != found[0]:
-            raise InstallerError("Existing injector uses a different proxy; uninstall it before switching")
-        return found[0]
-    proxy = previous if requested == "auto" and previous in PROXIES else requested
-    if proxy != "auto":
-        path = safe_target(target, proxy + ".dll")
-        if path.exists() and previous != proxy:
-            raise InstallerError("Requested proxy is occupied by another file")
-        return proxy
-    for proxy in PROXIES:
-        if not safe_target(target, proxy + ".dll").exists():
-            return proxy
-    raise InstallerError("Every supported proxy is occupied; no files changed")
+    if found and found != ["dxgi"]:
+        raise InstallerError("Existing injector uses a different proxy; uninstall it before switching")
+    path = safe_target(target, "dxgi.dll")
+    if path.exists() and not found and previous != "dxgi":
+        raise InstallerError("DXGI proxy is occupied by another file")
+    return "dxgi"
 
 
 def optional_components(cache):
@@ -752,7 +742,7 @@ def main(argv=None):
         if proxy_key not in state["files"]:
             previous = None
     target = (root if known == "." else safe_target(root, known)) if known is not None else discover_game_directory(root, game_argv, executable=os.environ.get("DLOR_OPTISCALER_EXECUTABLE"))
-    proxy = choose_proxy(target, os.environ.get("DLOR_OPTISCALER_PROXY", "auto"), previous)
+    proxy = choose_proxy(target, previous)
     cache = home / ".dlor/cache/dlor-optiscaler/artifacts"
     asset = resolve_asset("optiscaler/OptiScaler-nightly", "nightly", r"(?i)(?!.*(?:debug|symbols|source)).*optiscaler.*\.7z", cache)
     core = cached_package(asset, cache)

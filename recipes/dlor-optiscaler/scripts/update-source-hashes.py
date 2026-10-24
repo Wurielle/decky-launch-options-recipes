@@ -4,12 +4,10 @@
 Run: python3 -I -B recipes/dlor-optiscaler/scripts/update-source-hashes.py
 Review/commit the resulting entrypoints with the modules in the same revision.
 No network, archive payload, shared runner or generated catalog is touched.
-The recipe-local bootstrap digest in index.ts is refreshed when present.
 """
 from pathlib import Path
 import hashlib
 import json
-import re
 
 HERE = Path(__file__).resolve().parent
 MODULES = ('installer.py', 'artifacts.py', 'game_discovery.py')
@@ -73,7 +71,7 @@ finish_log() {
 '''
 
 PYTHON_COMMON = r'''
-import hashlib, importlib.abc, importlib.util, json, os, pathlib, re, signal, stat, subprocess, sys, tempfile
+import hashlib, importlib.abc, importlib.util, os, pathlib, re, signal, stat, subprocess, sys, tempfile
 
 active_child = None
 
@@ -94,12 +92,12 @@ def cancel_auxiliary(signum, frame):
 signal.signal(signal.SIGINT, cancel_auxiliary)
 signal.signal(signal.SIGTERM, cancel_auxiliary)
 
-def run_auxiliary(command, data=None):
+def run_auxiliary(command):
     global active_child
-    active_child = subprocess.Popen(command, stdin=subprocess.PIPE if data is not None else subprocess.DEVNULL,
+    active_child = subprocess.Popen(command, stdin=subprocess.DEVNULL,
                                     start_new_session=True)
     try:
-        active_child.communicate(input=data)
+        active_child.communicate()
         if active_child.returncode:
             raise subprocess.CalledProcessError(active_child.returncode, command)
     except BaseException:
@@ -198,122 +196,11 @@ except Exception as error:
             + 'status=$?\nfinish_log "$status"\nexit "$status"\n')
 
 
-def render_launch(hashes):
-    code = 'ENTRY_SHA256 = ' + repr(hashes) + '\n' + PYTHON_COMMON + r'''
-try:
-    work = pathlib.Path(sys.argv[1])
-    game_argv = sys.argv[2:]
-    if not game_argv:
-        raise ValueError('missing original game argv')
-    action = os.environ.get('DLOR_OPTISCALER_ACTION', '')
-    if action not in ('install', 'uninstall'):
-        raise ValueError('invalid DLOR_OPTISCALER_ACTION')
-    root = os.environ.get('STEAM_COMPAT_INSTALL_PATH', '')
-    if not root:
-        raise ValueError('STEAM_COMPAT_INSTALL_PATH is required')
-    cache, base = source_context()
-    entries = {name: verified_file(cache, base, name, digest) for name, digest in ENTRY_SHA256.items()}
-    argv_file = work / 'argv.json'
-    argv_file.write_text(json.dumps(game_argv))
-    result_file = work / 'result.json'
-    command = ['bash', '-s', '--', root, '--argv-file', str(argv_file)]
-    if action == 'install':
-        command += ['--result', str(result_file)]
-    run_auxiliary(command, data=entries[action + '.sh'])
-    if action == 'install':
-        if result_file.is_symlink() or not result_file.is_file():
-            raise ValueError('installer did not publish a fresh result')
-        result = json.loads(result_file.read_text())
-        proxy = result.get('proxy')
-        if proxy not in ('dxgi', 'winmm', 'version', 'd3d12', 'dbghelp', 'wininet', 'winhttp') or not isinstance(result.get('target'), str) or not result['target']:
-            raise ValueError('invalid installer result')
-        original = os.environ.get('WINEDLLOVERRIDES', '')
-        merged = []
-        for entry in original.split(';') if original else []:
-            names, separator, value = entry.partition('=')
-            parts = names.split(',')
-            remaining = [part for part in parts if part.strip().lower().removeprefix('*').removesuffix('.dll') != proxy]
-            if len(parts) == len(remaining) or not separator:
-                merged.append(entry)
-            elif remaining:
-                merged.append(','.join(remaining) + separator + value)
-        merged.append(proxy + '=n,b')
-        (work / 'wine').write_bytes(';'.join(merged).encode() + b'\0')
-except Exception as error:
-    print('DLOR OptiScaler: ' + str(error) + '; continuing original game.', file=sys.stderr)
-    sys.exit(1)
-'''
-    return (SHELL + r'''
-# Function-local bookkeeping is restored before exec, including names that
-# happened to be exported by another launch option in the original environment.
-dlor_optiscaler_launch_main() {
-local entry_name=launch work='' helper_pid='' status=0 merged='' logger_pid='' console_out console_err
-start_log "$entry_name"
-work=''
-cleanup() {
-    [[ -z $work ]] || host rm -rf -- "$work" || printf 'Warning: launch cleanup failed.\n' >&2
-    work=''
-}
-helper_pid=''
-cancel_launch() {
-    local signum=$1 code=$2
-    trap '' INT TERM
-    if [[ -n $helper_pid ]]; then
-        kill -"$signum" "$helper_pid" 2>/dev/null || :
-        wait "$helper_pid" || :
-        helper_pid=''
-    fi
-    cleanup
-    finish_log "$code"
-    exit "$code"
-}
-trap 'cancel_launch INT 130' INT
-trap 'cancel_launch TERM 143' TERM
-work=$(host mktemp -d "${TMPDIR:-$HOME/.dlor}/dlor-optiscaler.XXXXXXXX")
-status=$?
-if [[ -n $work && $status == 0 ]]; then
-    host_exec python3 -I -B -c ''' + "'" + code.replace("'", "'\\''") + "'" + r''' "$work" "$@" &
-    helper_pid=$!
-    wait "$helper_pid"
-    status=$?
-    helper_pid=''
-    if [[ $status == 0 && -f $work/wine && ! -L $work/wine ]]; then
-        if IFS= read -r -d '' merged < "$work/wine"; then
-            export WINEDLLOVERRIDES="$merged"
-        fi
-    fi
-fi
-cleanup
-if (( $# == 0 )); then
-    printf 'DLOR OptiScaler: missing original game argv.\n' >&2
-    finish_log 2
-    trap - INT TERM
-    exit 2
-fi
-finish_log "$status"
-trap - INT TERM
-}
-dlor_optiscaler_launch_main "$@"
-exec "$@"
-''')
-
-
 def main():
     hashes = {name: hashlib.sha256((HERE / name).read_bytes()).hexdigest() for name in MODULES}
     for action in ('install', 'uninstall'):
         (HERE / (action + '.sh')).write_text(render_entry(action, hashes))
-    entries = {name: hashlib.sha256((HERE / name).read_bytes()).hexdigest() for name in ('install.sh', 'uninstall.sh')}
-    launch = render_launch(entries)
-    (HERE / 'launch.sh').write_text(launch)
-    digest = hashlib.sha256(launch.encode()).hexdigest()
-    index = HERE.parent / 'index.ts'
-    if index.is_file():
-        source, count = re.subn(r"const launchSha256 = '[a-f0-9]{64}'",
-                                "const launchSha256 = '" + digest + "'", index.read_text())
-        if count != 1:
-            raise ValueError('expected one launchSha256 constant in index.ts')
-        index.write_text(source)
-    print(json.dumps({'SOURCE_SHA256': hashes, 'ENTRY_SHA256': entries, 'LAUNCH_SHA256': digest}, indent=2))
+    print(json.dumps({'SOURCE_SHA256': hashes}, indent=2))
 
 
 if __name__ == '__main__':
