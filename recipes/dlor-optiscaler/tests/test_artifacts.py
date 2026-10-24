@@ -8,7 +8,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-SPEC = importlib.util.spec_from_file_location('artifacts', Path(__file__).parent / 'scripts/artifacts.py')
+SPEC = importlib.util.spec_from_file_location('artifacts', Path(__file__).resolve().parents[1] / 'scripts/artifacts.py')
 assert SPEC is not None and SPEC.loader is not None
 artifacts = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(artifacts)

@@ -10,7 +10,7 @@ import types
 import json
 import zipfile
 
-HERE = Path(__file__).resolve().parent
+HERE = Path(__file__).resolve().parents[1]
 
 
 class InstallationTests(unittest.TestCase):

@@ -8,7 +8,7 @@ import sys
 import tempfile
 import unittest
 
-SCRIPTS = Path(__file__).with_name('scripts')
+SCRIPTS = Path(__file__).resolve().parents[1] / 'scripts'
 REVISION = 'a' * 40
 
 class LauncherTests(unittest.TestCase):
