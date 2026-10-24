@@ -435,7 +435,8 @@ os.execv('/usr/bin/sha256sum', ['sha256sum', *sys.argv[1:]])
         for option in options:
             if 'valueId' in option:
                 groups.setdefault(option['valueId'], []).append(option)
-        self.assertEqual(len(groups), 3)
+        self.assertEqual(set(groups), {'dlor-optiscaler-proxy', 'dlor-optiscaler-fsr-profile'})
+        self.assertFalse(any('DLOR_OPTISCALER_CHANNEL' in o.get('on', '') for o in options))
         fsr = groups['dlor-optiscaler-fsr-profile']
         self.assertEqual([v['on'] for v in fsr], ['',
                          'DLOR_OPTISCALER_FSR_PROFILE="bundled"',

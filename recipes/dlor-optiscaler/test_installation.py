@@ -38,6 +38,16 @@ class InstallationTests(unittest.TestCase):
             result[relative] = path
         return result
 
+    def test_flat_legacy_core_layout_is_rejected(self):
+        core = self.directory / "legacy-core"
+        core.mkdir()
+        (core / "OptiScaler.dll").write_bytes(b"synthetic legacy injector")
+        (core / "OptiScaler.ini").write_bytes(b"[Libraries]\nOptiDllPath=auto\n")
+        (core / "libxess.dll").write_bytes(b"synthetic flat support")
+        with self.assertRaises(self.installer.InstallerError):
+            self.installer.build_plan(self.game, self.target, core)
+        self.assertEqual(list(self.target.iterdir()), [])
+
     def test_uninstall_restores_original_permissions_under_restrictive_umask(self):
         original = self.target / "support.dll"
         original.write_bytes(b"original user content")
@@ -167,7 +177,8 @@ class InstallationTests(unittest.TestCase):
         discovery = types.SimpleNamespace(discover_game_directory=lambda *args, **kwargs: self.target)
         result = self.directory / "result.json"
         (self.directory / ".dlor/cache/dlor-optiscaler/artifacts").mkdir(parents=True)
-        with patch.dict(sys.modules, {"artifacts": artifacts, "game_discovery": discovery}), patch.object(artifacts, "resolve_asset", resolve), patch.object(artifacts, "download_asset", lambda asset, cache: archive), patch.dict(os.environ, {"HOME": str(self.directory), "DLOR_OPTISCALER_CHANNEL": "nightly"}):
+        with patch.dict(sys.modules, {"artifacts": artifacts, "game_discovery": discovery}), patch.object(artifacts, "resolve_asset", resolve), patch.object(artifacts, "download_asset", lambda asset, cache: archive), patch.dict(os.environ, {"HOME": str(self.directory)}):
+            os.environ.pop("DLOR_OPTISCALER_CHANNEL", None)
             self.installer.main(["install", str(self.game), "--result", str(result)])
             self.assertEqual(json.loads(result.read_text())["proxy"], "dxgi")
             self.assertEqual((self.target / "OptiScaler/libxess.dll").read_bytes(), b"synthetic supporting library")
@@ -181,7 +192,9 @@ class InstallationTests(unittest.TestCase):
             self.assertEqual(calls, [])
             self.assertFalse((self.target / "dxgi.dll").exists())
             (self.target / "dxgi.dll").write_bytes(b"a different user mod installed later")
+            os.environ["DLOR_OPTISCALER_CHANNEL"] = "stable"
             self.installer.main(["install", str(self.game), "--result", str(result)])
+            self.assertEqual(calls, [("optiscaler/OptiScaler-nightly", "nightly")])
             self.assertEqual(json.loads(result.read_text())["proxy"], "winmm")
             self.assertEqual((self.target / "dxgi.dll").read_bytes(), b"a different user mod installed later")
 
@@ -454,7 +467,7 @@ class InstallationTests(unittest.TestCase):
 
     def test_relative_per_library_override_refuses_unverified_launch_cwd(self):
         core = self.directory / "core"
-        core.mkdir()
+        (core / "OptiScaler").mkdir(parents=True)
         (core / "OptiScaler.dll").write_bytes(b"synthetic core")
         (core / "OptiScaler.ini").write_bytes(b"[Libraries]\nXeSSPath=custom/libxess.dll\n")
         (core / "libxess.dll").write_bytes(b"synthetic XeSS")
@@ -470,7 +483,7 @@ class InstallationTests(unittest.TestCase):
     def test_relative_plugin_path_refuses_unverified_launch_cwd(self):
         from contextlib import chdir
         core = self.directory / "core"
-        core.mkdir()
+        (core / "OptiScaler").mkdir(parents=True)
         (core / "OptiScaler.dll").write_bytes(b"synthetic core")
         (core / "OptiScaler.ini").write_bytes(b"[Plugins]\nPath=my_plugins\n")
         plugin = self.directory / "fixture.asi"
@@ -490,7 +503,7 @@ class InstallationTests(unittest.TestCase):
         (core / "OptiScaler.ini").write_bytes(b"[Plugins]\nPath=auto\n")
         with chdir(self.directory):
             plan = self.installer.build_plan(self.game, self.target, core, plugins={"fixture.asi": plugin})
-        self.assertIn((self.target.relative_to(self.game) / "plugins/fixture.asi").as_posix(), plan["files"])
+        self.assertIn((self.target.relative_to(self.game) / "OptiScaler/plugins/fixture.asi").as_posix(), plan["files"])
         self.assertNotIn(("Plugins", "Path"), plan["settings"])
 
     def test_nightly_plan_respects_custom_library_and_plugin_paths(self):

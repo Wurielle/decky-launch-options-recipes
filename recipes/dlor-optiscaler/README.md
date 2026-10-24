@@ -5,13 +5,13 @@ A self-contained OptiScaler installer recipe. No OptiScaler, driver, SDK, or plu
 ## Options
 
 - **DLOR OptiScaler:** install/manage when enabled; uninstall when disabled.
-- **Release channel:** current official stable or current official nightly. With no override, stable is used. Nightly comes from `optiscaler/OptiScaler-nightly`, not the obsolete empty nightly release in the stable repository.
+- **Core:** always the official nightly from `optiscaler/OptiScaler-nightly`, using its newer supporting-DLL directory layout. There is no stable-core selector or flat 0.9 package fallback; stale release-channel environment settings cannot select stable.
 - **Injection proxy:** automatic selection by default, or an explicit supported proxy. Existing renamed OptiScaler injectors are identified from their bounded PE version resource, not by their filename alone. Other mods' occupied proxies are not silently replaced.
 - **OptiPatcher:** optional, separately updated from `optiscaler/OptiPatcher`. Installs into the resolved ASI plugin directory and enables its owned INI setting. OptiPatcher only supports the games/versions documented upstream; it does not universally add DLSS inputs.
 - **FSR4 compatibility (third-party):** the bundled official SDK is the default. Explicit alternatives use the Framegen author's `xXJSONDeruloXx/OptiScaler-Bleeding-Edge` mirror:
   - `rdna23-int8`: the mirror's FSR4.0.2c compatibility upscaler.
   - `rdna34-official-411`: the mirror's FSR4.1.1 driver override. The source is still a third-party mirror, despite the profile's historical identifier.
-  - `rdna2-valve-411`: experimental Valve/RDNA2 driver pair. Requires the current nightly; it uses the selected v10 injector and current INI controls, rather than silently downgrading to Framegen's older injector.
+  - `rdna2-valve-411`: experimental Valve/RDNA2 driver pair. Uses the nightly injector and current INI controls rather than replacing it with Framegen's older injector.
 
 Every dropdown's **None** entry leaves explicit user environment policy untouched. All optional features are disabled unless selected. Do not run multiple independent OptiScaler installers against the same game; remove the legacy fgmod installation option when replacing it with this recipe.
 

@@ -83,7 +83,7 @@ trap 'cancel_launch TERM 143' TERM
 work=$(host mktemp -d "${TMPDIR:-$HOME/.dlor}/dlor-optiscaler.XXXXXXXX")
 status=$?
 if [[ -n $work && $status == 0 ]]; then
-    host_exec python3 -I -B -c 'ENTRY_SHA256 = {'\''install.sh'\'': '\''f9f606a89838b4feabe1f59a064a1e52f7d43d9b552efc8a67ce8620a2526370'\'', '\''uninstall.sh'\'': '\''02fc2afa37867133dbe0aa1958187efe74178e41551215abb38acd55a5dd845d'\''}
+    host_exec python3 -I -B -c 'ENTRY_SHA256 = {'\''install.sh'\'': '\''a87e404b44bdd81f650dfc5df61f88bff0eadd1b22bc5f1a442dcc5dfdfdef05'\'', '\''uninstall.sh'\'': '\''b6059d29339da7ec9447ce6558323f1c2c59ad820ca28b7cb71a0dc8db222b73'\''}
 
 import hashlib, importlib.abc, importlib.util, json, os, pathlib, re, signal, stat, subprocess, sys, tempfile
 

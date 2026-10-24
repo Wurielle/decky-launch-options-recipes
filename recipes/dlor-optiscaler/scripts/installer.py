@@ -546,10 +546,10 @@ def build_plan(game, target, core, *, plugins=None, proxy="dxgi", extra_librarie
     installed_ini = safe_target(game, (target.relative_to(game) / "OptiScaler.ini").as_posix())
     data = installed_ini.read_bytes() if installed_ini.exists() else anchors[0].read_bytes()
     package_support = safe_target(base, "OptiScaler")
-    nested = package_support.is_dir()
-    default = "OptiScaler" if nested else "."
+    if not package_support.is_dir():
+        raise InstallerError("Nightly package is missing its OptiScaler supporting-library directory")
     configured = ini_value(data, "Libraries", "OptiDllPath")
-    library = configured_path(game, target, default if configured.casefold() == "auto" else configured)
+    library = configured_path(game, target, "OptiScaler" if configured.casefold() == "auto" else configured)
     files = {}
     settings = {}
     def library_override(value, key):
@@ -581,10 +581,8 @@ def build_plan(game, target, core, *, plugins=None, proxy="dxgi", extra_librarie
         relative = source.relative_to(base)
         if source == main:
             destination = target / (proxy + ".dll")
-        elif nested and relative.parts[0].casefold() == "optiscaler":
+        elif relative.parts[0].casefold() == "optiscaler":
             destination = library.joinpath(*relative.parts[1:])
-        elif not nested and (source.suffix.casefold() == ".dll" or relative.parts[0].casefold().startswith("d3d12_optiscaler")):
-            destination = library / relative
         else:
             destination = target / relative
         key = LIBRARY_KEYS.get(source.name.casefold())
@@ -690,7 +688,7 @@ def choose_proxy(target, requested="auto", previous=None):
     raise InstallerError("Every supported proxy is occupied; no files changed")
 
 
-def optional_components(channel, cache):
+def optional_components(cache):
     from artifacts import resolve_asset, download_asset
     profile = os.environ.get("DLOR_OPTISCALER_FSR_PROFILE", "bundled")
     profiles = {
@@ -701,8 +699,6 @@ def optional_components(channel, cache):
     }
     if profile not in profiles:
         raise InstallerError("Unsupported FSR compatibility profile")
-    if profile == "rdna2-valve-411" and channel != "nightly":
-        raise InstallerError("Valve RDNA2 profile requires the current nightly; this recipe never silently downgrades the injector")
     plugins, libraries, settings, components = {}, {}, {}, []
     enabled = os.environ.get("DLOR_OPTISCALER_OPTIPATCHER", "0")
     if enabled not in ("0", "1"):
@@ -741,9 +737,6 @@ def main(argv=None):
         return 0
     from artifacts import resolve_asset
     from game_discovery import discover_game_directory
-    channel = os.environ.get("DLOR_OPTISCALER_CHANNEL", "stable")
-    if channel not in ("stable", "nightly"):
-        raise InstallerError("Unsupported OptiScaler release channel")
     game_argv = []
     if args.argv_file:
         if args.argv_file.stat().st_size > 16 * 1024 * 1024:
@@ -760,10 +753,9 @@ def main(argv=None):
     target = (root if known == "." else safe_target(root, known)) if known is not None else discover_game_directory(root, game_argv, executable=os.environ.get("DLOR_OPTISCALER_EXECUTABLE"))
     proxy = choose_proxy(target, os.environ.get("DLOR_OPTISCALER_PROXY", "auto"), previous)
     cache = Path.home() / ".dlor/cache/dlor-optiscaler/artifacts"
-    repository = "optiscaler/OptiScaler-nightly" if channel == "nightly" else "optiscaler/OptiScaler"
-    asset = resolve_asset(repository, channel, r"(?i)(?!.*(?:debug|symbols|source)).*optiscaler.*\.7z", cache)
+    asset = resolve_asset("optiscaler/OptiScaler-nightly", "nightly", r"(?i)(?!.*(?:debug|symbols|source)).*optiscaler.*\.7z", cache)
     core = cached_package(asset, cache)
-    plugins, libraries, settings, components = optional_components(channel, cache)
+    plugins, libraries, settings, components = optional_components(cache)
     plan = build_plan(root, target, core, proxy=proxy, plugins=plugins, extra_libraries=libraries)
     plan["settings"].update(settings)
     result = apply_install(root, target, plan["files"], state_home, proxy=proxy, configuration=plan["settings"], relative_to_root=True, components=[asset, *components])

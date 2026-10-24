@@ -2,7 +2,7 @@ import type { LaunchOption, Recipe } from '../shared/types.js'
 
 const group = 'DLOR OptiScaler'
 // Refreshed with the shell entrypoints by scripts/update-source-hashes.py.
-const launchSha256 = '4a0ab342ef0a820d7b66c84beb072e3a313548b5af72492759e01180b1a37759'
+const launchSha256 = '90702109f4d5a9777f130264db7a67776d6f8c46c39c26d946f982b90109d4ff'
 const required = (name: string, pattern: RegExp) => {
     const value = process.env[name]
     if (!value || !pattern.test(value)) throw new Error(`Missing or invalid ${name}`)
@@ -38,8 +38,8 @@ const bootstrap = [
 ].join('')
 const launch = `bash -c '${bootstrap.replace(/'/g, "'\\''")}' -- %command%`
 
-// None preserves explicit user environment settings; the runtime defaults to
-// stable, automatic proxy discovery and no OptiPatcher when they are absent.
+// The core always uses the official nightly and its supporting-DLL layout.
+// None preserves proxy/profile policy; OptiPatcher remains opt-in.
 function choices(option: string, name: string, variable: string, values: readonly string[]): LaunchOption[] {
     return [null, ...values].map((value): LaunchOption => ({
         id: `dlor-optiscaler-${option}-${value ?? 'none'}`,
@@ -65,7 +65,6 @@ const recipe = {
             off: `DLOR_OPTISCALER_ACTION="uninstall" ${launch}`,
             enableGlobally: false,
         },
-        ...choices('channel', 'Release channel', 'DLOR_OPTISCALER_CHANNEL', ['stable', 'nightly']),
         ...choices('proxy', 'Injection proxy', 'DLOR_OPTISCALER_PROXY', [
             'dxgi', 'winmm', 'version', 'd3d12', 'dbghelp', 'wininet', 'winhttp',
         ]),
