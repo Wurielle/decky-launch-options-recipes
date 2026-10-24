@@ -38,6 +38,132 @@ class InstallationTests(unittest.TestCase):
             result[relative] = path
         return result
 
+    def test_every_profile_is_file_only_and_optipatcher_is_mandatory(self):
+        calls = []
+        def resolve(repository, channel, pattern, cache):
+            calls.append((repository, channel, pattern))
+            return {"repository": repository, "tag": channel, "sha256": "a" * 64, "name": pattern}
+        artifacts = types.SimpleNamespace(resolve_asset=resolve, download_asset=lambda asset, cache: self.payload)
+        for profile in ("bundled", "rdna23-int8", "rdna34-official-411", "rdna2-valve-411"):
+            with self.subTest(profile=profile), patch.dict(sys.modules, artifacts=artifacts), patch.dict(os.environ, {"DLOR_OPTISCALER_FSR_PROFILE": profile, "DLOR_OPTISCALER_OPTIPATCHER": "0"}):
+                plugins, libraries, settings, components = self.installer.optional_components(self.directory)
+                self.assertEqual(set(plugins), {"OptiPatcher.asi"})
+                self.assertEqual(settings, {}, "Profiles may supply files, never activate FSR settings")
+                self.assertEqual(components[0]["repository"], "optiscaler/OptiPatcher")
+                self.assertEqual(len(components), 1 + len(libraries))
+
+    def test_cli_off_relinquishes_legacy_non_asi_settings_without_rewriting(self):
+        for created in (False, True):
+            for foreign in (False, True):
+                with self.subTest(created=created, foreign=foreign):
+                    target = self.target / f"legacy-{created}-{foreign}"
+                    target.mkdir()
+                    ini = target / "OptiScaler.ini"
+                    original = b"\xef\xbb\xbf[Plugins]\r\nLoadAsiPlugins=false\r\nPath=original-plugins\r\nLoadCustomAmdxc64OnRdna2=false\r\n[FSR]\r\nFsr4GpuSupport=auto\r\n[Libraries]\r\nXeSSPath=original-library\r\n"
+                    if not created:
+                        ini.write_bytes(original)
+                    files = self.files({"OptiScaler.ini": original, "OptiPatcher.asi": b"synthetic plugin"})
+                    state = self.directory / ".dlor/state/dlor-optiscaler"
+                    legacy = {("Plugins", "LoadAsiPlugins"): "true", ("Plugins", "Path"): "legacy-plugins", ("Plugins", "LoadCustomAmdxc64OnRdna2"): "true", ("FSR", "Fsr4GpuSupport"): "2", ("Libraries", "XeSSPath"): "legacy-library"}
+                    self.installer.apply_install(self.game, target, files, state, configuration=legacy)
+                    if foreign:
+                        ini.write_bytes(ini.read_bytes() + b"[User]\r\nFont=keep\r\n")
+                    ini.chmod(0o604)
+                    current = ini.read_bytes()
+                    with patch.dict(os.environ, HOME=str(self.directory)):
+                        self.installer.main(["uninstall", str(self.game)])
+                    self.assertTrue(ini.is_file(), "Legacy non-ASI bytes cannot become whole-file removal ownership")
+                    self.assertEqual(ini.read_bytes(), current.replace(b"LoadAsiPlugins=true", b"LoadAsiPlugins=false"))
+                    self.assertEqual(ini.stat().st_mode & 0o7777, 0o604)
+                    self.assertFalse((target / "OptiPatcher.asi").exists())
+
+    def test_cli_refuses_unfinished_legacy_ini_transaction_before_recovery_writes(self):
+        original = b"[FSR]\nFsr4GpuSupport=auto\n[Plugins]\nLoadAsiPlugins=false\n"
+        ini = self.target / "OptiScaler.ini"
+        ini.write_bytes(original)
+        state_home = self.directory / ".dlor/state/dlor-optiscaler"
+        files = self.files({"OptiScaler.ini": original})
+        self.installer.apply_install(self.game, self.target, files, state_home)
+        with self.installer.game_state(self.game, state_home) as (_, directory, journal, state):
+            before = json.loads(json.dumps(state))
+            old_hash = self.installer.digest(ini)
+            backup = directory / "backups" / old_hash
+            backup.parent.mkdir(exist_ok=True)
+            backup.write_bytes(original)
+            ini.write_bytes(original.replace(b"Fsr4GpuSupport=auto", b"Fsr4GpuSupport=2"))
+            # A first legacy install can crash before settings ownership was
+            # saved: no settings map may be available to detect old rewrites.
+            state["transaction"] = {"before": before, "changes": {ini.relative_to(self.game).as_posix(): {"previous": old_hash, "next": self.installer.digest(ini), "mode": 0o600}}}
+            self.installer.save_state(journal, state)
+        current, journal_bytes = ini.read_bytes(), journal.read_bytes()
+        with patch.dict(os.environ, HOME=str(self.directory)):
+            with self.assertRaisesRegex(self.installer.InstallerError, "Interrupted.*INI transaction"):
+                self.installer.main(["uninstall", str(self.game)])
+        self.assertEqual(ini.read_bytes(), current)
+        self.assertEqual(journal.read_bytes(), journal_bytes)
+        self.assertEqual(backup.read_bytes(), original)
+
+    def test_cli_off_preserves_later_ini_mode_without_foreign_content_edits(self):
+        ini = self.target / "OptiScaler.ini"
+        original = b"[Plugins]\nLoadAsiPlugins=false\n[User]\nFont=keep\n"
+        ini.write_bytes(original)
+        ini.chmod(0o640)
+        state = self.directory / ".dlor/state/dlor-optiscaler"
+        self.installer.apply_install(self.game, self.target, self.files({"OptiScaler.ini": original}), state, configuration={("Plugins", "LoadAsiPlugins"): "true"})
+        ini.chmod(0o604)
+        with patch.dict(os.environ, HOME=str(self.directory)):
+            self.installer.main(["uninstall", str(self.game)])
+        self.assertEqual(ini.read_bytes(), original)
+        self.assertEqual(ini.stat().st_mode & 0o7777, 0o604)
+
+    def test_verified_nightly_retains_nukem_and_integrated_fakenvapi_defaults(self):
+        fixture = os.environ.get("DLOR_TEST_OPTISCALER_DLL")
+        if not fixture:
+            self.skipTest("Set DLOR_TEST_OPTISCALER_DLL to the verified nightly fixture")
+        core = Path(fixture).parent
+        plugin = self.files({"OptiPatcher.asi": b"synthetic ASI"})["OptiPatcher.asi"]
+        plan = self.installer.build_plan(self.game, self.target, core, plugins={"OptiPatcher.asi": plugin})
+        prefix = self.target.relative_to(self.game).as_posix()
+        self.assertIn(prefix + "/OptiScaler/dlssg_to_fsr3_amd_is_better.dll", plan["files"])
+        self.assertFalse(any(Path(name).name.casefold() in ("fakenvapi.dll", "nvapi64.dll") for name in plan["files"]))
+        data = (core / "OptiScaler.ini").read_bytes()
+        self.assertEqual(self.installer.ini_value(data, "fakenvapi", "UseFakenvapi"), "auto")
+        self.assertIn(b"; true or false - Default (auto) is true\r\nUseFakenvapi=auto", data)
+        self.assertEqual(plan["settings"], {("Plugins", "LoadAsiPlugins"): "true"})
+
+    def test_absolute_custom_paths_are_preserved_byte_for_byte(self):
+        core = self.directory / "core"
+        (core / "OptiScaler").mkdir(parents=True)
+        (core / "OptiScaler.dll").write_bytes(b"synthetic core")
+        (core / "OptiScaler.ini").write_bytes(b"[Libraries]\nOptiDllPath=auto\n")
+        (core / "OptiScaler/libxess.dll").write_bytes(b"synthetic library")
+        plugin = self.files({"fixture.asi": b"synthetic ASI"})["fixture.asi"]
+        wine = lambda path: ("Z:" + str(path).replace("/", "\\")).encode()
+        original = b"\xef\xbb\xbf[Libraries]\r\nOptiDllPath=" + wine(self.game / "support") + b"\r\nXeSSPath=" + wine(self.game / "custom/libxess.dll") + b"\r\n[Plugins]\r\nPath=" + wine(self.game / "plugins") + b"\r\nLoadAsiPlugins=false\r\n"
+        ini = self.target / "OptiScaler.ini"
+        ini.write_bytes(original)
+        plan = self.installer.build_plan(self.game, self.target, core, plugins={"fixture.asi": plugin})
+        self.assertIn("custom/libxess.dll", plan["files"])
+        self.assertIn("plugins/fixture.asi", plan["files"])
+        self.installer.apply_install(self.game, self.target, plan["files"], self.state, relative_to_root=True, configuration=plan["settings"], asi_only=True)
+        self.assertEqual(ini.read_bytes(), original.replace(b"LoadAsiPlugins=false", b"LoadAsiPlugins=true"))
+        self.installer.uninstall(self.game, self.state, asi_only=True)
+        self.assertEqual(ini.read_bytes(), original)
+
+    def test_quoted_custom_paths_refuse_instead_of_normalizing_ini(self):
+        core = self.directory / "core"
+        (core / "OptiScaler").mkdir(parents=True)
+        (core / "OptiScaler.dll").write_bytes(b"synthetic core")
+        (core / "OptiScaler/libxess.dll").write_bytes(b"synthetic library")
+        plugin = self.files({"fixture.asi": b"synthetic ASI"})["fixture.asi"]
+        for section, key in (("Libraries", "OptiDllPath"), ("Libraries", "XeSSPath"), ("Plugins", "Path")):
+            with self.subTest(section=section, key=key):
+                data = f'[{section}]\n{key}="Z:{self.game}/custom" ; annotation\n'.encode()
+                (core / "OptiScaler.ini").write_bytes(data)
+                with self.assertRaisesRegex(self.installer.InstallerError, "[Qq]uoted"):
+                    self.installer.build_plan(self.game, self.target, core, plugins={"fixture.asi": plugin})
+        self.assertEqual(list(self.target.iterdir()), [])
+
     def test_flat_legacy_core_layout_is_rejected(self):
         core = self.directory / "legacy-core"
         core.mkdir()
@@ -146,17 +272,18 @@ class InstallationTests(unittest.TestCase):
                 self.assertEqual((self.target / "OptiScaler" / name).read_bytes(), blobs[name])
             self.assertEqual((self.target / "OptiScaler/plugins/OptiPatcher.asi").read_bytes(), blobs["OptiPatcher.asi"])
             data = (self.target / "OptiScaler.ini").read_bytes()
-            self.assertEqual(self.installer.ini_value(data, "FSR", "Fsr4GpuSupport"), "2")
-            self.assertEqual(self.installer.ini_value(data, "Plugins", "LoadCustomAmdxc64OnRdna2"), "true")
+            self.assertEqual(self.installer.ini_value(data, "FSR", "Fsr4GpuSupport"), "auto")
+            self.assertEqual(self.installer.ini_value(data, "Plugins", "LoadCustomAmdxc64OnRdna2"), "auto")
+            self.assertEqual(data, b"[Libraries]\nOptiDllPath=auto\n[Plugins]\nPath=auto\nLoadAsiPlugins=true\n[FSR]\nFsr4GpuSupport=auto\n")
             self.assertIn(("xXJSONDeruloXx/OptiScaler-Bleeding-Edge", "tag:fsr-4-1-1-rdna2"), calls)
             os.environ["DLOR_OPTISCALER_OPTIPATCHER"] = "0"
             os.environ["DLOR_OPTISCALER_FSR_PROFILE"] = "bundled"
             self.installer.main(["install", str(self.game)])
             self.assertFalse((self.target / "OptiScaler/amdxc64.dll").exists())
-            self.assertFalse((self.target / "OptiScaler/plugins/OptiPatcher.asi").exists())
+            self.assertEqual((self.target / "OptiScaler/plugins/OptiPatcher.asi").read_bytes(), blobs["OptiPatcher.asi"])
             data = (self.target / "OptiScaler.ini").read_bytes()
             self.assertEqual(self.installer.ini_value(data, "FSR", "Fsr4GpuSupport"), "auto")
-            self.assertEqual(self.installer.ini_value(data, "Plugins", "LoadAsiPlugins"), "false")
+            self.assertEqual(self.installer.ini_value(data, "Plugins", "LoadAsiPlugins"), "true")
             self.installer.uninstall(self.game, self.directory / ".dlor/state/dlor-optiscaler")
             self.assertFalse((self.target / "OptiScaler/amdxc64.dll").exists())
 
@@ -170,30 +297,52 @@ class InstallationTests(unittest.TestCase):
         assert spec and spec.loader
         artifacts = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(artifacts)
+        plugin = self.directory / "OptiPatcher.asi"
+        plugin.write_bytes(b"synthetic official plugin")
+        original = b"\xef\xbb\xbf[Libraries]\r\nOptiDllPath=auto\r\n[Plugins]\r\nLoadAsiPlugins=false\r\n[FG]\r\nEnabled=user-policy\r\n[FSR]\r\nFsr4GpuSupport=user-policy\r\n[User]\r\nFont=keep\r\n"
+        ini = self.target / "OptiScaler.ini"
+        ini.write_bytes(original)
+        ini.chmod(0o640)
         calls = []
         def resolve(repository, channel, pattern, cache):
+            import re
             calls.append((repository, channel))
-            return {"repository": repository, "tag": "nightly-fixture", "name": archive.name, "url": "https://github.com/fixture/release", "sha256": self.installer.digest(archive), "size": archive.stat().st_size}
+            path = plugin if repository == "optiscaler/OptiPatcher" else archive
+            if path == plugin:
+                self.assertIsNotNone(re.fullmatch(pattern, "OptiPatcher.asi"))
+                self.assertIsNone(re.fullmatch(pattern, "OtherOptiPatcher.asi"))
+            return {"repository": repository, "tag": "nightly-fixture", "name": path.name, "url": "https://github.com/fixture/release", "sha256": self.installer.digest(path), "size": path.stat().st_size}
         discovery = types.SimpleNamespace(discover_game_directory=lambda *args, **kwargs: self.target)
         result = self.directory / "result.json"
         (self.directory / ".dlor/cache/dlor-optiscaler/artifacts").mkdir(parents=True)
         home_alias = self.directory / "home-alias"
         home_alias.symlink_to(self.directory, target_is_directory=True)
-        with patch.dict(sys.modules, {"artifacts": artifacts, "game_discovery": discovery}), patch.object(artifacts, "resolve_asset", resolve), patch.object(artifacts, "download_asset", lambda asset, cache: archive), patch.dict(os.environ, {"HOME": str(home_alias)}):
+        with patch.dict(sys.modules, {"artifacts": artifacts, "game_discovery": discovery}), patch.object(artifacts, "resolve_asset", resolve), patch.object(artifacts, "download_asset", lambda asset, cache: plugin if asset["name"] == plugin.name else archive), patch.dict(os.environ, {"HOME": str(home_alias), "DLOR_OPTISCALER_OPTIPATCHER": "0"}):
             os.environ.pop("DLOR_OPTISCALER_CHANNEL", None)
             self.installer.main(["install", str(self.game), "--result", str(result)])
             self.assertEqual(json.loads(result.read_text())["proxy"], "dxgi")
             self.assertEqual((self.target / "OptiScaler/libxess.dll").read_bytes(), b"synthetic supporting library")
-            self.assertEqual(calls, [("optiscaler/OptiScaler-nightly", "nightly")])
+            self.assertEqual(calls, [("optiscaler/OptiScaler-nightly", "nightly"), ("optiscaler/OptiPatcher", "stable")])
+            self.assertEqual((self.target / "OptiScaler/plugins/OptiPatcher.asi").read_bytes(), plugin.read_bytes())
+            self.assertEqual(ini.read_bytes(), original.replace(b"LoadAsiPlugins=false", b"LoadAsiPlugins=true"))
+            self.assertEqual(ini.stat().st_mode & 0o7777, 0o640)
             journal = next((self.directory / ".dlor/state/dlor-optiscaler").glob("*/state.json"))
             provenance = json.loads(journal.read_text())["components"]
             self.assertEqual(provenance[0]["sha256"], self.installer.digest(archive))
             self.assertEqual(provenance[0]["repository"], "optiscaler/OptiScaler-nightly")
+            legacy_state = json.loads(journal.read_text())
+            record = legacy_state["files"][ini.relative_to(self.game).as_posix()]
+            for name in ("FSR.Fsr4GpuSupport", "FG.Enabled", "User.Font"):
+                record["settings"][name] = {"before": "old-original", "before_raw": "old-original", "after": "keep" if name == "User.Font" else "user-policy"}
+            journal.write_text(json.dumps(legacy_state))
             calls.clear()
             os.environ["DLOR_OPTISCALER_CHANNEL"] = "stable"
             os.environ["DLOR_OPTISCALER_PROXY"] = "winmm"
             self.installer.main(["install", str(self.game), "--result", str(result)])
-            self.assertEqual(calls, [("optiscaler/OptiScaler-nightly", "nightly")])
+            self.assertEqual(calls, [("optiscaler/OptiScaler-nightly", "nightly"), ("optiscaler/OptiPatcher", "stable")])
+            self.assertEqual((self.target / "OptiScaler/plugins/OptiPatcher.asi").read_bytes(), plugin.read_bytes())
+            self.assertEqual(ini.read_bytes(), original.replace(b"LoadAsiPlugins=false", b"LoadAsiPlugins=true"))
+            self.assertEqual(ini.stat().st_mode & 0o7777, 0o640)
             self.assertEqual(json.loads(result.read_text())["proxy"], "dxgi")
             calls.clear()
             self.installer.main(["uninstall", str(self.game)])
@@ -355,7 +504,7 @@ class InstallationTests(unittest.TestCase):
             ("Plugins", "Path"): self.game / "plugins ; literal # name",
         }
         for iteration in range(3):
-            with chdir(self.game if iteration == 0 else self.directory):
+            with chdir(self.game):
                 plan = self.installer.build_plan(self.game, self.target, core, plugins={"fixture.asi": plugin})
             self.assertIn((self.target.relative_to(self.game) / "support ; literal # name/fakenvapi.dll").as_posix(), plan["files"])
             self.assertIn("custom ; literal # name/libxess.dll", plan["files"])
@@ -364,7 +513,9 @@ class InstallationTests(unittest.TestCase):
             data = ini.read_bytes()
             for (_, key), destination in expected.items():
                 emitted = next(line.split(b"=", 1)[1] for line in data.splitlines() if line.startswith(key.encode() + b"="))
-                self.assertEqual(emitted, ("Z:" + str(destination).replace("/", "\\")).encode())
+                original_value = next(line.split(b"=", 1)[1] for line in original.splitlines() if line.startswith(key.encode() + b"="))
+                self.assertEqual(emitted, original_value, "Custom paths are never rewritten")
+            self.assertEqual(plan["settings"], {("Plugins", "LoadAsiPlugins"): "true"})
             self.assertIn(b"LoadAsiPlugins=true\r\n", data)
             self.assertTrue(data.startswith(b"\xef\xbb\xbf"))
             self.assertNotIn(b"\n", data.replace(b"\r\n", b""))
@@ -456,14 +607,17 @@ class InstallationTests(unittest.TestCase):
                     plan = self.installer.build_plan(self.game, self.target, core, extra_libraries=libraries)
                 self.assertIn("custom/libxess.dll", plan["files"], "Relative override was placed beside renderer instead of process CWD")
                 self.assertIn("other-libs/fakenvapi.dll", plan["files"])
-                self.assertEqual(plan["settings"][("Libraries", "XeSSPath")], "Z:" + str(existing).replace("/", "\\"))
-                self.assertEqual(plan["settings"][("Libraries", "NvapiPath")], "Z:" + str(self.game / "other-libs").replace("/", "\\"))
+                self.assertEqual(plan["settings"], {})
                 self.assertNotIn(("Libraries", "OptiDllPath"), plan["settings"])
                 self.assertNotIn(("Plugins", "Path"), plan["settings"])
                 self.installer.apply_install(self.game, self.target, plan["files"], self.state, configuration=plan["settings"], relative_to_root=True)
                 self.assertEqual(existing.read_bytes(), expected)
-                # The persisted absolute override is independent of later launch CWD.
+                self.assertEqual(ini.read_bytes(), original)
+                # No path normalization is persisted; unsafe later CWD is refused.
                 with chdir(self.directory):
+                    with self.assertRaises(ValueError):
+                        self.installer.build_plan(self.game, self.target, core, extra_libraries=libraries)
+                with chdir(self.game):
                     repeated = self.installer.build_plan(self.game, self.target, core, extra_libraries=libraries)
                 self.assertIn("custom/libxess.dll", repeated["files"])
                 self.installer.apply_install(self.game, self.target, repeated["files"], self.state, configuration=repeated["settings"], relative_to_root=True)
@@ -539,11 +693,15 @@ class InstallationTests(unittest.TestCase):
         self.assertIn(prefix + "/custom/libs/libxess.dll", plan["files"])
         self.assertIn(prefix + "/custom/libs/D3D12_OptiScaler/D3D12Core.dll", plan["files"])
         self.assertIn(prefix + "/my_plugins/OptiPatcher.asi", plan["files"])
-        self.assertEqual(plan["settings"][("Plugins", "Path")], "Z:" + str(foreign.parent).replace("/", "\\"))
+        self.assertNotIn(("Plugins", "Path"), plan["settings"])
         self.assertEqual(plan["settings"][("Plugins", "LoadAsiPlugins")], "true")
         self.assertNotIn(prefix + "/OptiScaler/libxess.dll", plan["files"])
         self.installer.apply_install(self.game, self.target, plan["files"], self.state, configuration=plan["settings"], relative_to_root=True)
         with chdir(self.directory):
+            with self.assertRaises(ValueError):
+                self.installer.build_plan(self.game, self.target, core, plugins={"OptiPatcher.asi": plugin})
+        self.assertEqual(ini.read_bytes(), original.replace(b"LoadAsiPlugins=false", b"LoadAsiPlugins=true"))
+        with chdir(self.target):
             repeated = self.installer.build_plan(self.game, self.target, core, plugins={"OptiPatcher.asi": plugin})
         self.assertEqual(repeated["files"], plan["files"])
         self.installer.apply_install(self.game, self.target, repeated["files"], self.state, configuration=repeated["settings"], relative_to_root=True)

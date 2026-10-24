@@ -77,7 +77,7 @@ def remove_owned(path):
 
 
 @contextmanager
-def game_state(game, state_home):
+def game_state(game, state_home, *, asi_only=False):
     game = Path(game).resolve(strict=True)
     if not game.is_dir():
         raise InstallerError("Game root is not a directory")
@@ -95,6 +95,29 @@ def game_state(game, state_home):
         state = json.loads(journal.read_text()) if journal.exists() else {"version": 1, "root": str(game), "files": {}}
         if state.get("version") != 1 or state.get("root") != str(game) or not isinstance(state.get("files"), dict):
             raise InstallerError("Invalid installation journal")
+        if asi_only:
+            # Ownership is not permission to keep mutating retired settings.
+            # Do this before recovery as well as before ON/OFF processing.
+            transaction = state.get("transaction")
+            snapshots = [state] + ([transaction["before"]] if transaction else [])
+            legacy = {name for snapshot in snapshots for name, record in snapshot["files"].items()
+                      if Path(name).name.casefold() == "optiscaler.ini"
+                      and any(key.casefold() != "plugins.loadasiplugins" for key in record.get("settings", {}))}
+            ini_changes = transaction and any(Path(name).name.casefold() == "optiscaler.ini" for name in transaction["changes"])
+            if transaction and ini_changes and (not transaction.get("asi_only") or legacy.intersection(transaction["changes"])):
+                raise InstallerError("Interrupted legacy INI transaction requires review; preserving current configuration and backups")
+            changed = False
+            for snapshot in snapshots:
+                for name, record in snapshot["files"].items():
+                    if name in legacy:
+                        record["settings"] = {key: value for key, value in record.get("settings", {}).items()
+                                              if key.casefold() == "plugins.loadasiplugins"}
+                        # Sticky: an exact old installed hash must never grant
+                        # whole-file restoration/removal of relinquished bytes.
+                        record["foreign_edits"] = True
+                        changed = True
+            if changed:
+                save_state(journal, state)
         if state.get("transaction"):
             recover_transaction(game, directory, journal, state)
         yield game, directory, journal, state
@@ -217,8 +240,10 @@ def restore_settings(data, settings):
     return edit_ini(data, changes, restoring=True)
 
 
-def apply_install(game, target, files, state_home, *, proxy="dxgi", configuration=None, relative_to_root=False, components=None):
-    with game_state(game, state_home) as (root, directory, journal, state):
+def apply_install(game, target, files, state_home, *, proxy="dxgi", configuration=None, relative_to_root=False, components=None, asi_only=False):
+    if asi_only and any((section.casefold(), key.casefold()) != ("plugins", "loadasiplugins") for section, key in (configuration or {})):
+        raise InstallerError("Only Plugins.LoadAsiPlugins may be configured")
+    with game_state(game, state_home, asi_only=asi_only) as (root, directory, journal, state):
         relative = Path(target).relative_to(root)
         if state.get("target", relative.as_posix()) != relative.as_posix() and state["files"]:
             raise InstallerError("Managed installation target changed")
@@ -289,7 +314,7 @@ def apply_install(game, target, files, state_home, *, proxy="dxgi", configuratio
                 if digest(backup) != record["original"]:
                     raise InstallerError("Stale-file original backup failed verification")
             changes[key] = {"previous": current, "next": record["original"], "mode": stat.S_IMODE(path.stat().st_mode) if current else 0o600}
-        state["transaction"] = {"before": previous, "changes": changes}
+        state["transaction"] = {"before": previous, "changes": changes, "asi_only": asi_only}
         state["target"] = relative.as_posix()
         state["proxy"] = proxy
         if components is not None:
@@ -355,15 +380,19 @@ def apply_install(game, target, files, state_home, *, proxy="dxgi", configuratio
         return {"proxy": proxy, "target": str(target)}
 
 
-def uninstall(game, state_home):
-    with game_state(game, state_home) as (root, directory, journal, state):
+def uninstall(game, state_home, *, asi_only=False):
+    with game_state(game, state_home, asi_only=asi_only) as (root, directory, journal, state):
         preserved = []
         for relative, record in list(state["files"].items()):
             path = safe_target(root, relative)
             current = digest(path) if path.exists() else None
             if current is not None and current == record["original"]:
                 pass  # A prior uninstall durably restored bytes before its journal save.
-            elif current is not None and (record.get("foreign_edits") or current not in (record["installed"], record.get("pending"))):
+            elif current is not None and (
+                record.get("foreign_edits")
+                or current not in (record["installed"], record.get("pending"))
+                or (asi_only and path.name.casefold() == "optiscaler.ini" and record["original"] is not None)
+            ):
                 preserved.append(relative)
                 if path.name.casefold() == "optiscaler.ini":
                     atomic_write(path, restore_settings(path.read_bytes(), record.get("settings", {})), stat.S_IMODE(path.stat().st_mode))
@@ -545,10 +574,16 @@ def build_plan(game, target, core, *, plugins=None, proxy="dxgi", extra_librarie
         raise InstallerError("Verified archive has no OptiScaler injector")
     installed_ini = safe_target(game, (target.relative_to(game) / "OptiScaler.ini").as_posix())
     data = installed_ini.read_bytes() if installed_ini.exists() else anchors[0].read_bytes()
+    def path_value(section, key):
+        raw = ini_value(data, section, key, raw=True)
+        if raw is not None and raw.lstrip().startswith('"'):
+            # Native path consumers retain quotes; do not silently normalize.
+            raise InstallerError("Quoted configured path cannot be honored without rewriting the INI")
+        return ini_value(data, section, key)
     package_support = safe_target(base, "OptiScaler")
     if not package_support.is_dir():
         raise InstallerError("Nightly package is missing its OptiScaler supporting-library directory")
-    configured = ini_value(data, "Libraries", "OptiDllPath")
+    configured = path_value("Libraries", "OptiDllPath")
     library = configured_path(game, target, "OptiScaler" if configured.casefold() == "auto" else configured)
     files = {}
     settings = {}
@@ -564,7 +599,6 @@ def build_plan(game, target, core, *, plugins=None, proxy="dxgi", extra_librarie
             if not base.is_dir():
                 raise InstallerError("Relative library override requires an existing in-game launch directory")
         destination = configured_path(game, base, value)
-        settings[("Libraries", key)] = "Z:" + str(destination).replace("/", "\\")
         return destination
 
     def add(destination, source):
@@ -586,7 +620,7 @@ def build_plan(game, target, core, *, plugins=None, proxy="dxgi", extra_librarie
         else:
             destination = target / relative
         key = LIBRARY_KEYS.get(source.name.casefold())
-        override = ini_value(data, "Libraries", key) if key else "auto"
+        override = path_value("Libraries", key) if key else "auto"
         if override.casefold() != "auto":
             destination = library_override(override, key)
             if destination.suffix.casefold() != ".dll" and not destination.is_file():
@@ -595,7 +629,7 @@ def build_plan(game, target, core, *, plugins=None, proxy="dxgi", extra_librarie
     for name, source in (extra_libraries or {}).items():
         destination = library / name
         key = LIBRARY_KEYS.get(name.casefold())
-        override = ini_value(data, "Libraries", key) if key else "auto"
+        override = path_value("Libraries", key) if key else "auto"
         if override.casefold() != "auto":
             destination = library_override(override, key)
             if destination.suffix.casefold() != ".dll" and not destination.is_file():
@@ -603,7 +637,7 @@ def build_plan(game, target, core, *, plugins=None, proxy="dxgi", extra_librarie
         relative = safe_target(game, destination.relative_to(game).as_posix()).relative_to(game).as_posix()
         files[relative] = source
     if plugins:
-        value = ini_value(data, "Plugins", "Path")
+        value = path_value("Plugins", "Path")
         plugin_directory = library / "plugins"
         if value.casefold() != "auto":
             # Custom PluginPath is consumed directly relative to process CWD.
@@ -620,8 +654,6 @@ def build_plan(game, target, core, *, plugins=None, proxy="dxgi", extra_librarie
                 raise InstallerError("Unsupported plugin filename")
             add(plugin_directory / name, source)
         settings[("Plugins", "LoadAsiPlugins")] = "true"
-        if value.casefold() != "auto":
-            settings[("Plugins", "Path")] = "Z:" + str(plugin_directory).replace("/", "\\")
     return {"files": files, "settings": settings, "proxy": proxy, "target": str(target)}
 
 
@@ -690,22 +722,16 @@ def optional_components(cache):
     if profile not in profiles:
         raise InstallerError("Unsupported FSR compatibility profile")
     plugins, libraries, settings, components = {}, {}, {}, []
-    enabled = os.environ.get("DLOR_OPTISCALER_OPTIPATCHER", "0")
-    if enabled not in ("0", "1"):
-        raise InstallerError("OptiPatcher setting must be 0 or 1")
-    if enabled == "1":
-        asset = resolve_asset("optiscaler/OptiPatcher", "stable", r"OptiPatcher\.asi", cache)
-        plugins["OptiPatcher.asi"] = download_asset(asset, cache)
-        components.append(asset)
+    # Mandatory even when an older imported checkbox still exports "0".
+    asset = resolve_asset("optiscaler/OptiPatcher", "stable", r"OptiPatcher\.asi", cache)
+    plugins["OptiPatcher.asi"] = download_asset(asset, cache)
+    components.append(asset)
     for tag, name in profiles[profile]:
         asset = resolve_asset("xXJSONDeruloXx/OptiScaler-Bleeding-Edge", "tag:" + tag, re.escape(name), cache)
         libraries[name] = download_asset(asset, cache)
         components.append(asset)
     if profile != "bundled":
         print("Explicit third-party FSR compatibility profile:", profile)
-    if profile == "rdna2-valve-411":
-        settings[("FSR", "Fsr4GpuSupport")] = "2"
-        settings[("Plugins", "LoadCustomAmdxc64OnRdna2")] = "true"
     return plugins, libraries, settings, components
 
 
@@ -723,7 +749,7 @@ def main(argv=None):
     home = Path.home().resolve(strict=True)
     state_home = home / ".dlor/state/dlor-optiscaler"
     if args.action == "uninstall":
-        result = uninstall(root, state_home)
+        result = uninstall(root, state_home, asi_only=True)
         print("OptiScaler uninstall completed; changed external files preserved:", len(result["preserved"]))
         return 0
     from artifacts import resolve_asset
@@ -735,7 +761,7 @@ def main(argv=None):
         game_argv = json.loads(args.argv_file.read_text())
         if not isinstance(game_argv, list) or any(not isinstance(value, str) for value in game_argv):
             raise InstallerError("Invalid game argument handoff")
-    with game_state(root, state_home) as (_, directory, journal, state):
+    with game_state(root, state_home, asi_only=True) as (_, directory, journal, state):
         previous = state.get("proxy")
         known = state.get("target") if state["files"] else None
         proxy_key = (Path(state.get("target", ".")) / (str(previous) + ".dll")).as_posix()
@@ -749,7 +775,7 @@ def main(argv=None):
     plugins, libraries, settings, components = optional_components(cache)
     plan = build_plan(root, target, core, proxy=proxy, plugins=plugins, extra_libraries=libraries)
     plan["settings"].update(settings)
-    result = apply_install(root, target, plan["files"], state_home, proxy=proxy, configuration=plan["settings"], relative_to_root=True, components=[asset, *components])
+    result = apply_install(root, target, plan["files"], state_home, proxy=proxy, configuration=plan["settings"], relative_to_root=True, components=[asset, *components], asi_only=True)
     if args.result:
         atomic_write(args.result, (json.dumps(result) + "\n").encode())
     print("OptiScaler installed:", asset["tag"], "proxy", proxy)

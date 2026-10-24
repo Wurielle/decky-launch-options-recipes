@@ -9,7 +9,7 @@ const uninstall = remoteScript('dlor-optiscaler', 'uninstall')
 const sourceContext = `DLOR_OPTISCALER_SOURCE_REVISION="${process.env.RECIPE_COMMIT_SHA}" DLOR_OPTISCALER_SOURCE_REPOSITORY="${process.env.RECIPE_REPOSITORY_OWNER}/${process.env.RECIPE_REPOSITORY_NAME}"`
 
 // The core always uses the official nightly and the declared DXGI proxy.
-// None preserves profile policy; OptiPatcher remains opt-in.
+// OptiPatcher is mandatory in the main install; profiles only select files.
 function choices(option: string, name: string, variable: string, values: readonly string[]): LaunchOption[] {
     return [null, ...values].map((value): LaunchOption => ({
         id: `dlor-optiscaler-${option}-${value ?? 'none'}`,
@@ -36,18 +36,10 @@ const recipe = {
             enableGlobally: false,
         },
         // Compatibility profiles use a third-party distribution, not an AMD
-        // driver installer. None leaves runtime/user policy intact (bundled).
+        // driver installer. No profile rewrites FSR activation settings.
         ...choices('fsr-profile', 'FSR4 compatibility (third-party)', 'DLOR_OPTISCALER_FSR_PROFILE', [
             'bundled', 'rdna23-int8', 'rdna34-official-411', 'rdna2-valve-411',
         ]),
-        {
-            id: 'dlor-optiscaler-optipatcher',
-            group,
-            name: 'OptiPatcher',
-            on: 'DLOR_OPTISCALER_OPTIPATCHER="1"',
-            off: 'DLOR_OPTISCALER_OPTIPATCHER="0"',
-            enableGlobally: false,
-        },
     ],
 } satisfies Recipe
 

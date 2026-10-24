@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Acquire and compile SHA-verified OptiScaler runtime modules."""
-SOURCE_SHA256 = {'installer.py': 'f48dda18c2ac5d3260d82cc00f0b79e7d4256d7e52c5a439cc78306178c4b06a', 'artifacts.py': '1ad5feff0adfbe09829bc1b7d93ec0c67e823f1e04711a00359a3ee1705671b7', 'game_discovery.py': 'f5d2aeb6bf3abd9c8e1968427abb21d848e3d273c2f9fc792666042f37b0fe49'}
+SOURCE_SHA256 = {'installer.py': '45ea3231d4d86a14175df27098f3e651929ff23bb6fa7500b2c0b8c7a486ce44', 'artifacts.py': '1ad5feff0adfbe09829bc1b7d93ec0c67e823f1e04711a00359a3ee1705671b7', 'game_discovery.py': 'f5d2aeb6bf3abd9c8e1968427abb21d848e3d273c2f9fc792666042f37b0fe49'}
 
 import hashlib, importlib.abc, importlib.util, os, pathlib, re, signal, stat, subprocess, sys, tempfile
 

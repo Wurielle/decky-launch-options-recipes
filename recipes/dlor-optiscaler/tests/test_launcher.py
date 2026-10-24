@@ -606,7 +606,7 @@ os.execv('/usr/bin/sha256sum', ['sha256sum', *sys.argv[1:]])
         defaults = [v for v in fsr if v.get('fallbackValue')]
         self.assertEqual(len(defaults), 1)
         self.assertEqual((defaults[0]['valueName'], defaults[0]['on'], defaults[0]['off']), ('None', '', ''))
-        self.assertTrue(any(o['on'] == 'DLOR_OPTISCALER_OPTIPATCHER="1"' for o in options))
+        self.assertFalse(any('DLOR_OPTISCALER_OPTIPATCHER' in o[key] for o in recipe['launchOptions'] for key in ('on', 'off')))
 
     def test_shell_bookkeeping_does_not_overwrite_game_environment(self):
         recipe = self.fixture_recipe()

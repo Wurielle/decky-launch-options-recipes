@@ -55,7 +55,7 @@ finish_log() {
     exec {console_out}>&- {console_err}>&-
 }
 
-LOADER_SHA256=1127b7ff711e47d3cbef581d560c3c14c67db02dd329d1e1da96bd1f8a994c5b
+LOADER_SHA256=a947182b5e0ab3eabc3a19e73d33ab2cc0afd5fa69beeaf214a8bddf7b602136
 
 run_loader() (
     umask 077
