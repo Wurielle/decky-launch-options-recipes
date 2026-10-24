@@ -102,16 +102,22 @@ def game_state(game, state_home, *, asi_only=False):
             snapshots = [state] + ([transaction["before"]] if transaction else [])
             legacy = {name for snapshot in snapshots for name, record in snapshot["files"].items()
                       if Path(name).name.casefold() == "optiscaler.ini"
-                      and any(key.casefold() != "plugins.loadasiplugins" for key in record.get("settings", {}))}
+                      and any(key.casefold() != "plugins.loadasiplugins" and not entry.get("environment")
+                              for key, entry in record.get("settings", {}).items())}
             ini_changes = transaction and any(Path(name).name.casefold() == "optiscaler.ini" for name in transaction["changes"])
-            if transaction and ini_changes and (not transaction.get("asi_only") or legacy.intersection(transaction["changes"])):
+            if transaction and ini_changes and (
+                (not transaction.get("asi_only") and not transaction.get("ini_policy"))
+                or legacy.intersection(transaction["changes"])
+            ):
                 raise InstallerError("Interrupted legacy INI transaction requires review; preserving current configuration and backups")
+            if transaction and ini_changes and transaction.get("ini_policy"):
+                validate_ini_transaction(directory, transaction)
             changed = False
             for snapshot in snapshots:
                 for name, record in snapshot["files"].items():
                     if name in legacy:
                         record["settings"] = {key: value for key, value in record.get("settings", {}).items()
-                                              if key.casefold() == "plugins.loadasiplugins"}
+                                              if key.casefold() == "plugins.loadasiplugins" or value.get("environment")}
                         # Sticky: an exact old installed hash must never grant
                         # whole-file restoration/removal of relinquished bytes.
                         record["foreign_edits"] = True
@@ -127,6 +133,38 @@ def game_state(game, state_home, *, asi_only=False):
 
 def save_state(path, state):
     atomic_write(path, (json.dumps(state, indent=2) + "\n").encode())
+
+
+def validate_ini_transaction(directory, transaction):
+    """Replay the narrow INI operations before allowing any rollback writes."""
+    from update_optiscaler_config import render_overrides
+    for name, change in transaction["changes"].items():
+        if Path(name).name.casefold() != "optiscaler.ini":
+            continue
+        policy = transaction["ini_policy"].get(name)
+        if not policy or policy.get("version") != 1:
+            raise InstallerError("Interrupted INI transaction has no valid setting permissions")
+        configuration = {(s, k): v for s, k, v in policy["configuration"]}
+        explicit = {tuple(key) for key in policy["explicit"]}
+        if not explicit.issubset(configuration) or any(
+            key not in explicit and (key[0].casefold(), key[1].casefold()) != ("plugins", "loadasiplugins")
+            for key in configuration
+        ):
+            raise InstallerError("Interrupted INI transaction exceeds setting permissions")
+        previous_settings = transaction["before"]["files"].get(name, {}).get("settings", {})
+        for label, entry in policy["retired"].items():
+            if not entry.get("environment") or previous_settings.get(label) != entry:
+                raise InstallerError("Interrupted INI transaction has invalid retired ownership")
+        if change["previous"] is None:
+            continue  # New recipe-created file: rollback only removes that file.
+        backup = safe_target(directory, "backups/" + change["previous"])
+        if digest(backup) != change["previous"]:
+            raise InstallerError("Rollback backup failed verification")
+        data = restore_settings(backup.read_bytes(), policy["retired"])
+        data = edit_ini(data, {key: value for key, value in configuration.items() if key not in explicit})
+        data = render_overrides(data, {key: configuration[key] for key in explicit})
+        if hashlib.sha256(data).hexdigest() != change["next"]:
+            raise InstallerError("Interrupted INI transaction exceeds recorded setting permissions")
 
 
 def recover_transaction(root, directory, journal, state):
@@ -232,16 +270,25 @@ def edit_ini(data, settings, *, restoring=False):
 
 
 def restore_settings(data, settings):
+    environment = {name: entry for name, entry in settings.items() if entry.get("environment")}
+    if environment:
+        from update_optiscaler_config import restore_overrides
+        data = restore_overrides(data, environment)
     changes = {}
     for name, entry in settings.items():
+        if entry.get("environment"):
+            continue
         section, key = name.split(".", 1)
         if ini_value(data, section, key, None) == entry["after"]:
             changes[(section, key)] = entry
     return edit_ini(data, changes, restoring=True)
 
 
-def apply_install(game, target, files, state_home, *, proxy="dxgi", configuration=None, relative_to_root=False, components=None, asi_only=False):
-    if asi_only and any((section.casefold(), key.casefold()) != ("plugins", "loadasiplugins") for section, key in (configuration or {})):
+def apply_install(game, target, files, state_home, *, proxy="dxgi", configuration=None, relative_to_root=False, components=None, asi_only=False, explicit_overrides=None, expected_configuration_data=None):
+    explicit_overrides = explicit_overrides or {}
+    if any(key not in (configuration or {}) or (configuration or {})[key] != value for key, value in explicit_overrides.items()):
+        raise InstallerError("Explicit override does not match requested configuration")
+    if asi_only and any((section.casefold(), key.casefold()) != ("plugins", "loadasiplugins") and (section, key) not in explicit_overrides for section, key in (configuration or {})):
         raise InstallerError("Only Plugins.LoadAsiPlugins may be configured")
     with game_state(game, state_home, asi_only=asi_only) as (root, directory, journal, state):
         relative = Path(target).relative_to(root)
@@ -250,6 +297,7 @@ def apply_install(game, target, files, state_home, *, proxy="dxgi", configuratio
         base = Path() if relative_to_root else relative
         plan = [(safe_target(root, (base / name).as_posix()), Path(source)) for name, source in files.items()]
         managed_settings = None
+        retired_environment = {}
         ini = None
         if configuration is not None:
             ini = safe_target(root, (relative / "OptiScaler.ini").as_posix())
@@ -259,11 +307,30 @@ def apply_install(game, target, files, state_home, *, proxy="dxgi", configuratio
                 key = ini.relative_to(root).as_posix()
                 managed_settings = deepcopy(state["files"].get(key, {}).get("settings", {}))
                 requested = {section + "." + name for section, name in configuration}
-                old = {name: entry for name, entry in managed_settings.items() if name not in requested}
+                old = {name: entry for name, entry in managed_settings.items()
+                       if name not in requested or (entry.get("environment") and (entry["section"], entry["key"]) not in explicit_overrides)}
+                retired_environment = {name: entry for name, entry in old.items() if entry.get("environment")}
                 data = restore_settings(data, old)
+                if expected_configuration_data is not None:
+                    from update_optiscaler_config import render_overrides
+                    if render_overrides(data, explicit_overrides) != expected_configuration_data:
+                        raise InstallerError("Effective INI configuration changed after placement planning")
                 for name in old:
                     del managed_settings[name]
                 for (section, name), value in configuration.items():
+                    label = section + "." + name
+                    if (section, name) in explicit_overrides:
+                        from update_optiscaler_config import entries
+                        current = entries(data)[(section, name)]
+                        if label in managed_settings and current["value"] != managed_settings[label]["after"]:
+                            # Active ENV is a fresh request. Retain the latest
+                            # displaced overlay value, not an obsolete original.
+                            del managed_settings[label]
+                        if current["value"] != value:
+                            if label not in managed_settings:
+                                managed_settings[label] = {"environment": True, "section": section, "key": name, "before_line": current["line"]}
+                            managed_settings[label]["after"] = value
+                        continue
                     before = ini_value(data, section, name, None)
                     raw = ini_value(data, section, name, None, raw=True)
                     label = section + "." + name
@@ -273,7 +340,10 @@ def apply_install(game, target, files, state_home, *, proxy="dxgi", configuratio
                         if label not in managed_settings:
                             managed_settings[label] = {"before": before, "before_raw": raw, "comment": split_ini_annotation(section, name, raw)[1] if raw is not None else ""}
                         managed_settings[label]["after"] = value
-                data = edit_ini(data, configuration)
+                data = edit_ini(data, {key: value for key, value in configuration.items() if key not in explicit_overrides})
+                if explicit_overrides:
+                    from update_optiscaler_config import render_overrides
+                    data = render_overrides(data, explicit_overrides)
                 prepared = safe_target(directory, "prepared.ini")
                 atomic_write(prepared, data)
                 plan = [(destination, source) for destination, source in plan if destination != ini] + [(ini, prepared)]
@@ -314,7 +384,15 @@ def apply_install(game, target, files, state_home, *, proxy="dxgi", configuratio
                 if digest(backup) != record["original"]:
                     raise InstallerError("Stale-file original backup failed verification")
             changes[key] = {"previous": current, "next": record["original"], "mode": stat.S_IMODE(path.stat().st_mode) if current else 0o600}
-        state["transaction"] = {"before": previous, "changes": changes, "asi_only": asi_only}
+        ini_policy = {}
+        if asi_only and ini is not None:
+            ini_policy[ini.relative_to(root).as_posix()] = {
+                "version": 1, "configuration": [[s, k, v] for (s, k), v in (configuration or {}).items()],
+                "explicit": [list(key) for key in explicit_overrides], "retired": retired_environment,
+            }
+        state["transaction"] = {"before": previous, "changes": changes,
+                                "asi_only": asi_only and not explicit_overrides and not retired_environment,
+                                "ini_policy": ini_policy}
         state["target"] = relative.as_posix()
         state["proxy"] = proxy
         if components is not None:
@@ -529,10 +607,16 @@ LIBRARY_KEYS = {
 
 def ini_value(data, section, key, default="auto", *, raw=False):
     parser = configparser.ConfigParser(interpolation=None)
+    parser.optionxform = lambda option: option
     parser.read_string(data.decode("utf-8-sig"))
     sections = [name for name in parser.sections() if name.casefold() == section.casefold()]
     if len(sections) > 1:
         raise InstallerError("Ambiguous configuration section")
+    if sections and not parser.has_option(sections[0], key):
+        matches = [name for name in parser.options(sections[0]) if name.casefold() == key.casefold()]
+        if len(matches) > 1:
+            raise InstallerError("Ambiguous configuration key")
+        key = matches[0] if matches else key
     value = parser.get(sections[0], key, fallback=default) if sections else default
     if raw:
         # ConfigParser trims trailing bytes that must survive ownership rollback.
@@ -562,7 +646,7 @@ def configured_path(root, base, value):
     return root if relative == "." else safe_target(root, relative)
 
 
-def build_plan(game, target, core, *, plugins=None, proxy="dxgi", extra_libraries=None):
+def build_plan(game, target, core, *, plugins=None, proxy="dxgi", extra_libraries=None, configuration_data=None):
     """Map verified package trees using their INI/library contract, not game names."""
     game, target, core = Path(game).resolve(), Path(target), Path(core)
     anchors = [path for path in core.rglob("*") if path.name.casefold() == "optiscaler.ini" and path.is_file()]
@@ -573,7 +657,7 @@ def build_plan(game, target, core, *, plugins=None, proxy="dxgi", extra_librarie
     if not main.is_file():
         raise InstallerError("Verified archive has no OptiScaler injector")
     installed_ini = safe_target(game, (target.relative_to(game) / "OptiScaler.ini").as_posix())
-    data = installed_ini.read_bytes() if installed_ini.exists() else anchors[0].read_bytes()
+    data = configuration_data if configuration_data is not None else (installed_ini.read_bytes() if installed_ini.exists() else anchors[0].read_bytes())
     def path_value(section, key):
         raw = ini_value(data, section, key, raw=True)
         if raw is not None and raw.lstrip().startswith('"'):
@@ -773,9 +857,23 @@ def main(argv=None):
     asset = resolve_asset("optiscaler/OptiScaler-nightly", "nightly", r"(?i)(?!.*(?:debug|symbols|source)).*optiscaler.*\.7z", cache)
     core = cached_package(asset, cache)
     plugins, libraries, settings, components = optional_components(cache)
-    plan = build_plan(root, target, core, proxy=proxy, plugins=plugins, extra_libraries=libraries)
+    from update_optiscaler_config import resolve_overrides, render_overrides
+    anchors = [path for path in core.rglob("*") if path.name.casefold() == "optiscaler.ini" and path.is_file()]
+    if len(anchors) != 1:
+        raise InstallerError("Ambiguous OptiScaler package")
+    ini = safe_target(root, (target.relative_to(root) / "OptiScaler.ini").as_posix())
+    data = ini.read_bytes() if ini.exists() else anchors[0].read_bytes()
+    overrides = resolve_overrides(data)
+    with game_state(root, state_home, asi_only=True) as (_, directory, journal, state):
+        owned = state["files"].get(ini.relative_to(root).as_posix(), {}).get("settings", {})
+        retired = {name: entry for name, entry in owned.items()
+                   if entry.get("environment") and (entry["section"], entry["key"]) not in overrides}
+        data = restore_settings(data, retired)
+    effective = render_overrides(data, overrides)
+    plan = build_plan(root, target, core, proxy=proxy, plugins=plugins, extra_libraries=libraries, configuration_data=effective)
     plan["settings"].update(settings)
-    result = apply_install(root, target, plan["files"], state_home, proxy=proxy, configuration=plan["settings"], relative_to_root=True, components=[asset, *components], asi_only=True)
+    plan["settings"].update(overrides)
+    result = apply_install(root, target, plan["files"], state_home, proxy=proxy, configuration=plan["settings"], relative_to_root=True, components=[asset, *components], asi_only=True, explicit_overrides=overrides, expected_configuration_data=effective)
     if args.result:
         atomic_write(args.result, (json.dumps(result) + "\n").encode())
     print("OptiScaler installed:", asset["tag"], "proxy", proxy)

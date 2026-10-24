@@ -50,7 +50,7 @@ else:
 ''')
         (self.bin / 'curl').chmod(0o755)
         (self.scripts / 'installer.py').write_text('''import json, os, pathlib, sys
-import artifacts, game_discovery
+import artifacts, game_discovery, update_optiscaler_config
 def main(argv=None):
     argv = sys.argv[1:] if argv is None else argv
     if len(argv) < 2:
@@ -64,7 +64,7 @@ def main(argv=None):
     if os.environ.get('FIXTURE_FAIL') == '1': return 7
     return 0
 ''')
-        for name in ('artifacts.py', 'game_discovery.py'):
+        for name in ('artifacts.py', 'game_discovery.py', 'update_optiscaler_config.py'):
             (self.scripts / name).write_text('FIXTURE = True\n')
 
     def test_physical_loader_and_no_inline_python(self):
@@ -311,7 +311,7 @@ os.execv('/usr/bin/{tool}', ['{tool}', *sys.argv[1:]])
         self.assertEqual(trace['argv'], ['install', str(self.game)])
         self.assertEqual(trace['isolated'], 1)
         self.assertTrue(trace['bytecode'])
-        self.assertEqual(self.fetches.read_text().splitlines(), ['loader.py', 'installer.py', 'artifacts.py', 'game_discovery.py'])
+        self.assertEqual(self.fetches.read_text().splitlines(), ['loader.py', 'installer.py', 'artifacts.py', 'game_discovery.py', 'update_optiscaler_config.py'])
         logs = list((self.home / '.dlor/logs/dlor-optiscaler/install').glob('*.log'))
         self.assertEqual(len(logs), 1)
         self.assertIn('fixture installer stderr', logs[0].read_text())
@@ -378,6 +378,49 @@ os.execv('/usr/bin/{tool}', ['{tool}', *sys.argv[1:]])
         self.assertEqual(result.returncode, 23, result.stdout + result.stderr)
         self.assertTrue(self.trace.exists(), result.stdout + result.stderr)
         self.assertEqual(self.fetches.read_text().splitlines()[0], 'install.sh')
+
+    def test_actual_consumer_passes_all_three_formats_to_verified_physical_updater(self):
+        shutil.copyfile(SCRIPTS / 'update_optiscaler_config.py', self.scripts / 'update_optiscaler_config.py')
+        installer = self.scripts / 'installer.py'
+        installer.write_text(installer.read_text().replace(
+            "    pathlib.Path(os.environ['FIXTURE_TRACE']).write_text(json.dumps(record))",
+            "    data = b'[FG]\\nEnabled=auto\\n[FSR]\\nFsr4GpuSupport=auto\\n[User]\\nUniqueFont=auto\\n'\n"
+            "    record['overrides'] = [[s, k, v] for (s, k), v in update_optiscaler_config.resolve_overrides(data).items()]\n"
+            "    pathlib.Path(os.environ['FIXTURE_TRACE']).write_text(json.dumps(record))"))
+        recipe = self.fixture_recipe()
+        helper = {'id': 'explicit', 'on': 'OptiScaler_FG_Enabled="true" FSR_Fsr4GpuSupport="2" UniqueFont="50% literal"', 'off': '', 'priority': 10}
+        final, env, variables = self.consumer_launch(recipe, self.game_command(), helpers=(helper,))
+        result = subprocess.run(final, env=env, capture_output=True, text=True, timeout=20)
+        self.assertEqual(result.returncode, 23, result.stdout + result.stderr)
+        self.assertEqual(sorted(json.loads(self.trace.read_text())['overrides']),
+                         [['FG', 'Enabled', 'true'], ['FSR', 'Fsr4GpuSupport', '2'], ['User', 'UniqueFont', '50% literal']])
+        self.assertIn('update_optiscaler_config.py', self.fetches.read_text().splitlines())
+
+    def test_updater_cache_tamper_offline_and_symlink_are_rejected(self):
+        self.generate()
+        self.assertEqual(self.run_script('install.sh', self.game).returncode, 0)
+        cache = self.home / '.dlor/cache/dlor-optiscaler/source' / REVISION
+        updater = cache / 'update_optiscaler_config.py'
+        updater.write_text('raise Exception("UNVERIFIED-UPDATER")\n')
+        self.trace.unlink()
+        self.env['FIXTURE_OFFLINE'] = '1'
+        result = self.run_script('uninstall.sh', self.game)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse(self.trace.exists())
+        self.assertNotIn('UNVERIFIED-UPDATER', result.stdout + result.stderr)
+        self.env['FIXTURE_OFFLINE'] = '0'
+        self.assertEqual(self.run_script('install.sh', self.game).returncode, 0)
+        outside = self.root / 'foreign-updater.py'
+        outside.write_text('foreign bytes')
+        updater.unlink()
+        updater.symlink_to(outside)
+        self.fetches.unlink()
+        self.trace.unlink()
+        result = self.run_script('install.sh', self.game)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse(self.trace.exists())
+        self.assertFalse(self.fetches.exists())
+        self.assertEqual(outside.read_text(), 'foreign bytes')
 
     def test_actual_consumer_requires_explicit_source_location(self):
         from unittest.mock import patch
@@ -552,7 +595,7 @@ os.execv('/usr/bin/sha256sum', ['sha256sum', *sys.argv[1:]])
         index.write_text('recipe source must remain untouched\n')
         metadata = self.generate()
         self.assertEqual(set(metadata), {'SOURCE_SHA256', 'LOADER_SHA256'})
-        self.assertEqual(set(metadata['SOURCE_SHA256']), {'installer.py', 'artifacts.py', 'game_discovery.py'})
+        self.assertEqual(set(metadata['SOURCE_SHA256']), {'installer.py', 'artifacts.py', 'game_discovery.py', 'update_optiscaler_config.py'})
         self.assertEqual(index.read_text(), 'recipe source must remain untouched\n')
         self.assertFalse((self.scripts / 'launch.sh').exists())
         before = {name: (self.scripts / name).read_bytes() for name in ('install.sh', 'uninstall.sh')}
@@ -744,7 +787,7 @@ os.execv('/usr/bin/sha256sum', ['sha256sum', *sys.argv[1:]])
         self.assertEqual(json.loads((self.root / 'game-result.json').read_text())['env']['WINEDLLOVERRIDES'], 'version=n')
         self.assertNotIn('WINEDLLOVERRIDES', variables)
         self.assertEqual(list(self.game.iterdir()), [])
-        self.assertEqual(self.fetches.read_text().splitlines(), ['uninstall.sh', 'loader.py', 'installer.py', 'artifacts.py', 'game_discovery.py'])
+        self.assertEqual(self.fetches.read_text().splitlines(), ['uninstall.sh', 'loader.py', 'installer.py', 'artifacts.py', 'game_discovery.py', 'update_optiscaler_config.py'])
 
     def test_actual_consumer_failed_entry_transfer_continues_with_declared_policy(self):
         recipe = self.fixture_recipe()
@@ -801,7 +844,7 @@ os.execv('/usr/bin/sha256sum', ['sha256sum', *sys.argv[1:]])
         curl.write_text(normal)
         self.env['FIXTURE_OFFLINE'] = '0'
         self.assertEqual(self.run_script('install.sh', self.game).returncode, 0)
-        self.assertEqual(sorted(p.name for p in cache.iterdir()), ['artifacts.py', 'game_discovery.py', 'installer.py', 'loader.py'])
+        self.assertEqual(sorted(p.name for p in cache.iterdir()), ['artifacts.py', 'game_discovery.py', 'installer.py', 'loader.py', 'update_optiscaler_config.py'])
         self.trace.unlink()
         # A corrupt prior cache is not executable when repair is unavailable.
         (cache / 'installer.py').write_text('raise Exception("UNVERIFIED-MODULE")\n')

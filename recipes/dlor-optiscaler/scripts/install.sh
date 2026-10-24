@@ -55,7 +55,7 @@ finish_log() {
     exec {console_out}>&- {console_err}>&-
 }
 
-LOADER_SHA256=a947182b5e0ab3eabc3a19e73d33ab2cc0afd5fa69beeaf214a8bddf7b602136
+LOADER_SHA256=90d5c94a9c6a5cf6885ddf266f8e91de036338586fc150d7a63a8d9228a8f5c5
 
 run_loader() (
     umask 077
@@ -102,7 +102,7 @@ run_loader() (
         return 1
     fi
     # Refuse redirected source files before even the loader network request.
-    for name in loader.py installer.py artifacts.py game_discovery.py; do
+    for name in loader.py installer.py artifacts.py game_discovery.py update_optiscaler_config.py; do
         if [[ -L $cache/$name || ( -e $cache/$name && ! -f $cache/$name ) ]]; then
             printf 'DLOR OptiScaler: unsafe source cache file: %s\n' "$cache/$name" >&2
             return 1

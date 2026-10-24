@@ -24,6 +24,9 @@ class InstallationTests(unittest.TestCase):
         self.payload = self.directory / "verified-payload"
         self.payload.mkdir()
         self.state = self.directory / "state"
+        self.import_path = patch.object(sys, "path", [str(HERE / "scripts"), *sys.path])
+        self.import_path.start()
+        self.addCleanup(self.import_path.stop)
         self.assertTrue((HERE / "scripts/installer.py").is_file(), "installer implementation is missing")
         spec = importlib.util.spec_from_file_location("opti_installer", HERE / "scripts/installer.py")
         self.installer = importlib.util.module_from_spec(spec)
@@ -37,6 +40,164 @@ class InstallationTests(unittest.TestCase):
             path.write_bytes(data)
             result[relative] = path
         return result
+
+    def test_cli_applies_explicit_environment_and_restores_on_off(self):
+        core = self.directory / "core"
+        (core / "OptiScaler").mkdir(parents=True)
+        (core / "OptiScaler.dll").write_bytes(b"synthetic core")
+        original = b"\xef\xbb\xbf[FG]\r\nEnabled=auto\r\n[Plugins]\r\nLoadAsiPlugins=false\r\nPath=auto\r\n"
+        (core / "OptiScaler.ini").write_bytes(original)
+        ini = self.target / "OptiScaler.ini"
+        ini.write_bytes(original)
+        ini.chmod(0o640)
+        plugin = self.files({"OptiPatcher.asi": b"synthetic ASI"})["OptiPatcher.asi"]
+        artifacts = types.SimpleNamespace(resolve_asset=lambda *a: {"tag": "nightly"})
+        discovery = types.SimpleNamespace(discover_game_directory=lambda *a, **kw: self.target)
+        with patch.dict(sys.modules, artifacts=artifacts, game_discovery=discovery), patch.object(self.installer, "cached_package", return_value=core), patch.object(self.installer, "optional_components", return_value=({"OptiPatcher.asi": plugin}, {}, {}, [])), patch.dict(os.environ, {"HOME": str(self.directory), "OptiScaler_FG_Enabled": "true"}), patch.object(sys, "path", [str(HERE / "scripts"), *sys.path]):
+            self.installer.main(["install", str(self.game)])
+            self.assertIn(b"Enabled=true\r\n", ini.read_bytes())
+            self.installer.main(["uninstall", str(self.game)])
+        self.assertEqual(ini.read_bytes(), original)
+        self.assertEqual(ini.stat().st_mode & 0o7777, 0o640)
+
+    def test_active_environment_reapplies_after_overlay_edit_and_restores_latest_value(self):
+        ini = self.target / "OptiScaler.ini"
+        original = b"[User]\nFont=original\n[Plugins]\nLoadAsiPlugins=false\n"
+        ini.write_bytes(original)
+        files = self.files({"OptiScaler.ini": original})
+        override = {("User", "Font"): "requested"}
+        with patch.object(sys, "path", [str(HERE / "scripts"), *sys.path]):
+            for _ in range(2):
+                self.installer.apply_install(self.game, self.target, files, self.state, configuration=override, explicit_overrides=override, asi_only=True)
+                ini.write_bytes(ini.read_bytes().replace(b"Font=requested", b"Font=latest-overlay"))
+            self.installer.apply_install(self.game, self.target, files, self.state, configuration=override, explicit_overrides=override, asi_only=True)
+            self.assertIn(b"Font=requested", ini.read_bytes())
+            self.installer.uninstall(self.game, self.state, asi_only=True)
+        self.assertEqual(ini.read_bytes(), original.replace(b"Font=original", b"Font=latest-overlay"))
+
+    def test_cli_environment_path_removal_is_planned_before_placement(self):
+        core = self.directory / "core"
+        (core / "OptiScaler").mkdir(parents=True)
+        (core / "OptiScaler.dll").write_bytes(b"synthetic core")
+        original = b"[Libraries]\nOptiDllPath=auto\n[Plugins]\nPath=auto\nLoadAsiPlugins=false\n"
+        (core / "OptiScaler.ini").write_bytes(original)
+        (core / "OptiScaler/libxess.dll").write_bytes(b"synthetic XeSS")
+        ini = self.target / "OptiScaler.ini"
+        ini.write_bytes(original)
+        plugin = self.files({"OptiPatcher.asi": b"synthetic ASI"})["OptiPatcher.asi"]
+        artifacts = types.SimpleNamespace(resolve_asset=lambda *a: {"tag": "nightly"})
+        discovery = types.SimpleNamespace(discover_game_directory=lambda *a, **kw: self.target)
+        override = {"OptiScaler_Libraries_OptiDllPath": "custom", "OptiScaler_Plugins_Path": str(self.game / "explicit-plugins"), "OptiScaler_Plugins_LoadAsiPlugins": "false"}
+        with patch.dict(sys.modules, artifacts=artifacts, game_discovery=discovery), patch.object(self.installer, "cached_package", return_value=core), patch.object(self.installer, "optional_components", return_value=({"OptiPatcher.asi": plugin}, {}, {}, [])), patch.dict(os.environ, {"HOME": str(self.directory), **override}), patch.object(sys, "path", [str(HERE / "scripts"), *sys.path]):
+            self.installer.main(["install", str(self.game)])
+            self.assertTrue((self.target / "custom/libxess.dll").is_file())
+            self.assertTrue((self.game / "explicit-plugins/OptiPatcher.asi").is_file())
+            self.assertNotIn(b"LoadAsiPlugins=true", ini.read_bytes())
+            for key in override:
+                os.environ.pop(key)
+            self.installer.main(["install", str(self.game)])
+            self.assertTrue((self.target / "OptiScaler/libxess.dll").is_file())
+            self.assertTrue((self.target / "OptiScaler/plugins/OptiPatcher.asi").is_file())
+            self.assertFalse((self.target / "custom/libxess.dll").exists())
+            self.assertFalse((self.game / "explicit-plugins/OptiPatcher.asi").exists())
+            self.assertEqual(ini.read_bytes(), original.replace(b"LoadAsiPlugins=false", b"LoadAsiPlugins=true"))
+            self.installer.main(["uninstall", str(self.game)])
+        self.assertEqual(ini.read_bytes(), original)
+
+    def test_interrupted_environment_transaction_recovers_exact_permissions(self):
+        ini = self.target / "OptiScaler.ini"
+        original = b"[User]\nFont=old\n[Plugins]\nLoadAsiPlugins=false\n"
+        ini.write_bytes(original)
+        ini.chmod(0o640)
+        files = self.files({"OptiScaler.ini": original})
+        override = {("User", "Font"): "requested"}
+        real_save = self.installer.save_state
+        def interrupted(path, state):
+            if state.get("transaction") and ini.read_bytes() != original:
+                raise SystemExit("power loss after INI write")
+            return real_save(path, state)
+        with patch.object(sys, "path", [str(HERE / "scripts"), *sys.path]), patch.object(self.installer, "save_state", interrupted), patch.object(self.installer, "recover_transaction", side_effect=SystemExit("power loss")):
+            with self.assertRaises(SystemExit):
+                self.installer.apply_install(self.game, self.target, files, self.state, configuration=override, explicit_overrides=override, asi_only=True)
+        self.assertIn(b"Font=requested", ini.read_bytes())
+        with patch.object(sys, "path", [str(HERE / "scripts"), *sys.path]):
+            self.installer.uninstall(self.game, self.state, asi_only=True)
+        self.assertEqual(ini.read_bytes(), original)
+        self.assertEqual(ini.stat().st_mode & 0o7777, 0o640)
+
+    def test_explicit_case_sensitive_literal_values_survive_removal_and_foreign_edits(self):
+        ini = self.target / "OptiScaler.ini"
+        original = b"\xef\xbb\xbf[User]\r\nPath=old\r\nPATH=other\r\n[Plugins]\r\nLoadAsiPlugins=false\r\n"
+        ini.write_bytes(original)
+        files = self.files({"OptiScaler.ini": original})
+        override = {("User", "Path"): r"C:\1\g<1> 50% $HOME ; literal # value"}
+        configuration = {("Plugins", "LoadAsiPlugins"): "true", **override}
+        with patch.object(sys, "path", [str(HERE / "scripts"), *sys.path]):
+            for _ in range(2):
+                self.installer.apply_install(self.game, self.target, files, self.state, configuration=configuration, explicit_overrides=override, asi_only=True)
+            self.assertIn(("Path=" + override[("User", "Path")] + "\r\nPATH=other").encode(), ini.read_bytes())
+            ini.write_bytes(ini.read_bytes().replace(override[("User", "Path")].encode(), b"overlay-user-value") + b"[Added]\r\nKey=keep\r\n")
+            self.installer.apply_install(self.game, self.target, files, self.state, configuration={("Plugins", "LoadAsiPlugins"): "true"}, asi_only=True)
+            self.installer.uninstall(self.game, self.state, asi_only=True)
+        self.assertEqual(ini.read_bytes(), original.replace(b"Path=old", b"Path=overlay-user-value") + b"[Added]\r\nKey=keep\r\n")
+
+    def test_explicit_permissions_cannot_write_unrequested_or_mismatched_values(self):
+        original = b"[User]\nFont=old\n"
+        ini = self.target / "OptiScaler.ini"
+        ini.write_bytes(original)
+        files = self.files({"OptiScaler.ini": original})
+        for configuration in ({}, {("User", "Font"): "different"}):
+            with self.subTest(configuration=configuration), patch.object(sys, "path", [str(HERE / "scripts"), *sys.path]):
+                with self.assertRaises(self.installer.InstallerError):
+                    self.installer.apply_install(self.game, self.target, files, self.state, configuration=configuration, explicit_overrides={("User", "Font"): "requested"}, asi_only=True)
+            self.assertEqual(ini.read_bytes(), original)
+
+    def test_stale_effective_configuration_refuses_before_file_placement(self):
+        original = b"[User]\nFont=old\n"
+        ini = self.target / "OptiScaler.ini"
+        ini.write_bytes(original)
+        files = self.files({"OptiScaler.ini": original, "dxgi.dll": b"synthetic proxy"})
+        with patch.object(sys, "path", [str(HERE / "scripts"), *sys.path]):
+            with self.assertRaises(self.installer.InstallerError):
+                self.installer.apply_install(self.game, self.target, files, self.state, configuration={}, asi_only=True, expected_configuration_data=b"[User]\nFont=stale\n")
+        self.assertEqual(ini.read_bytes(), original)
+        self.assertFalse((self.target / "dxgi.dll").exists())
+
+    def test_new_environment_override_reacquires_current_not_retired_legacy_original(self):
+        original = b"[User]\nFont=old-original\n"
+        ini = self.target / "OptiScaler.ini"
+        ini.write_bytes(original)
+        files = self.files({"OptiScaler.ini": original})
+        self.installer.apply_install(self.game, self.target, files, self.state, configuration={("User", "Font"): "legacy-current"})
+        override = {("User", "Font"): "explicit-new"}
+        self.installer.apply_install(self.game, self.target, files, self.state, configuration=override, explicit_overrides=override, asi_only=True)
+        self.installer.uninstall(self.game, self.state, asi_only=True)
+        self.assertEqual(ini.read_bytes(), original.replace(b"old-original", b"legacy-current"))
+
+    def test_pending_environment_policy_cannot_authorize_other_setting_recovery(self):
+        ini = self.target / "OptiScaler.ini"
+        original = b"[User]\nFont=old\nOther=keep\n"
+        ini.write_bytes(original)
+        files = self.files({"OptiScaler.ini": original})
+        override = {("User", "Font"): "requested"}
+        real_save = self.installer.save_state
+        def interrupted(path, state):
+            if state.get("transaction") and ini.read_bytes() != original:
+                raise SystemExit("power loss")
+            return real_save(path, state)
+        with patch.object(self.installer, "save_state", interrupted), patch.object(self.installer, "recover_transaction", side_effect=SystemExit("power loss")):
+            with self.assertRaises(SystemExit):
+                self.installer.apply_install(self.game, self.target, files, self.state, configuration=override, explicit_overrides=override, asi_only=True)
+        journal = next(self.state.glob("*/state.json"))
+        state = json.loads(journal.read_text())
+        relative = ini.relative_to(self.game).as_posix()
+        ini.write_bytes(ini.read_bytes().replace(b"Other=keep", b"Other=forbidden"))
+        state["transaction"]["changes"][relative]["next"] = self.installer.digest(ini)
+        journal.write_text(json.dumps(state))
+        before = ini.read_bytes(), journal.read_bytes()
+        with self.assertRaisesRegex(self.installer.InstallerError, "setting permissions"):
+            self.installer.uninstall(self.game, self.state, asi_only=True)
+        self.assertEqual((ini.read_bytes(), journal.read_bytes()), before)
 
     def test_every_profile_is_file_only_and_optipatcher_is_mandatory(self):
         calls = []
