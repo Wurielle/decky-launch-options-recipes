@@ -730,7 +730,8 @@ def main(argv=None):
     if not args.game:
         raise InstallerError("Steam did not provide a game installation directory")
     root = Path(args.game).resolve(strict=True)
-    state_home = Path.home() / ".dlor/state/dlor-optiscaler"
+    home = Path.home().resolve(strict=True)
+    state_home = home / ".dlor/state/dlor-optiscaler"
     if args.action == "uninstall":
         result = uninstall(root, state_home)
         print("OptiScaler uninstall completed; changed external files preserved:", len(result["preserved"]))
@@ -752,7 +753,7 @@ def main(argv=None):
             previous = None
     target = (root if known == "." else safe_target(root, known)) if known is not None else discover_game_directory(root, game_argv, executable=os.environ.get("DLOR_OPTISCALER_EXECUTABLE"))
     proxy = choose_proxy(target, os.environ.get("DLOR_OPTISCALER_PROXY", "auto"), previous)
-    cache = Path.home() / ".dlor/cache/dlor-optiscaler/artifacts"
+    cache = home / ".dlor/cache/dlor-optiscaler/artifacts"
     asset = resolve_asset("optiscaler/OptiScaler-nightly", "nightly", r"(?i)(?!.*(?:debug|symbols|source)).*optiscaler.*\.7z", cache)
     core = cached_package(asset, cache)
     plugins, libraries, settings, components = optional_components(cache)

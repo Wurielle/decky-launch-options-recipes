@@ -133,7 +133,7 @@ def source_context():
         raise ValueError('invalid DLOR_SCRIPT_REVISION: expected a full lowercase Git commit')
     if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]*/[A-Za-z0-9][A-Za-z0-9_.-]*', repository):
         raise ValueError('invalid DLOR_REPOSITORY')
-    cache = private_directory(pathlib.Path.home() / '.dlor/cache/dlor-optiscaler/source' / revision)
+    cache = private_directory(pathlib.Path.home().resolve(strict=True) / '.dlor/cache/dlor-optiscaler/source' / revision)
     base = 'https://raw.githubusercontent.com/' + repository + '/' + revision + '/recipes/dlor-optiscaler/scripts/'
     return cache, base
 

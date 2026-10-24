@@ -2,7 +2,7 @@ import type { LaunchOption, Recipe } from '../shared/types.js'
 
 const group = 'DLOR OptiScaler'
 // Refreshed with the shell entrypoints by scripts/update-source-hashes.py.
-const launchSha256 = '90702109f4d5a9777f130264db7a67776d6f8c46c39c26d946f982b90109d4ff'
+const launchSha256 = '2bbff283996b4ab83606a96955024cd0ae387571844981aa51d828258fec4fbc'
 const required = (name: string, pattern: RegExp) => {
     const value = process.env[name]
     if (!value || !pattern.test(value)) throw new Error(`Missing or invalid ${name}`)

@@ -84,6 +84,35 @@ def main(argv=None):
         return subprocess.run(['bash', str(self.scripts / name), *map(str, args)],
                               env=self.env, capture_output=True, text=True, timeout=15)
 
+    def test_sources_accept_a_symlinked_home_ancestor(self):
+        self.generate()
+        alias = self.root / 'home-parent-alias'
+        alias.symlink_to(self.root, target_is_directory=True)
+        self.env['HOME'] = str(alias / self.home.name)
+        for name in ('install.sh', 'uninstall.sh'):
+            with self.subTest(entry=name):
+                result = self.run_script(name, self.game)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertTrue(self.trace.exists(), result.stdout + result.stderr)
+                self.trace.unlink()
+        self.env['DLOR_OPTISCALER_ACTION'] = 'install'
+        result = self.run_script('launch.sh', *self.game_command())
+        self.assertEqual(result.returncode, 23, result.stdout + result.stderr)
+        self.assertTrue(self.trace.exists(), result.stdout + result.stderr)
+
+    def test_sources_still_reject_a_symlink_inside_the_home_cache(self):
+        self.generate()
+        target = self.root / 'outside-source-cache'
+        target.mkdir()
+        source = self.home / '.dlor/cache/dlor-optiscaler/source'
+        source.parent.mkdir(parents=True)
+        source.symlink_to(target, target_is_directory=True)
+        result = self.run_script('install.sh', self.game)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('unsafe cache directory', result.stderr + result.stdout)
+        self.assertFalse(self.trace.exists())
+        self.assertEqual(list(target.iterdir()), [])
+
     def test_cold_direct_install_fetches_verified_isolated_source(self):
         self.generate()
         result = self.run_script('install.sh', self.game)

@@ -58,7 +58,7 @@ finish_log() {
 entry_name=install
 start_log "$entry_name"
 host python3 -I -B -c 'ACTION = '\''install'\''
-SOURCE_SHA256 = {'\''installer.py'\'': '\''9986ae348a693ba61d0dffa3e77ae2cc3fb9a0965825c3400cbc1fedbf1d1110'\'', '\''artifacts.py'\'': '\''1ad5feff0adfbe09829bc1b7d93ec0c67e823f1e04711a00359a3ee1705671b7'\'', '\''game_discovery.py'\'': '\''f5d2aeb6bf3abd9c8e1968427abb21d848e3d273c2f9fc792666042f37b0fe49'\''}
+SOURCE_SHA256 = {'\''installer.py'\'': '\''1eb74db32cb4f49415834bf0fd36ca0c103fd9d60d478d0a1f74b610e48984a7'\'', '\''artifacts.py'\'': '\''1ad5feff0adfbe09829bc1b7d93ec0c67e823f1e04711a00359a3ee1705671b7'\'', '\''game_discovery.py'\'': '\''f5d2aeb6bf3abd9c8e1968427abb21d848e3d273c2f9fc792666042f37b0fe49'\''}
 
 import hashlib, importlib.abc, importlib.util, json, os, pathlib, re, signal, stat, subprocess, sys, tempfile
 
@@ -120,7 +120,7 @@ def source_context():
         raise ValueError('\''invalid DLOR_SCRIPT_REVISION: expected a full lowercase Git commit'\'')
     if not re.fullmatch(r'\''[A-Za-z0-9][A-Za-z0-9_.-]*/[A-Za-z0-9][A-Za-z0-9_.-]*'\'', repository):
         raise ValueError('\''invalid DLOR_REPOSITORY'\'')
-    cache = private_directory(pathlib.Path.home() / '\''.dlor/cache/dlor-optiscaler/source'\'' / revision)
+    cache = private_directory(pathlib.Path.home().resolve(strict=True) / '\''.dlor/cache/dlor-optiscaler/source'\'' / revision)
     base = '\''https://raw.githubusercontent.com/'\'' + repository + '\''/'\'' + revision + '\''/recipes/dlor-optiscaler/scripts/'\''
     return cache, base
 

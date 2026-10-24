@@ -177,7 +177,9 @@ class InstallationTests(unittest.TestCase):
         discovery = types.SimpleNamespace(discover_game_directory=lambda *args, **kwargs: self.target)
         result = self.directory / "result.json"
         (self.directory / ".dlor/cache/dlor-optiscaler/artifacts").mkdir(parents=True)
-        with patch.dict(sys.modules, {"artifacts": artifacts, "game_discovery": discovery}), patch.object(artifacts, "resolve_asset", resolve), patch.object(artifacts, "download_asset", lambda asset, cache: archive), patch.dict(os.environ, {"HOME": str(self.directory)}):
+        home_alias = self.directory / "home-alias"
+        home_alias.symlink_to(self.directory, target_is_directory=True)
+        with patch.dict(sys.modules, {"artifacts": artifacts, "game_discovery": discovery}), patch.object(artifacts, "resolve_asset", resolve), patch.object(artifacts, "download_asset", lambda asset, cache: archive), patch.dict(os.environ, {"HOME": str(home_alias)}):
             os.environ.pop("DLOR_OPTISCALER_CHANNEL", None)
             self.installer.main(["install", str(self.game), "--result", str(result)])
             self.assertEqual(json.loads(result.read_text())["proxy"], "dxgi")

@@ -83,7 +83,7 @@ trap 'cancel_launch TERM 143' TERM
 work=$(host mktemp -d "${TMPDIR:-$HOME/.dlor}/dlor-optiscaler.XXXXXXXX")
 status=$?
 if [[ -n $work && $status == 0 ]]; then
-    host_exec python3 -I -B -c 'ENTRY_SHA256 = {'\''install.sh'\'': '\''a87e404b44bdd81f650dfc5df61f88bff0eadd1b22bc5f1a442dcc5dfdfdef05'\'', '\''uninstall.sh'\'': '\''b6059d29339da7ec9447ce6558323f1c2c59ad820ca28b7cb71a0dc8db222b73'\''}
+    host_exec python3 -I -B -c 'ENTRY_SHA256 = {'\''install.sh'\'': '\''c9d4c71b64fb840c345005410722dd4001893ab18c72752604c4fb406fffd242'\'', '\''uninstall.sh'\'': '\''d6c980b77439ca22c973cb0cffbd6a252c53c008ec13471228f636d363011f3d'\''}
 
 import hashlib, importlib.abc, importlib.util, json, os, pathlib, re, signal, stat, subprocess, sys, tempfile
 
@@ -145,7 +145,7 @@ def source_context():
         raise ValueError('\''invalid DLOR_SCRIPT_REVISION: expected a full lowercase Git commit'\'')
     if not re.fullmatch(r'\''[A-Za-z0-9][A-Za-z0-9_.-]*/[A-Za-z0-9][A-Za-z0-9_.-]*'\'', repository):
         raise ValueError('\''invalid DLOR_REPOSITORY'\'')
-    cache = private_directory(pathlib.Path.home() / '\''.dlor/cache/dlor-optiscaler/source'\'' / revision)
+    cache = private_directory(pathlib.Path.home().resolve(strict=True) / '\''.dlor/cache/dlor-optiscaler/source'\'' / revision)
     base = '\''https://raw.githubusercontent.com/'\'' + repository + '\''/'\'' + revision + '\''/recipes/dlor-optiscaler/scripts/'\''
     return cache, base
 
