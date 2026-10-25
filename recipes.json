@@ -13,7 +13,7 @@
         "id": "optiscaler-nightly-upgrade",
         "group": "OptiScaler",
         "name": "OptiScaler Nightly Upgrade",
-        "on": "~/.dlor/run optiscaler update-nightly 9a6374817562c4c53ff35591283e2fd562a842c5 -- %command%",
+        "on": "~/.dlor/run optiscaler update-nightly b8e1fdf2668761ff5d771f02c6524ef1a8869cff -- %command%",
         "off": "",
         "enableGlobally": false,
         "priority": -1
@@ -743,7 +743,7 @@
       {
         "id": "optiscaler-fsr4-preset-none",
         "group": "OptiScaler",
-        "name": "OptiScaler FSR 4 Preset",
+        "name": "OptiScaler FSR4 Preset",
         "on": "",
         "off": "",
         "enableGlobally": false,
@@ -754,7 +754,7 @@
       {
         "id": "optiscaler-fsr4-preset-auto",
         "group": "OptiScaler",
-        "name": "OptiScaler FSR 4 Preset",
+        "name": "OptiScaler FSR4 Preset",
         "on": "OptiScaler_FSR_Fsr4Preset=\"auto\"",
         "off": "",
         "enableGlobally": false,
@@ -764,7 +764,7 @@
       {
         "id": "optiscaler-fsr4-preset-0",
         "group": "OptiScaler",
-        "name": "OptiScaler FSR 4 Preset",
+        "name": "OptiScaler FSR4 Preset",
         "on": "OptiScaler_FSR_Fsr4Preset=\"0\"",
         "off": "",
         "enableGlobally": false,
@@ -774,7 +774,7 @@
       {
         "id": "optiscaler-fsr4-preset-1",
         "group": "OptiScaler",
-        "name": "OptiScaler FSR 4 Preset",
+        "name": "OptiScaler FSR4 Preset",
         "on": "OptiScaler_FSR_Fsr4Preset=\"1\"",
         "off": "",
         "enableGlobally": false,
@@ -784,7 +784,7 @@
       {
         "id": "optiscaler-fsr4-preset-2",
         "group": "OptiScaler",
-        "name": "OptiScaler FSR 4 Preset",
+        "name": "OptiScaler FSR4 Preset",
         "on": "OptiScaler_FSR_Fsr4Preset=\"2\"",
         "off": "",
         "enableGlobally": false,
@@ -794,7 +794,7 @@
       {
         "id": "optiscaler-fsr4-preset-3",
         "group": "OptiScaler",
-        "name": "OptiScaler FSR 4 Preset",
+        "name": "OptiScaler FSR4 Preset",
         "on": "OptiScaler_FSR_Fsr4Preset=\"3\"",
         "off": "",
         "enableGlobally": false,
@@ -804,7 +804,7 @@
       {
         "id": "optiscaler-fsr4-preset-4",
         "group": "OptiScaler",
-        "name": "OptiScaler FSR 4 Preset",
+        "name": "OptiScaler FSR4 Preset",
         "on": "OptiScaler_FSR_Fsr4Preset=\"4\"",
         "off": "",
         "enableGlobally": false,
@@ -814,7 +814,7 @@
       {
         "id": "optiscaler-fsr4-preset-5",
         "group": "OptiScaler",
-        "name": "OptiScaler FSR 4 Preset",
+        "name": "OptiScaler FSR4 Preset",
         "on": "OptiScaler_FSR_Fsr4Preset=\"5\"",
         "off": "",
         "enableGlobally": false,
@@ -3536,7 +3536,7 @@
         "id": "reframework-install-update",
         "group": "REFramework",
         "name": "REFramework",
-        "on": "WINEDLLOVERRIDES=\"dinput8.dll=n,b\" ~/.dlor/run reframework update 9a6374817562c4c53ff35591283e2fd562a842c5 -- %command%",
+        "on": "WINEDLLOVERRIDES=\"dinput8.dll=n,b\" ~/.dlor/run reframework update b8e1fdf2668761ff5d771f02c6524ef1a8869cff -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "reframework",
@@ -3546,7 +3546,7 @@
         "id": "reframework-uninstall",
         "group": "REFramework",
         "name": "REFramework",
-        "on": "~/.dlor/run reframework uninstall 9a6374817562c4c53ff35591283e2fd562a842c5 -- %command%",
+        "on": "~/.dlor/run reframework uninstall b8e1fdf2668761ff5d771f02c6524ef1a8869cff -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "reframework",
@@ -3561,8 +3561,8 @@
         "id": "dlor-optiscaler",
         "group": "DLOR OptiScaler",
         "name": "DLOR OptiScaler",
-        "on": "WINEDLLOVERRIDES=\"dxgi=n,b\" DLOR_OPTISCALER_SOURCE_REVISION=\"9a6374817562c4c53ff35591283e2fd562a842c5\" DLOR_OPTISCALER_SOURCE_REPOSITORY=\"Wurielle/decky-launch-options-recipes\" ~/.dlor/run dlor-optiscaler install 9a6374817562c4c53ff35591283e2fd562a842c5 -- %command%",
-        "off": "DLOR_OPTISCALER_SOURCE_REVISION=\"9a6374817562c4c53ff35591283e2fd562a842c5\" DLOR_OPTISCALER_SOURCE_REPOSITORY=\"Wurielle/decky-launch-options-recipes\" ~/.dlor/run dlor-optiscaler uninstall 9a6374817562c4c53ff35591283e2fd562a842c5 -- %command%",
+        "on": "WINEDLLOVERRIDES=\"dxgi=n,b\" DLOR_OPTISCALER_SOURCE_REVISION=\"b8e1fdf2668761ff5d771f02c6524ef1a8869cff\" DLOR_OPTISCALER_SOURCE_REPOSITORY=\"Wurielle/decky-launch-options-recipes\" ~/.dlor/run dlor-optiscaler install b8e1fdf2668761ff5d771f02c6524ef1a8869cff -- %command%",
+        "off": "DLOR_OPTISCALER_SOURCE_REVISION=\"b8e1fdf2668761ff5d771f02c6524ef1a8869cff\" DLOR_OPTISCALER_SOURCE_REPOSITORY=\"Wurielle/decky-launch-options-recipes\" ~/.dlor/run dlor-optiscaler uninstall b8e1fdf2668761ff5d771f02c6524ef1a8869cff -- %command%",
         "enableGlobally": false
       },
       {
