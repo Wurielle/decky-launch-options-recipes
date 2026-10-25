@@ -141,11 +141,45 @@ class SettingsTests(unittest.TestCase):
         self.assertEqual(self.values("optiscaler-fsr4-gpu-support", "OptiScaler_FSR_Fsr4GpuSupport"),
                          {"auto", "0", "1", "2", "3", "4"})
 
-    def test_option_labels_have_no_parenthetical_text(self):
-        for option in [*self.options, *self.installer_options]:
+    def test_new_option_labels_have_no_parenthetical_text(self):
+        for option in self.installer_options:
             for field in ("name", "valueName"):
+                self.assertNotRegex(option.get(field, ""), r"[()]")
+        for option in self.options:
+            new_control = option.get("valueId", "").startswith((
+                "optiscaler-xefg-", "optiscaler-dlssg-", "optiscaler-fsr4-gpu-support", "optiscaler-fsr4-model"))
+            new_value = option["id"] in {
+                "optiscaler-upscalers-dx11-ffx-12", "optiscaler-upscalers-dx12-ffx",
+                "optiscaler-upscalers-vk-ffx", "optiscaler-upscalers-vk-ffx-12",
+                "optiscaler-framegen-input-xefg", "optiscaler-framegen-output-reprojection",
+            }
+            for field in (("name", "valueName") if new_control else ("valueName",) if new_value else ()):
                 with self.subTest(option=option["id"], field=field):
                     self.assertNotRegex(option.get(field, ""), r"[()]")
+
+    def test_existing_labels_preserve_their_parenthetical_details(self):
+        groups = {"optiscaler-upscalers-dx11": "OptiScaler Upscaler (Dx11)",
+                  "optiscaler-upscalers-dx12": "OptiScaler Upscaler (Dx12)",
+                  "optiscaler-upscalers-vk": "OptiScaler Upscaler (Vulkan)"}
+        for option in self.options:
+            if option.get("valueId") in groups:
+                self.assertEqual(option["name"], groups[option["valueId"]])
+        labels = {
+            "optiscaler-framegen-input-upscaler": "OptiFG (Upscaler)",
+            "optiscaler-upscalers-dx11-fsr22": "FSR 2.2 (native)",
+            "optiscaler-upscalers-dx11-fsr31": "FSR 3.1 (native)",
+            "optiscaler-upscalers-dx11-xess": "XeSS (native, Arc only)",
+            "optiscaler-upscalers-dx11-xess12": "XeSS (DX11on12)",
+            "optiscaler-upscalers-dx11-fsr21-12": "FSR 2.1 (DX11on12)",
+            "optiscaler-upscalers-dx11-fsr22-12": "FSR 2.2 (DX11on12)",
+            "optiscaler-upscalers-vk-fsr21": "FSR 2.1 (native)",
+            "optiscaler-upscalers-vk-fsr22": "FSR 2.2 (native)",
+            "optiscaler-upscalers-vk-xess": "XeSS (native)",
+            "optiscaler-upscalers-vk-fsr21-12": "FSR 2.1 (VKon12)",
+        }
+        options = {option["id"]: option for option in self.options}
+        for id_, label in labels.items():
+            self.assertEqual(options[id_]["valueName"], label)
 
     def test_framegen_controls_share_the_framegen_label_prefix(self):
         for option in self.options:

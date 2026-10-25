@@ -114,7 +114,7 @@ const frameGenInputValues = [
     },
     {
         id: 'upscaler',
-        name: 'OptiFG',
+        name: 'OptiFG (Upscaler)',
         value: 'upscaler',
     },
     {
@@ -187,32 +187,32 @@ const dx11UpscalerValues = [
     },
     {
         id: 'fsr22',
-        name: 'FSR 2.2',
+        name: 'FSR 2.2 (native)',
         value: 'fsr22',
     },
     {
         id: 'fsr31',
-        name: 'FSR 3.1',
+        name: 'FSR 3.1 (native)',
         value: 'fsr31',
     },
     {
         id: 'xess',
-        name: 'XeSS',
+        name: 'XeSS (native, Arc only)',
         value: 'xess',
     },
     {
         id: 'xess12',
-        name: 'XeSS',
+        name: 'XeSS (DX11on12)',
         value: 'xess_12',
     },
     {
         id: 'fsr21-12',
-        name: 'FSR 2.1',
+        name: 'FSR 2.1 (DX11on12)',
         value: 'fsr21_12',
     },
     {
         id: 'fsr22-12',
-        name: 'FSR 2.2',
+        name: 'FSR 2.2 (DX11on12)',
         value: 'fsr22_12',
     },
     {
@@ -268,12 +268,12 @@ const vulkanUpscalerValues = [
     },
     {
         id: 'fsr21',
-        name: 'FSR 2.1',
+        name: 'FSR 2.1 (native)',
         value: 'fsr21',
     },
     {
         id: 'fsr22',
-        name: 'FSR 2.2',
+        name: 'FSR 2.2 (native)',
         value: 'fsr22',
     },
     {
@@ -283,12 +283,12 @@ const vulkanUpscalerValues = [
     },
     {
         id: 'xess',
-        name: 'XeSS',
+        name: 'XeSS (native)',
         value: 'xess',
     },
     {
         id: 'fsr21-12',
-        name: 'FSR 2.1',
+        name: 'FSR 2.1 (VKon12)',
         value: 'fsr21_12',
     },
     {
@@ -449,21 +449,21 @@ const launchOptions: LaunchOption[] = [
     ),
     ...optiScalerDropdown(
         'optiscaler-upscalers-dx11',
-        'OptiScaler Upscaler',
+        'OptiScaler Upscaler (Dx11)',
         'optiscaler-upscalers-dx11',
         'Upscalers_Dx11Upscaler',
         dx11UpscalerValues,
     ),
     ...optiScalerDropdown(
         'optiscaler-upscalers-dx12',
-        'OptiScaler Upscaler',
+        'OptiScaler Upscaler (Dx12)',
         'optiscaler-upscalers-dx12',
         'Upscalers_Dx12Upscaler',
         dx12UpscalerValues,
     ),
     ...optiScalerDropdown(
         'optiscaler-upscalers-vk',
-        'OptiScaler Upscaler',
+        'OptiScaler Upscaler (Vulkan)',
         'optiscaler-upscalers-vk',
         'Upscalers_VulkanUpscaler',
         vulkanUpscalerValues,
