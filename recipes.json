@@ -13,7 +13,7 @@
         "id": "optiscaler-nightly-upgrade",
         "group": "OptiScaler",
         "name": "OptiScaler Nightly Upgrade",
-        "on": "~/.dlor/run optiscaler update-nightly 5fd51842a3a89611caa340ab9bb3de7c5465bc5b -- %command%",
+        "on": "~/.dlor/run optiscaler update-nightly cc8f09bb13002641ce18bb50d23a48ad9594b293 -- %command%",
         "off": "",
         "enableGlobally": false,
         "priority": -1
@@ -213,7 +213,7 @@
         "off": "",
         "enableGlobally": false,
         "valueId": "optiscaler-framegen-input",
-        "valueName": "OptiFG"
+        "valueName": "OptiFG (Upscaler)"
       },
       {
         "id": "optiscaler-framegen-input-fsrfg30",
@@ -480,7 +480,7 @@
       {
         "id": "optiscaler-upscalers-dx11-none",
         "group": "OptiScaler",
-        "name": "OptiScaler Upscaler",
+        "name": "OptiScaler Upscaler (Dx11)",
         "on": "",
         "off": "",
         "enableGlobally": false,
@@ -491,7 +491,7 @@
       {
         "id": "optiscaler-upscalers-dx11-auto",
         "group": "OptiScaler",
-        "name": "OptiScaler Upscaler",
+        "name": "OptiScaler Upscaler (Dx11)",
         "on": "OptiScaler_Upscalers_Dx11Upscaler=\"auto\"",
         "off": "",
         "enableGlobally": false,
@@ -501,67 +501,67 @@
       {
         "id": "optiscaler-upscalers-dx11-fsr22",
         "group": "OptiScaler",
-        "name": "OptiScaler Upscaler",
+        "name": "OptiScaler Upscaler (Dx11)",
         "on": "OptiScaler_Upscalers_Dx11Upscaler=\"fsr22\"",
         "off": "",
         "enableGlobally": false,
         "valueId": "optiscaler-upscalers-dx11",
-        "valueName": "FSR 2.2"
+        "valueName": "FSR 2.2 (native)"
       },
       {
         "id": "optiscaler-upscalers-dx11-fsr31",
         "group": "OptiScaler",
-        "name": "OptiScaler Upscaler",
+        "name": "OptiScaler Upscaler (Dx11)",
         "on": "OptiScaler_Upscalers_Dx11Upscaler=\"fsr31\"",
         "off": "",
         "enableGlobally": false,
         "valueId": "optiscaler-upscalers-dx11",
-        "valueName": "FSR 3.1"
+        "valueName": "FSR 3.1 (native)"
       },
       {
         "id": "optiscaler-upscalers-dx11-xess",
         "group": "OptiScaler",
-        "name": "OptiScaler Upscaler",
+        "name": "OptiScaler Upscaler (Dx11)",
         "on": "OptiScaler_Upscalers_Dx11Upscaler=\"xess\"",
         "off": "",
         "enableGlobally": false,
         "valueId": "optiscaler-upscalers-dx11",
-        "valueName": "XeSS"
+        "valueName": "XeSS (native, Arc only)"
       },
       {
         "id": "optiscaler-upscalers-dx11-xess12",
         "group": "OptiScaler",
-        "name": "OptiScaler Upscaler",
+        "name": "OptiScaler Upscaler (Dx11)",
         "on": "OptiScaler_Upscalers_Dx11Upscaler=\"xess_12\"",
         "off": "",
         "enableGlobally": false,
         "valueId": "optiscaler-upscalers-dx11",
-        "valueName": "XeSS"
+        "valueName": "XeSS (DX11on12)"
       },
       {
         "id": "optiscaler-upscalers-dx11-fsr21-12",
         "group": "OptiScaler",
-        "name": "OptiScaler Upscaler",
+        "name": "OptiScaler Upscaler (Dx11)",
         "on": "OptiScaler_Upscalers_Dx11Upscaler=\"fsr21_12\"",
         "off": "",
         "enableGlobally": false,
         "valueId": "optiscaler-upscalers-dx11",
-        "valueName": "FSR 2.1"
+        "valueName": "FSR 2.1 (DX11on12)"
       },
       {
         "id": "optiscaler-upscalers-dx11-fsr22-12",
         "group": "OptiScaler",
-        "name": "OptiScaler Upscaler",
+        "name": "OptiScaler Upscaler (Dx11)",
         "on": "OptiScaler_Upscalers_Dx11Upscaler=\"fsr22_12\"",
         "off": "",
         "enableGlobally": false,
         "valueId": "optiscaler-upscalers-dx11",
-        "valueName": "FSR 2.2"
+        "valueName": "FSR 2.2 (DX11on12)"
       },
       {
         "id": "optiscaler-upscalers-dx11-ffx-12",
         "group": "OptiScaler",
-        "name": "OptiScaler Upscaler",
+        "name": "OptiScaler Upscaler (Dx11)",
         "on": "OptiScaler_Upscalers_Dx11Upscaler=\"ffx_12\"",
         "off": "",
         "enableGlobally": false,
@@ -571,7 +571,7 @@
       {
         "id": "optiscaler-upscalers-dx11-dlss",
         "group": "OptiScaler",
-        "name": "OptiScaler Upscaler",
+        "name": "OptiScaler Upscaler (Dx11)",
         "on": "OptiScaler_Upscalers_Dx11Upscaler=\"dlss\"",
         "off": "",
         "enableGlobally": false,
@@ -581,7 +581,7 @@
       {
         "id": "optiscaler-upscalers-dx12-none",
         "group": "OptiScaler",
-        "name": "OptiScaler Upscaler",
+        "name": "OptiScaler Upscaler (Dx12)",
         "on": "",
         "off": "",
         "enableGlobally": false,
@@ -592,7 +592,7 @@
       {
         "id": "optiscaler-upscalers-dx12-auto",
         "group": "OptiScaler",
-        "name": "OptiScaler Upscaler",
+        "name": "OptiScaler Upscaler (Dx12)",
         "on": "OptiScaler_Upscalers_Dx12Upscaler=\"auto\"",
         "off": "",
         "enableGlobally": false,
@@ -602,7 +602,7 @@
       {
         "id": "optiscaler-upscalers-dx12-xess",
         "group": "OptiScaler",
-        "name": "OptiScaler Upscaler",
+        "name": "OptiScaler Upscaler (Dx12)",
         "on": "OptiScaler_Upscalers_Dx12Upscaler=\"xess\"",
         "off": "",
         "enableGlobally": false,
@@ -612,7 +612,7 @@
       {
         "id": "optiscaler-upscalers-dx12-fsr21",
         "group": "OptiScaler",
-        "name": "OptiScaler Upscaler",
+        "name": "OptiScaler Upscaler (Dx12)",
         "on": "OptiScaler_Upscalers_Dx12Upscaler=\"fsr21\"",
         "off": "",
         "enableGlobally": false,
@@ -622,7 +622,7 @@
       {
         "id": "optiscaler-upscalers-dx12-fsr22",
         "group": "OptiScaler",
-        "name": "OptiScaler Upscaler",
+        "name": "OptiScaler Upscaler (Dx12)",
         "on": "OptiScaler_Upscalers_Dx12Upscaler=\"fsr22\"",
         "off": "",
         "enableGlobally": false,
@@ -632,7 +632,7 @@
       {
         "id": "optiscaler-upscalers-dx12-ffx",
         "group": "OptiScaler",
-        "name": "OptiScaler Upscaler",
+        "name": "OptiScaler Upscaler (Dx12)",
         "on": "OptiScaler_Upscalers_Dx12Upscaler=\"ffx\"",
         "off": "",
         "enableGlobally": false,
@@ -642,7 +642,7 @@
       {
         "id": "optiscaler-upscalers-dx12-dlss",
         "group": "OptiScaler",
-        "name": "OptiScaler Upscaler",
+        "name": "OptiScaler Upscaler (Dx12)",
         "on": "OptiScaler_Upscalers_Dx12Upscaler=\"dlss\"",
         "off": "",
         "enableGlobally": false,
@@ -652,7 +652,7 @@
       {
         "id": "optiscaler-upscalers-vk-none",
         "group": "OptiScaler",
-        "name": "OptiScaler Upscaler",
+        "name": "OptiScaler Upscaler (Vulkan)",
         "on": "",
         "off": "",
         "enableGlobally": false,
@@ -663,7 +663,7 @@
       {
         "id": "optiscaler-upscalers-vk-auto",
         "group": "OptiScaler",
-        "name": "OptiScaler Upscaler",
+        "name": "OptiScaler Upscaler (Vulkan)",
         "on": "OptiScaler_Upscalers_VulkanUpscaler=\"auto\"",
         "off": "",
         "enableGlobally": false,
@@ -673,27 +673,27 @@
       {
         "id": "optiscaler-upscalers-vk-fsr21",
         "group": "OptiScaler",
-        "name": "OptiScaler Upscaler",
+        "name": "OptiScaler Upscaler (Vulkan)",
         "on": "OptiScaler_Upscalers_VulkanUpscaler=\"fsr21\"",
         "off": "",
         "enableGlobally": false,
         "valueId": "optiscaler-upscalers-vk",
-        "valueName": "FSR 2.1"
+        "valueName": "FSR 2.1 (native)"
       },
       {
         "id": "optiscaler-upscalers-vk-fsr22",
         "group": "OptiScaler",
-        "name": "OptiScaler Upscaler",
+        "name": "OptiScaler Upscaler (Vulkan)",
         "on": "OptiScaler_Upscalers_VulkanUpscaler=\"fsr22\"",
         "off": "",
         "enableGlobally": false,
         "valueId": "optiscaler-upscalers-vk",
-        "valueName": "FSR 2.2"
+        "valueName": "FSR 2.2 (native)"
       },
       {
         "id": "optiscaler-upscalers-vk-ffx",
         "group": "OptiScaler",
-        "name": "OptiScaler Upscaler",
+        "name": "OptiScaler Upscaler (Vulkan)",
         "on": "OptiScaler_Upscalers_VulkanUpscaler=\"ffx\"",
         "off": "",
         "enableGlobally": false,
@@ -703,27 +703,27 @@
       {
         "id": "optiscaler-upscalers-vk-xess",
         "group": "OptiScaler",
-        "name": "OptiScaler Upscaler",
+        "name": "OptiScaler Upscaler (Vulkan)",
         "on": "OptiScaler_Upscalers_VulkanUpscaler=\"xess\"",
         "off": "",
         "enableGlobally": false,
         "valueId": "optiscaler-upscalers-vk",
-        "valueName": "XeSS"
+        "valueName": "XeSS (native)"
       },
       {
         "id": "optiscaler-upscalers-vk-fsr21-12",
         "group": "OptiScaler",
-        "name": "OptiScaler Upscaler",
+        "name": "OptiScaler Upscaler (Vulkan)",
         "on": "OptiScaler_Upscalers_VulkanUpscaler=\"fsr21_12\"",
         "off": "",
         "enableGlobally": false,
         "valueId": "optiscaler-upscalers-vk",
-        "valueName": "FSR 2.1"
+        "valueName": "FSR 2.1 (VKon12)"
       },
       {
         "id": "optiscaler-upscalers-vk-ffx-12",
         "group": "OptiScaler",
-        "name": "OptiScaler Upscaler",
+        "name": "OptiScaler Upscaler (Vulkan)",
         "on": "OptiScaler_Upscalers_VulkanUpscaler=\"ffx_12\"",
         "off": "",
         "enableGlobally": false,
@@ -733,7 +733,7 @@
       {
         "id": "optiscaler-upscalers-vk-dlss",
         "group": "OptiScaler",
-        "name": "OptiScaler Upscaler",
+        "name": "OptiScaler Upscaler (Vulkan)",
         "on": "OptiScaler_Upscalers_VulkanUpscaler=\"dlss\"",
         "off": "",
         "enableGlobally": false,
@@ -3536,7 +3536,7 @@
         "id": "reframework-install-update",
         "group": "REFramework",
         "name": "REFramework",
-        "on": "WINEDLLOVERRIDES=\"dinput8.dll=n,b\" ~/.dlor/run reframework update 5fd51842a3a89611caa340ab9bb3de7c5465bc5b -- %command%",
+        "on": "WINEDLLOVERRIDES=\"dinput8.dll=n,b\" ~/.dlor/run reframework update cc8f09bb13002641ce18bb50d23a48ad9594b293 -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "reframework",
@@ -3546,7 +3546,7 @@
         "id": "reframework-uninstall",
         "group": "REFramework",
         "name": "REFramework",
-        "on": "~/.dlor/run reframework uninstall 5fd51842a3a89611caa340ab9bb3de7c5465bc5b -- %command%",
+        "on": "~/.dlor/run reframework uninstall cc8f09bb13002641ce18bb50d23a48ad9594b293 -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "reframework",
@@ -3561,8 +3561,8 @@
         "id": "dlor-optiscaler",
         "group": "DLOR OptiScaler",
         "name": "DLOR OptiScaler",
-        "on": "WINEDLLOVERRIDES=\"dxgi=n,b\" DLOR_OPTISCALER_SOURCE_REVISION=\"5fd51842a3a89611caa340ab9bb3de7c5465bc5b\" DLOR_OPTISCALER_SOURCE_REPOSITORY=\"Wurielle/decky-launch-options-recipes\" ~/.dlor/run dlor-optiscaler install 5fd51842a3a89611caa340ab9bb3de7c5465bc5b -- %command%",
-        "off": "DLOR_OPTISCALER_SOURCE_REVISION=\"5fd51842a3a89611caa340ab9bb3de7c5465bc5b\" DLOR_OPTISCALER_SOURCE_REPOSITORY=\"Wurielle/decky-launch-options-recipes\" ~/.dlor/run dlor-optiscaler uninstall 5fd51842a3a89611caa340ab9bb3de7c5465bc5b -- %command%",
+        "on": "WINEDLLOVERRIDES=\"dxgi=n,b\" DLOR_OPTISCALER_SOURCE_REVISION=\"cc8f09bb13002641ce18bb50d23a48ad9594b293\" DLOR_OPTISCALER_SOURCE_REPOSITORY=\"Wurielle/decky-launch-options-recipes\" ~/.dlor/run dlor-optiscaler install cc8f09bb13002641ce18bb50d23a48ad9594b293 -- %command%",
+        "off": "DLOR_OPTISCALER_SOURCE_REVISION=\"cc8f09bb13002641ce18bb50d23a48ad9594b293\" DLOR_OPTISCALER_SOURCE_REPOSITORY=\"Wurielle/decky-launch-options-recipes\" ~/.dlor/run dlor-optiscaler uninstall cc8f09bb13002641ce18bb50d23a48ad9594b293 -- %command%",
         "enableGlobally": false
       },
       {
