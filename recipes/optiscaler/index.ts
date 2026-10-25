@@ -333,17 +333,6 @@ const vsyncOptions: LaunchOption[] = vsyncValues.map((value): LaunchOption => ({
     ...(value.value === null ? {fallbackValue: true} : {}),
 }))
 
-const syncIntervalOptions: LaunchOption[] = optiScalerDropdown(
-    'optiscaler-vsync-sync-interval',
-    'OptiScaler VSync Sync Interval',
-    'optiscaler-vsync-sync-interval',
-    'VSync_SyncInterval',
-    [
-        {id: 'auto', name: 'Auto', value: 'auto'},
-        ...[0, 1, 2, 3].map((value) => ({id: `${value}`, name: `${value}`, value})),
-    ],
-)
-
 const booleanValues = [
     {id: 'auto', name: 'Auto', value: 'auto'},
     {id: 'on', name: 'On', value: true},
@@ -363,15 +352,6 @@ const mfgOptions: LaunchOption[] = ([['xefg', 'XeFG', 3], ['dlssg', 'DLSSG', 5]]
             [{id: 'auto', name: 'Auto', value: 'auto'}, ...counts],
         ),
         ...optiScalerDropdown(
-            `${prefix}-mfg-game-count`, `OptiScaler FrameGen ${section} Game MFG Override`, `${prefix}-mfg-game-count`,
-            `${section}_OverrideInterpolationCount`,
-            [
-                {id: 'auto', name: 'Auto', value: 'auto'},
-                {id: '0', name: 'Off', value: 0},
-                ...counts,
-            ],
-        ),
-        ...optiScalerDropdown(
             `${prefix}-target-fps`, `OptiScaler FrameGen ${section} Dynamic MFG Target FPS`, `${prefix}-target-fps`,
             `${section}_FramerateTargetDMFG`,
             [
@@ -385,10 +365,8 @@ const mfgOptions: LaunchOption[] = ([['xefg', 'XeFG', 3], ['dlssg', 'DLSSG', 5]]
 
 const dynamicMfgOptions: LaunchOption[] = ([
     ['xefg-dynamic-mfg', 'XeFG Dynamic MFG', 'XeFG_DynamicMFG'],
-    ['xefg-dynamic-allow-1x', 'XeFG Dynamic MFG Allow 1×', 'XeFG_DynamicAllow1X'],
     ['xefg-target-as-cap-dmfg', 'XeFG Dynamic MFG Use Target as FPS Limit', 'XeFG_TargetAsCapDMFG'],
     ['dlssg-force-dmfg', 'DLSSG Dynamic MFG', 'DLSSG_ForceDMFG'],
-    ['dlssg-override-force-dmfg', 'DLSSG Native Game Dynamic MFG Override', 'DLSSG_OverrideForceDMFG'],
 ] as const).flatMap(([id, name, setting]) => optiScalerDropdown(
     `optiscaler-${id}`, `OptiScaler FrameGen ${name}`, `optiscaler-${id}`, setting, booleanValues,
 ))
@@ -447,20 +425,6 @@ const launchOptions: LaunchOption[] = [
         frameGenOutputValues,
     ),
     ...optiScalerDropdown(
-        'optiscaler-framegen-nvngx-replacement',
-        'OptiScaler FrameGen Nvngx Replacement',
-        'optiscaler-framegen-nvngx-replacement',
-        'FrameGen_FGNvngxReplacement',
-        [
-            {id: 'auto', name: 'Auto', value: 'auto'},
-            {id: 'disabled', name: 'No replacement', value: 'None'},
-            {id: 'nukems', name: 'Nukem', value: 'Nukems'},
-            {id: 'arturs', name: 'Artur / Enabler', value: 'Arturs'},
-            {id: 'ffx', name: 'FidelityFX', value: 'FFX'},
-            {id: 'combo', name: 'FidelityFX + Enabler', value: 'Combo'},
-        ],
-    ),
-    ...optiScalerDropdown(
         'optiscaler-framerate-limit',
         'OptiScaler Framerate Limit',
         'optiscaler-framerate-limit',
@@ -505,34 +469,6 @@ const launchOptions: LaunchOption[] = [
         vulkanUpscalerValues,
     ),
     ...optiScalerDropdown(
-        'optiscaler-fsr-upscaler-index',
-        'OptiScaler FSR Upscaler Backend',
-        'optiscaler-fsr-upscaler-index',
-        'FSR_UpscalerIndex',
-        [
-            {
-                id: 'auto',
-                name: 'Auto',
-                value: 'auto',
-            },
-            {
-                id: '0',
-                name: 'Backend 0',
-                value: 0,
-            },
-            {
-                id: '1',
-                name: 'Backend 1',
-                value: 1,
-            },
-            {
-                id: '2',
-                name: 'Backend 2',
-                value: 2,
-            },
-        ],
-    ),
-    ...optiScalerDropdown(
         'optiscaler-fsr4-preset',
         'OptiScaler FSR 4 Preset',
         'optiscaler-fsr4-preset',
@@ -566,17 +502,6 @@ const launchOptions: LaunchOption[] = [
             {id: '3', name: 'INT8 Lite', value: 3},
         ],
     ),
-    ...optiScalerDropdown(
-        'optiscaler-fsr-fg-index',
-        'OptiScaler FrameGen FSR Backend',
-        'optiscaler-fsr-fg-index',
-        'FSR_FGIndex',
-        [
-            {id: 'auto', name: 'Auto', value: 'auto'},
-            {id: '0', name: 'Backend 0', value: 0},
-            {id: '1', name: 'Backend 1', value: 1},
-        ],
-    ),
     ...mfgOptions,
     ...dynamicMfgOptions,
     ...optiScalerDropdown(
@@ -592,7 +517,6 @@ const launchOptions: LaunchOption[] = [
         ],
     ),
     ...vsyncOptions,
-    ...syncIntervalOptions,
 ]
 
 const recipe = {

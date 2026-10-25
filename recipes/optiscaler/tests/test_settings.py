@@ -41,14 +41,11 @@ class SettingsTests(unittest.TestCase):
     def values(self, value_id, variable):
         return {entry[variable] for entry in self.assignments(value_id)}
 
-    def test_framegen_routes_use_current_output_and_replacement_settings(self):
+    def test_framegen_routes_use_current_input_and_output_settings(self):
         self.assertEqual(self.values("optiscaler-framegen-output", "OptiScaler_FrameGen_FGOutput"),
                          {"auto", "nofg", "fsrfg", "xefg", "dlssg", "reprojection"})
         self.assertEqual(self.values("optiscaler-framegen-input", "OptiScaler_FrameGen_FGInput"),
                          {"auto", "nofg", "dlssg", "nvngxfg", "fsrfg", "upscaler", "fsrfg30", "xefg"})
-        self.assertEqual(self.values("optiscaler-framegen-nvngx-replacement",
-                                     "OptiScaler_FrameGen_FGNvngxReplacement"),
-                         {"auto", "None", "Nukems", "Arturs", "FFX", "Combo"})
 
     def test_fsr_controls_use_canonical_upscalers_and_separate_gpu_model(self):
         for renderer in ("dx11", "dx12", "vk"):
@@ -67,12 +64,6 @@ class SettingsTests(unittest.TestCase):
                          {"auto", "0", "1", "2", "3"})
         self.assertEqual(self.values("optiscaler-fsr4-preset", "OptiScaler_FSR_Fsr4Preset"),
                          {"auto", "0", "1", "2", "3", "4", "5"})
-        self.assertEqual(self.values("optiscaler-fsr-fg-index", "OptiScaler_FSR_FGIndex"),
-                         {"auto", "0", "1"})
-        backends = [option for option in self.options
-                    if option.get("valueId") == "optiscaler-fsr-upscaler-index"]
-        self.assertFalse(any("4.0.2" in option["valueName"] or "3.1.5" in option["valueName"]
-                             for option in backends))
 
     def test_settings_are_assignments_with_inert_dropdown_defaults(self):
         ids = [option["id"] for option in self.options]
@@ -92,8 +83,6 @@ class SettingsTests(unittest.TestCase):
                 self.assertTrue(all(option.get("enableGlobally") is False for option in options))
         self.assertEqual(self.values("optiscaler-vsync", "OptiScaler_VSync_OverrideVsync"),
                          {"auto", "true"})
-        self.assertEqual(self.values("optiscaler-vsync-sync-interval", "OptiScaler_VSync_SyncInterval"),
-                         {"auto", "0", "1", "2", "3"})
 
     def test_mfg_controls_use_documented_counts_and_current_dynamic_keys(self):
         for engine, section, maximum in (("xefg", "XeFG", 3), ("dlssg", "DLSSG", 5)):
@@ -102,8 +91,6 @@ class SettingsTests(unittest.TestCase):
                 group = "optiscaler-" + engine
                 self.assertEqual(self.values(group + "-mfg-count", "OptiScaler_" + section + "_InterpolationCount"),
                                  {"auto"} | count_values)
-                self.assertEqual(self.values(group + "-mfg-game-count", "OptiScaler_" + section + "_OverrideInterpolationCount"),
-                                 {"auto", "0"} | count_values)
                 for count in range(1, maximum + 1):
                     option = next(o for o in self.options if o["id"] == group + "-mfg-count-" + str(count))
                     self.assertIn(str(count + 1) + "×", option["valueName"])
@@ -112,10 +99,8 @@ class SettingsTests(unittest.TestCase):
                 self.assertTrue(all(float(v) >= (10 if engine == "xefg" else 0) for v in targets if v != "auto"))
         for group, setting in {
             "xefg-dynamic-mfg": "XeFG_DynamicMFG",
-            "xefg-dynamic-allow-1x": "XeFG_DynamicAllow1X",
             "xefg-target-as-cap-dmfg": "XeFG_TargetAsCapDMFG",
             "dlssg-force-dmfg": "DLSSG_ForceDMFG",
-            "dlssg-override-force-dmfg": "DLSSG_OverrideForceDMFG",
         }.items():
             self.assertEqual(self.values("optiscaler-" + group, "OptiScaler_" + setting),
                              {"auto", "true", "false"})
@@ -129,6 +114,32 @@ class SettingsTests(unittest.TestCase):
         assert option is not None, 'Reprojection choice is missing'
         self.assertEqual(option["on"], 'OptiScaler_FrameGen_FGOutput="reprojection"')
         self.assertEqual(option["valueName"], "Reprojection")
+
+    def test_menu_only_controls_are_absent_and_legacy_launchers_remain(self):
+        removed = {
+            "optiscaler-framegen-nvngx-replacement",
+            "optiscaler-fsr-upscaler-index", "optiscaler-fsr-fg-index",
+            "optiscaler-xefg-mfg-game-count", "optiscaler-dlssg-mfg-game-count",
+            "optiscaler-dlssg-override-force-dmfg", "optiscaler-xefg-dynamic-allow-1x",
+            "optiscaler-vsync-sync-interval",
+        }
+        for option in self.options:
+            with self.subTest(option=option["id"]):
+                self.assertNotIn(option["id"], removed)
+                self.assertNotIn(option.get("valueId"), removed)
+                for variable in ["FrameGen_FGNvngxReplacement", "FSR_UpscalerIndex", "FSR_FGIndex",
+                                 "XeFG_OverrideInterpolationCount", "DLSSG_OverrideInterpolationCount",
+                                 "DLSSG_OverrideForceDMFG", "XeFG_DynamicAllow1X", "VSync_SyncInterval"]:
+                    self.assertNotIn("OptiScaler_" + variable + "=", option.get("on", ""))
+        self.assertTrue(any(o["id"] == "dlor-optiscaler" for o in self.installer_options))
+        legacy = next(o for o in self.options if o["id"] == "optiscaler")
+        self.assertEqual(legacy["on"], "~/fgmod/fgmod %command%")
+        self.assertEqual(legacy["off"], "~/fgmod/fgmod-uninstaller.sh %command%")
+        nightly = next(o for o in self.options if o["id"] == "optiscaler-nightly-upgrade")
+        self.assertIn("~/.dlor/run optiscaler update-nightly ", nightly["on"])
+        self.assertEqual(nightly["priority"], -1)
+        self.assertEqual(self.values("optiscaler-fsr4-gpu-support", "OptiScaler_FSR_Fsr4GpuSupport"),
+                         {"auto", "0", "1", "2", "3", "4"})
 
     def test_option_labels_have_no_parenthetical_text(self):
         for option in [*self.options, *self.installer_options]:
