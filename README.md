@@ -30,9 +30,12 @@ Here's what the generated recipes look like:
         "id": "optiscaler",
         "group": "OptiScaler",
         "name": "OptiScaler",
-        "on": "~/fgmod/fgmod %command%",
-        "off": "~/fgmod/fgmod-uninstaller.sh %command%",
-        "enableGlobally": false
+        "on": "",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler",
+        "valueName": "None",
+        "fallbackValue": true
       },
       {
         "id": "optiscaler-dx11-upscaler",

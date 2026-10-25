@@ -72,8 +72,9 @@ class SettingsTests(unittest.TestCase):
         for option in self.options:
             if option.get("valueId"):
                 groups.setdefault(option["valueId"], []).append(option)
-                for token in shlex.split(option["on"]):
-                    self.assertRegex(token, r"^OptiScaler_[A-Za-z0-9_]+=.*$")
+                if option["valueId"] != "optiscaler":
+                    for token in shlex.split(option["on"]):
+                        self.assertRegex(token, r"^OptiScaler_[A-Za-z0-9_]+=.*$")
         for name, options in groups.items():
             with self.subTest(group=name):
                 defaults = [option for option in options if option.get("fallbackValue")]
@@ -133,8 +134,8 @@ class SettingsTests(unittest.TestCase):
                     self.assertNotIn("OptiScaler_" + variable + "=", option.get("on", ""))
         self.assertTrue(any(o["id"] == "dlor-optiscaler" for o in self.installer_options))
         legacy = next(o for o in self.options if o["id"] == "optiscaler")
-        self.assertEqual(legacy["on"], "~/fgmod/fgmod %command%")
-        self.assertEqual(legacy["off"], "~/fgmod/fgmod-uninstaller.sh %command%")
+        self.assertEqual((legacy["valueId"], legacy["valueName"], legacy["on"], legacy["off"]),
+                         ("optiscaler", "None", "", ""))
         nightly = next(o for o in self.options if o["id"] == "optiscaler-nightly-upgrade")
         self.assertIn("~/.dlor/run optiscaler update-nightly ", nightly["on"])
         self.assertEqual(nightly["priority"], -1)
@@ -156,6 +157,15 @@ class SettingsTests(unittest.TestCase):
             for field in (("name", "valueName") if new_control else ("valueName",) if new_value else ()):
                 with self.subTest(option=option["id"], field=field):
                     self.assertNotRegex(option.get(field, ""), r"[()]")
+
+    def test_fgmod_actions_are_explicit_and_never_run_when_disabled(self):
+        choices = [o for o in self.options if o.get("valueId") == "optiscaler"]
+        self.assertEqual({o["valueName"]: o["on"] for o in choices}, {
+            "None": "", "Install": "~/fgmod/fgmod %command%",
+            "Uninstall": "~/fgmod/fgmod-uninstaller.sh %command%",
+        })
+        self.assertEqual([o["valueName"] for o in choices if o.get("fallbackValue")], ["None"])
+        self.assertTrue(all(o["off"] == "" and o["enableGlobally"] is False for o in choices))
 
     def test_existing_labels_preserve_their_parenthetical_details(self):
         groups = {"optiscaler-upscalers-dx11": "OptiScaler Upscaler (Dx11)",

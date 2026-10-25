@@ -372,13 +372,22 @@ const dynamicMfgOptions: LaunchOption[] = ([
 ))
 
 const launchOptions: LaunchOption[] = [
-    {
-        id: 'optiscaler',
+    // Keep the legacy ID on None so re-importing clears the old OFF uninstaller.
+    ...[
+        {id: 'optiscaler', name: 'None', command: ''},
+        {id: 'optiscaler-install', name: 'Install', command: '~/fgmod/fgmod %command%'},
+        {id: 'optiscaler-uninstall', name: 'Uninstall', command: '~/fgmod/fgmod-uninstaller.sh %command%'},
+    ].map((action): LaunchOption => ({
+        id: action.id,
         group: '',
         name: 'OptiScaler',
-        on: '~/fgmod/fgmod %command%',
-        off: '~/fgmod/fgmod-uninstaller.sh %command%',
-    },
+        on: action.command,
+        off: '',
+        enableGlobally: false,
+        valueId: 'optiscaler',
+        valueName: action.name,
+        ...(action.id === 'optiscaler' ? {fallbackValue: true} : {}),
+    })),
     {
         id: 'optiscaler-nightly-upgrade',
         group: optiScalerGroup,
