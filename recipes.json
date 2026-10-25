@@ -13,7 +13,7 @@
         "id": "optiscaler-nightly-upgrade",
         "group": "OptiScaler",
         "name": "OptiScaler Nightly Upgrade",
-        "on": "~/.dlor/run optiscaler update-nightly d189295fbe7a45d9b01e122b10abb488b13662bd -- %command%",
+        "on": "~/.dlor/run optiscaler update-nightly d12ed7fa21f4b2bcf77d7f8aa03795645f47cb17 -- %command%",
         "off": "",
         "enableGlobally": false,
         "priority": -1
@@ -305,77 +305,6 @@
         "enableGlobally": false,
         "valueId": "optiscaler-framegen-output",
         "valueName": "Reprojection"
-      },
-      {
-        "id": "optiscaler-framegen-nvngx-replacement-none",
-        "group": "OptiScaler",
-        "name": "OptiScaler FrameGen Nvngx Replacement",
-        "on": "",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-framegen-nvngx-replacement",
-        "valueName": "None",
-        "fallbackValue": true
-      },
-      {
-        "id": "optiscaler-framegen-nvngx-replacement-auto",
-        "group": "OptiScaler",
-        "name": "OptiScaler FrameGen Nvngx Replacement",
-        "on": "OptiScaler_FrameGen_FGNvngxReplacement=\"auto\"",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-framegen-nvngx-replacement",
-        "valueName": "Auto"
-      },
-      {
-        "id": "optiscaler-framegen-nvngx-replacement-disabled",
-        "group": "OptiScaler",
-        "name": "OptiScaler FrameGen Nvngx Replacement",
-        "on": "OptiScaler_FrameGen_FGNvngxReplacement=\"None\"",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-framegen-nvngx-replacement",
-        "valueName": "No replacement"
-      },
-      {
-        "id": "optiscaler-framegen-nvngx-replacement-nukems",
-        "group": "OptiScaler",
-        "name": "OptiScaler FrameGen Nvngx Replacement",
-        "on": "OptiScaler_FrameGen_FGNvngxReplacement=\"Nukems\"",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-framegen-nvngx-replacement",
-        "valueName": "Nukem"
-      },
-      {
-        "id": "optiscaler-framegen-nvngx-replacement-arturs",
-        "group": "OptiScaler",
-        "name": "OptiScaler FrameGen Nvngx Replacement",
-        "on": "OptiScaler_FrameGen_FGNvngxReplacement=\"Arturs\"",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-framegen-nvngx-replacement",
-        "valueName": "Artur / Enabler"
-      },
-      {
-        "id": "optiscaler-framegen-nvngx-replacement-ffx",
-        "group": "OptiScaler",
-        "name": "OptiScaler FrameGen Nvngx Replacement",
-        "on": "OptiScaler_FrameGen_FGNvngxReplacement=\"FFX\"",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-framegen-nvngx-replacement",
-        "valueName": "FidelityFX"
-      },
-      {
-        "id": "optiscaler-framegen-nvngx-replacement-combo",
-        "group": "OptiScaler",
-        "name": "OptiScaler FrameGen Nvngx Replacement",
-        "on": "OptiScaler_FrameGen_FGNvngxReplacement=\"Combo\"",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-framegen-nvngx-replacement",
-        "valueName": "FidelityFX + Enabler"
       },
       {
         "id": "optiscaler-framerate-limit-none",
@@ -812,57 +741,6 @@
         "valueName": "DLSS"
       },
       {
-        "id": "optiscaler-fsr-upscaler-index-none",
-        "group": "OptiScaler",
-        "name": "OptiScaler FSR Upscaler Backend",
-        "on": "",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-fsr-upscaler-index",
-        "valueName": "None",
-        "fallbackValue": true
-      },
-      {
-        "id": "optiscaler-fsr-upscaler-index-auto",
-        "group": "OptiScaler",
-        "name": "OptiScaler FSR Upscaler Backend",
-        "on": "OptiScaler_FSR_UpscalerIndex=\"auto\"",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-fsr-upscaler-index",
-        "valueName": "Auto"
-      },
-      {
-        "id": "optiscaler-fsr-upscaler-index-0",
-        "group": "OptiScaler",
-        "name": "OptiScaler FSR Upscaler Backend",
-        "on": "OptiScaler_FSR_UpscalerIndex=\"0\"",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-fsr-upscaler-index",
-        "valueName": "Backend 0"
-      },
-      {
-        "id": "optiscaler-fsr-upscaler-index-1",
-        "group": "OptiScaler",
-        "name": "OptiScaler FSR Upscaler Backend",
-        "on": "OptiScaler_FSR_UpscalerIndex=\"1\"",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-fsr-upscaler-index",
-        "valueName": "Backend 1"
-      },
-      {
-        "id": "optiscaler-fsr-upscaler-index-2",
-        "group": "OptiScaler",
-        "name": "OptiScaler FSR Upscaler Backend",
-        "on": "OptiScaler_FSR_UpscalerIndex=\"2\"",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-fsr-upscaler-index",
-        "valueName": "Backend 2"
-      },
-      {
         "id": "optiscaler-fsr4-preset-none",
         "group": "OptiScaler",
         "name": "OptiScaler FSR 4 Preset",
@@ -1076,47 +954,6 @@
         "valueName": "INT8 Lite"
       },
       {
-        "id": "optiscaler-fsr-fg-index-none",
-        "group": "OptiScaler",
-        "name": "OptiScaler FrameGen FSR Backend",
-        "on": "",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-fsr-fg-index",
-        "valueName": "None",
-        "fallbackValue": true
-      },
-      {
-        "id": "optiscaler-fsr-fg-index-auto",
-        "group": "OptiScaler",
-        "name": "OptiScaler FrameGen FSR Backend",
-        "on": "OptiScaler_FSR_FGIndex=\"auto\"",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-fsr-fg-index",
-        "valueName": "Auto"
-      },
-      {
-        "id": "optiscaler-fsr-fg-index-0",
-        "group": "OptiScaler",
-        "name": "OptiScaler FrameGen FSR Backend",
-        "on": "OptiScaler_FSR_FGIndex=\"0\"",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-fsr-fg-index",
-        "valueName": "Backend 0"
-      },
-      {
-        "id": "optiscaler-fsr-fg-index-1",
-        "group": "OptiScaler",
-        "name": "OptiScaler FrameGen FSR Backend",
-        "on": "OptiScaler_FSR_FGIndex=\"1\"",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-fsr-fg-index",
-        "valueName": "Backend 1"
-      },
-      {
         "id": "optiscaler-xefg-mfg-count-none",
         "group": "OptiScaler",
         "name": "OptiScaler FrameGen XeFG MFG Multiplier",
@@ -1165,67 +1002,6 @@
         "off": "",
         "enableGlobally": false,
         "valueId": "optiscaler-xefg-mfg-count",
-        "valueName": "4×"
-      },
-      {
-        "id": "optiscaler-xefg-mfg-game-count-none",
-        "group": "OptiScaler",
-        "name": "OptiScaler FrameGen XeFG Game MFG Override",
-        "on": "",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-xefg-mfg-game-count",
-        "valueName": "None",
-        "fallbackValue": true
-      },
-      {
-        "id": "optiscaler-xefg-mfg-game-count-auto",
-        "group": "OptiScaler",
-        "name": "OptiScaler FrameGen XeFG Game MFG Override",
-        "on": "OptiScaler_XeFG_OverrideInterpolationCount=\"auto\"",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-xefg-mfg-game-count",
-        "valueName": "Auto"
-      },
-      {
-        "id": "optiscaler-xefg-mfg-game-count-0",
-        "group": "OptiScaler",
-        "name": "OptiScaler FrameGen XeFG Game MFG Override",
-        "on": "OptiScaler_XeFG_OverrideInterpolationCount=\"0\"",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-xefg-mfg-game-count",
-        "valueName": "Off"
-      },
-      {
-        "id": "optiscaler-xefg-mfg-game-count-1",
-        "group": "OptiScaler",
-        "name": "OptiScaler FrameGen XeFG Game MFG Override",
-        "on": "OptiScaler_XeFG_OverrideInterpolationCount=\"1\"",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-xefg-mfg-game-count",
-        "valueName": "2×"
-      },
-      {
-        "id": "optiscaler-xefg-mfg-game-count-2",
-        "group": "OptiScaler",
-        "name": "OptiScaler FrameGen XeFG Game MFG Override",
-        "on": "OptiScaler_XeFG_OverrideInterpolationCount=\"2\"",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-xefg-mfg-game-count",
-        "valueName": "3×"
-      },
-      {
-        "id": "optiscaler-xefg-mfg-game-count-3",
-        "group": "OptiScaler",
-        "name": "OptiScaler FrameGen XeFG Game MFG Override",
-        "on": "OptiScaler_XeFG_OverrideInterpolationCount=\"3\"",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-xefg-mfg-game-count",
         "valueName": "4×"
       },
       {
@@ -1481,87 +1257,6 @@
         "valueName": "6×"
       },
       {
-        "id": "optiscaler-dlssg-mfg-game-count-none",
-        "group": "OptiScaler",
-        "name": "OptiScaler FrameGen DLSSG Game MFG Override",
-        "on": "",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-dlssg-mfg-game-count",
-        "valueName": "None",
-        "fallbackValue": true
-      },
-      {
-        "id": "optiscaler-dlssg-mfg-game-count-auto",
-        "group": "OptiScaler",
-        "name": "OptiScaler FrameGen DLSSG Game MFG Override",
-        "on": "OptiScaler_DLSSG_OverrideInterpolationCount=\"auto\"",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-dlssg-mfg-game-count",
-        "valueName": "Auto"
-      },
-      {
-        "id": "optiscaler-dlssg-mfg-game-count-0",
-        "group": "OptiScaler",
-        "name": "OptiScaler FrameGen DLSSG Game MFG Override",
-        "on": "OptiScaler_DLSSG_OverrideInterpolationCount=\"0\"",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-dlssg-mfg-game-count",
-        "valueName": "Off"
-      },
-      {
-        "id": "optiscaler-dlssg-mfg-game-count-1",
-        "group": "OptiScaler",
-        "name": "OptiScaler FrameGen DLSSG Game MFG Override",
-        "on": "OptiScaler_DLSSG_OverrideInterpolationCount=\"1\"",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-dlssg-mfg-game-count",
-        "valueName": "2×"
-      },
-      {
-        "id": "optiscaler-dlssg-mfg-game-count-2",
-        "group": "OptiScaler",
-        "name": "OptiScaler FrameGen DLSSG Game MFG Override",
-        "on": "OptiScaler_DLSSG_OverrideInterpolationCount=\"2\"",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-dlssg-mfg-game-count",
-        "valueName": "3×"
-      },
-      {
-        "id": "optiscaler-dlssg-mfg-game-count-3",
-        "group": "OptiScaler",
-        "name": "OptiScaler FrameGen DLSSG Game MFG Override",
-        "on": "OptiScaler_DLSSG_OverrideInterpolationCount=\"3\"",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-dlssg-mfg-game-count",
-        "valueName": "4×"
-      },
-      {
-        "id": "optiscaler-dlssg-mfg-game-count-4",
-        "group": "OptiScaler",
-        "name": "OptiScaler FrameGen DLSSG Game MFG Override",
-        "on": "OptiScaler_DLSSG_OverrideInterpolationCount=\"4\"",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-dlssg-mfg-game-count",
-        "valueName": "5×"
-      },
-      {
-        "id": "optiscaler-dlssg-mfg-game-count-5",
-        "group": "OptiScaler",
-        "name": "OptiScaler FrameGen DLSSG Game MFG Override",
-        "on": "OptiScaler_DLSSG_OverrideInterpolationCount=\"5\"",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-dlssg-mfg-game-count",
-        "valueName": "6×"
-      },
-      {
         "id": "optiscaler-dlssg-target-fps-none",
         "group": "OptiScaler",
         "name": "OptiScaler FrameGen DLSSG Dynamic MFG Target FPS",
@@ -1794,47 +1489,6 @@
         "valueName": "Off"
       },
       {
-        "id": "optiscaler-xefg-dynamic-allow-1x-none",
-        "group": "OptiScaler",
-        "name": "OptiScaler FrameGen XeFG Dynamic MFG Allow 1×",
-        "on": "",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-xefg-dynamic-allow-1x",
-        "valueName": "None",
-        "fallbackValue": true
-      },
-      {
-        "id": "optiscaler-xefg-dynamic-allow-1x-auto",
-        "group": "OptiScaler",
-        "name": "OptiScaler FrameGen XeFG Dynamic MFG Allow 1×",
-        "on": "OptiScaler_XeFG_DynamicAllow1X=\"auto\"",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-xefg-dynamic-allow-1x",
-        "valueName": "Auto"
-      },
-      {
-        "id": "optiscaler-xefg-dynamic-allow-1x-on",
-        "group": "OptiScaler",
-        "name": "OptiScaler FrameGen XeFG Dynamic MFG Allow 1×",
-        "on": "OptiScaler_XeFG_DynamicAllow1X=\"true\"",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-xefg-dynamic-allow-1x",
-        "valueName": "On"
-      },
-      {
-        "id": "optiscaler-xefg-dynamic-allow-1x-off",
-        "group": "OptiScaler",
-        "name": "OptiScaler FrameGen XeFG Dynamic MFG Allow 1×",
-        "on": "OptiScaler_XeFG_DynamicAllow1X=\"false\"",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-xefg-dynamic-allow-1x",
-        "valueName": "Off"
-      },
-      {
         "id": "optiscaler-xefg-target-as-cap-dmfg-none",
         "group": "OptiScaler",
         "name": "OptiScaler FrameGen XeFG Dynamic MFG Use Target as FPS Limit",
@@ -1914,47 +1568,6 @@
         "off": "",
         "enableGlobally": false,
         "valueId": "optiscaler-dlssg-force-dmfg",
-        "valueName": "Off"
-      },
-      {
-        "id": "optiscaler-dlssg-override-force-dmfg-none",
-        "group": "OptiScaler",
-        "name": "OptiScaler FrameGen DLSSG Native Game Dynamic MFG Override",
-        "on": "",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-dlssg-override-force-dmfg",
-        "valueName": "None",
-        "fallbackValue": true
-      },
-      {
-        "id": "optiscaler-dlssg-override-force-dmfg-auto",
-        "group": "OptiScaler",
-        "name": "OptiScaler FrameGen DLSSG Native Game Dynamic MFG Override",
-        "on": "OptiScaler_DLSSG_OverrideForceDMFG=\"auto\"",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-dlssg-override-force-dmfg",
-        "valueName": "Auto"
-      },
-      {
-        "id": "optiscaler-dlssg-override-force-dmfg-on",
-        "group": "OptiScaler",
-        "name": "OptiScaler FrameGen DLSSG Native Game Dynamic MFG Override",
-        "on": "OptiScaler_DLSSG_OverrideForceDMFG=\"true\"",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-dlssg-override-force-dmfg",
-        "valueName": "On"
-      },
-      {
-        "id": "optiscaler-dlssg-override-force-dmfg-off",
-        "group": "OptiScaler",
-        "name": "OptiScaler FrameGen DLSSG Native Game Dynamic MFG Override",
-        "on": "OptiScaler_DLSSG_OverrideForceDMFG=\"false\"",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-dlssg-override-force-dmfg",
         "valueName": "Off"
       },
       {
@@ -2048,67 +1661,6 @@
         "enableGlobally": false,
         "valueId": "optiscaler-vsync",
         "valueName": "Off"
-      },
-      {
-        "id": "optiscaler-vsync-sync-interval-none",
-        "group": "OptiScaler",
-        "name": "OptiScaler VSync Sync Interval",
-        "on": "",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-vsync-sync-interval",
-        "valueName": "None",
-        "fallbackValue": true
-      },
-      {
-        "id": "optiscaler-vsync-sync-interval-auto",
-        "group": "OptiScaler",
-        "name": "OptiScaler VSync Sync Interval",
-        "on": "OptiScaler_VSync_SyncInterval=\"auto\"",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-vsync-sync-interval",
-        "valueName": "Auto"
-      },
-      {
-        "id": "optiscaler-vsync-sync-interval-0",
-        "group": "OptiScaler",
-        "name": "OptiScaler VSync Sync Interval",
-        "on": "OptiScaler_VSync_SyncInterval=\"0\"",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-vsync-sync-interval",
-        "valueName": "0"
-      },
-      {
-        "id": "optiscaler-vsync-sync-interval-1",
-        "group": "OptiScaler",
-        "name": "OptiScaler VSync Sync Interval",
-        "on": "OptiScaler_VSync_SyncInterval=\"1\"",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-vsync-sync-interval",
-        "valueName": "1"
-      },
-      {
-        "id": "optiscaler-vsync-sync-interval-2",
-        "group": "OptiScaler",
-        "name": "OptiScaler VSync Sync Interval",
-        "on": "OptiScaler_VSync_SyncInterval=\"2\"",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-vsync-sync-interval",
-        "valueName": "2"
-      },
-      {
-        "id": "optiscaler-vsync-sync-interval-3",
-        "group": "OptiScaler",
-        "name": "OptiScaler VSync Sync Interval",
-        "on": "OptiScaler_VSync_SyncInterval=\"3\"",
-        "off": "",
-        "enableGlobally": false,
-        "valueId": "optiscaler-vsync-sync-interval",
-        "valueName": "3"
       }
     ]
   },
@@ -3984,7 +3536,7 @@
         "id": "reframework-install-update",
         "group": "REFramework",
         "name": "REFramework",
-        "on": "WINEDLLOVERRIDES=\"dinput8.dll=n,b\" ~/.dlor/run reframework update d189295fbe7a45d9b01e122b10abb488b13662bd -- %command%",
+        "on": "WINEDLLOVERRIDES=\"dinput8.dll=n,b\" ~/.dlor/run reframework update d12ed7fa21f4b2bcf77d7f8aa03795645f47cb17 -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "reframework",
@@ -3994,7 +3546,7 @@
         "id": "reframework-uninstall",
         "group": "REFramework",
         "name": "REFramework",
-        "on": "~/.dlor/run reframework uninstall d189295fbe7a45d9b01e122b10abb488b13662bd -- %command%",
+        "on": "~/.dlor/run reframework uninstall d12ed7fa21f4b2bcf77d7f8aa03795645f47cb17 -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "reframework",
@@ -4009,8 +3561,8 @@
         "id": "dlor-optiscaler",
         "group": "DLOR OptiScaler",
         "name": "DLOR OptiScaler",
-        "on": "WINEDLLOVERRIDES=\"dxgi=n,b\" DLOR_OPTISCALER_SOURCE_REVISION=\"d189295fbe7a45d9b01e122b10abb488b13662bd\" DLOR_OPTISCALER_SOURCE_REPOSITORY=\"Wurielle/decky-launch-options-recipes\" ~/.dlor/run dlor-optiscaler install d189295fbe7a45d9b01e122b10abb488b13662bd -- %command%",
-        "off": "DLOR_OPTISCALER_SOURCE_REVISION=\"d189295fbe7a45d9b01e122b10abb488b13662bd\" DLOR_OPTISCALER_SOURCE_REPOSITORY=\"Wurielle/decky-launch-options-recipes\" ~/.dlor/run dlor-optiscaler uninstall d189295fbe7a45d9b01e122b10abb488b13662bd -- %command%",
+        "on": "WINEDLLOVERRIDES=\"dxgi=n,b\" DLOR_OPTISCALER_SOURCE_REVISION=\"d12ed7fa21f4b2bcf77d7f8aa03795645f47cb17\" DLOR_OPTISCALER_SOURCE_REPOSITORY=\"Wurielle/decky-launch-options-recipes\" ~/.dlor/run dlor-optiscaler install d12ed7fa21f4b2bcf77d7f8aa03795645f47cb17 -- %command%",
+        "off": "DLOR_OPTISCALER_SOURCE_REVISION=\"d12ed7fa21f4b2bcf77d7f8aa03795645f47cb17\" DLOR_OPTISCALER_SOURCE_REPOSITORY=\"Wurielle/decky-launch-options-recipes\" ~/.dlor/run dlor-optiscaler uninstall d12ed7fa21f4b2bcf77d7f8aa03795645f47cb17 -- %command%",
         "enableGlobally": false
       },
       {
