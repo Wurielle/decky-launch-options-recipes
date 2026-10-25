@@ -470,7 +470,7 @@ const launchOptions: LaunchOption[] = [
     ),
     ...optiScalerDropdown(
         'optiscaler-fsr4-preset',
-        'OptiScaler FSR 4 Preset',
+        'OptiScaler FSR4 Preset',
         'optiscaler-fsr4-preset',
         'FSR_Fsr4Preset',
         fsr4PresetValues,
