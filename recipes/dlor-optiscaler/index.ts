@@ -31,8 +31,8 @@ const recipe = {
             id: 'dlor-optiscaler',
             group,
             name: group,
-            on: `WINEDLLOVERRIDES="dxgi=n,b" ${sourceContext} ${install}`,
-            off: `${sourceContext} ${uninstall}`,
+            on: `WINEDLLOVERRIDES="dxgi=n,b" ${sourceContext} DLOR_OPTISCALER_ACTION="install" ${install}`,
+            off: `${sourceContext} DLOR_OPTISCALER_ACTION="uninstall" ${uninstall}`,
             enableGlobally: false,
         },
         // Compatibility profiles use a third-party distribution, not an AMD

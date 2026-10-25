@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """Acquire and compile SHA-verified OptiScaler runtime modules."""
-SOURCE_SHA256 = {'installer.py': 'af43e9435222c4401c929b3a558fa80f20e692d3adda62e455158046063afd69', 'artifacts.py': '1ad5feff0adfbe09829bc1b7d93ec0c67e823f1e04711a00359a3ee1705671b7', 'game_discovery.py': 'f5d2aeb6bf3abd9c8e1968427abb21d848e3d273c2f9fc792666042f37b0fe49', 'update_optiscaler_config.py': 'a3e77b1d47bd0a458c3cdf87e360e21f96f4c821ec2d921e31443d2704513006'}
-
-import hashlib, importlib.abc, importlib.util, os, pathlib, re, signal, stat, subprocess, sys, tempfile
+import hashlib, importlib.abc, importlib.util, json, os, pathlib, re, signal, stat, subprocess, sys, tempfile
 
 active_child = None
 
@@ -108,11 +106,25 @@ class VerifiedSource(importlib.abc.MetaPathFinder, importlib.abc.Loader):
 
 try:
     action = sys.argv[1]
-    if action not in ('install', 'uninstall'):
+    if action not in ('install', 'uninstall', 'upgrade'):
         raise ValueError('invalid loader action')
+    manifest_path = pathlib.Path(os.environ.pop('DLOR_OPTISCALER_MANIFEST'))
+    manifest_digest = os.environ.pop('DLOR_OPTISCALER_MANIFEST_SHA256')
+    if manifest_path.is_symlink() or not manifest_path.is_file():
+        raise ValueError('unsafe manifest snapshot')
+    data = manifest_path.read_bytes()
+    if not re.fullmatch(r'[a-f0-9]{64}', manifest_digest) or hashlib.sha256(data).hexdigest() != manifest_digest:
+        raise ValueError('manifest snapshot checksum mismatch')
+    manifest = json.loads(data)
+    runtime = manifest['runtime']
+    if manifest.get('version') != 1 or set(runtime) != {'loader.py', 'installer.py', 'artifacts.py', 'game_discovery.py', 'update_optiscaler_config.py', 'nightly.py'}:
+        raise ValueError('unsupported download manifest')
     cache, base = source_context()
-    sources = {name[:-3]: verified_file(cache, base, name, digest) for name, digest in SOURCE_SHA256.items()}
+    sources = {name[:-3]: verified_file(cache, base, name, digest)
+               for name, digest in runtime.items() if name != 'loader.py' and (name != 'nightly.py' or action == 'upgrade')}
     sys.meta_path.insert(0, VerifiedSource(cache, sources))
+    import artifacts
+    artifacts.DOWNLOADS = manifest['downloads']
     import installer
     status = installer.main([action, *sys.argv[2:]])
     sys.exit(0 if status is None else status)

@@ -8,6 +8,7 @@ from unittest.mock import patch
 import sys
 import types
 import json
+import io
 import zipfile
 
 HERE = Path(__file__).resolve().parents[1]
@@ -40,6 +41,195 @@ class InstallationTests(unittest.TestCase):
             path.write_bytes(data)
             result[relative] = path
         return result
+
+    def test_optional_components_use_versioned_official_pins_without_metadata(self):
+        import artifacts
+        manifest = json.loads((HERE / "scripts/downloads.json").read_bytes())
+        with patch.object(artifacts, "DOWNLOADS", manifest["downloads"]), patch.object(artifacts, "_open", side_effect=AssertionError("pinned components need no metadata")), patch.object(artifacts, "download_asset", return_value=self.payload), patch.dict(os.environ, {"DLOR_OPTISCALER_FSR_PROFILE": "rdna2-valve-411"}):
+            plugins, libraries, settings, components = self.installer.optional_components(self.directory)
+        self.assertEqual(set(plugins), {"OptiPatcher.asi"})
+        self.assertEqual(components[0]["name"], "OptiPatcher_v0.42.asi")
+        self.assertEqual(components[0]["tag"], "v0.42")
+        self.assertEqual(set(libraries), {"amdxc64.dll", "amdxcffx64.dll"})
+
+    def test_upgrade_commit_guard_refuses_after_concurrent_off(self):
+        files = self.files({"dxgi.dll": b"synthetic core"})
+        with self.assertRaisesRegex(self.installer.InstallerError, "no longer installed"):
+            self.installer.apply_install(self.game, self.target, files, self.state, require_installed=True)
+        self.assertFalse((self.target / "dxgi.dll").exists())
+
+    def test_cli_latest_flag_forces_only_core_and_off_does_not_install(self):
+        core = self.directory / "core"
+        (core / "OptiScaler").mkdir(parents=True)
+        (core / "OptiScaler.dll").write_bytes(b"synthetic core")
+        original = b"[Plugins]\nLoadAsiPlugins=false\n"
+        (core / "OptiScaler.ini").write_bytes(original)
+        plugin = self.files({"OptiPatcher.asi": b"ASI"})["OptiPatcher.asi"]
+        calls = []
+        def resolve(*args, **kwargs):
+            calls.append(kwargs)
+            return {"tag": "latest"}
+        artifacts = types.SimpleNamespace(resolve_asset=resolve)
+        discovery = types.SimpleNamespace(discover_game_directory=lambda *a, **kw: self.target)
+        with patch.dict(sys.modules, artifacts=artifacts, game_discovery=discovery), patch.object(self.installer, "cached_package", return_value=core), patch.object(self.installer, "optional_components", return_value=({"OptiPatcher.asi": plugin}, {}, {}, [])), patch.dict(os.environ, {"HOME": str(self.directory)}):
+            self.installer.main(["install", str(self.game)])
+            self.assertEqual(calls, [{}], 'ordinary install uses manifest pins')
+            with patch.dict(os.environ, {"DLOR_OPTISCALER_LATEST": "1"}):
+                self.installer.main(["install", str(self.game)])
+                self.assertEqual(calls[-1], {"fresh": True})
+                self.installer.main(["upgrade", str(self.game)])
+                self.assertEqual(calls[-1], {"fresh": True})
+                with patch.dict(os.environ, {"DLOR_OPTISCALER_ACTION": "install"}):
+                    count = len(calls)
+                    self.installer.main(["upgrade", str(self.game)])
+                    self.assertEqual(len(calls), count)
+                self.installer.main(["uninstall", str(self.game)])
+                count = len(calls)
+                self.installer.main(["upgrade", str(self.game)])
+                self.assertEqual(len(calls), count, 'empty DLOR journal must not reinstall through legacy updater')
+        self.assertFalse((self.target / "dxgi.dll").exists())
+
+    def test_case_varied_managed_install_upgrade_and_off_restore_originals(self):
+        fixture = os.environ.get("DLOR_TEST_OPTISCALER_DLL")
+        if not fixture:
+            self.skipTest("Set DLOR_TEST_OPTISCALER_DLL to the verified nightly fixture")
+        proxy = self.target / "DXGI.DLL"
+        original_proxy = Path(fixture).read_bytes()  # Identification only; never executed.
+        proxy.write_bytes(original_proxy)
+        ini = self.target / "OPTISCALER.INI"
+        original_ini = b"[Libraries]\nOptiDllPath=auto\n[Plugins]\nPath=auto\nLoadAsiPlugins=false\n"
+        ini.write_bytes(original_ini)
+        core = self.directory / "core"
+        (core / "OptiScaler").mkdir(parents=True)
+        pinned_core = original_proxy + b"\nfixture pinned core\n"
+        fresh_core = original_proxy + b"\nfixture fresh core\n"
+        (core / "OptiScaler.dll").write_bytes(pinned_core)
+        (core / "OptiScaler.ini").write_bytes(original_ini)
+        plugin = self.files({"OptiPatcher.asi": b"synthetic ASI"})["OptiPatcher.asi"]
+        calls = []
+        def resolve(*args, **kwargs):
+            calls.append(kwargs)
+            return {"tag": "latest" if kwargs else "pinned"}
+        acquisition = types.SimpleNamespace(resolve_asset=resolve)
+        discovery = types.SimpleNamespace(discover_game_directory=lambda *a, **kw: self.target)
+        with patch.dict(sys.modules, artifacts=acquisition, game_discovery=discovery), patch.object(self.installer, "cached_package", return_value=core), patch.object(self.installer, "optional_components", return_value=({"OptiPatcher.asi": plugin}, {}, {}, [])), patch.dict(os.environ, {"HOME": str(self.directory)}):
+            for key in ("DLOR_OPTISCALER_ACTION", "DLOR_OPTISCALER_LATEST"):
+                os.environ.pop(key, None)
+            self.assertEqual(self.installer.main(["install", str(self.game)]), 0)
+            journal = next((self.directory / ".dlor/state/dlor-optiscaler").glob("*/state.json"))
+            key = proxy.relative_to(self.game).as_posix()
+            self.assertIn(key, json.loads(journal.read_bytes())["files"])
+            self.assertEqual(proxy.read_bytes(), pinned_core)
+            (core / "OptiScaler.dll").write_bytes(fresh_core)
+            # Real preliminary ownership check, planning, and final locked guard.
+            self.assertEqual(self.installer.main(["upgrade", str(self.game)]), 0)
+            self.assertEqual(calls, [{}, {"fresh": True}])
+            self.assertEqual(proxy.read_bytes(), fresh_core)
+            record = json.loads(journal.read_bytes())["files"][key]
+            self.assertEqual(record["installed"], self.installer.digest(proxy))
+            self.assertFalse((self.target / "dxgi.dll").exists())
+            self.assertFalse((self.target / "OptiScaler.ini").exists())
+            self.assertEqual(self.installer.main(["uninstall", str(self.game)]), 0)
+        self.assertEqual(proxy.read_bytes(), original_proxy)
+        self.assertEqual(ini.read_bytes(), original_ini)
+        self.assertEqual(json.loads(journal.read_bytes())["files"], {})
+
+    def test_legacy_upgrade_refuses_if_main_install_finishes_during_metadata(self):
+        import artifacts
+        fixture = os.environ.get("DLOR_TEST_OPTISCALER_DLL")
+        if not fixture:
+            self.skipTest("Set DLOR_TEST_OPTISCALER_DLL to the verified nightly fixture")
+        (self.target / "dxgi.dll").write_bytes(Path(fixture).read_bytes())
+        original_ini = b"[Libraries]\nOptiDllPath=auto\n[Plugins]\nPath=auto\nLoadAsiPlugins=false\n"
+        (self.target / "OptiScaler.ini").write_bytes(original_ini)
+        fgmod = self.directory / "fgmod"
+        fgmod.mkdir()
+        (fgmod / "libxess.dll").write_bytes(b"legacy fgmod overlay")
+        core = self.directory / "pinned-core"
+        (core / "OptiScaler").mkdir(parents=True)
+        (core / "OptiScaler.dll").write_bytes(b"PINNED MANAGED CORE")
+        (core / "OptiScaler.ini").write_bytes(original_ini)
+        (core / "OptiScaler/libxess.dll").write_bytes(b"PINNED MANAGED SUPPORT")
+        plugin = self.files({"OptiPatcher.asi": b"synthetic ASI"})["OptiPatcher.asi"]
+        output = io.BytesIO()
+        with zipfile.ZipFile(output, "w") as archive:
+            archive.writestr("OptiScaler.dll", b"legacy fresh core")
+            archive.writestr("OptiScaler/libxess.dll", b"legacy stock support")
+        payload = output.getvalue()
+        asset_url = "https://github.com/optiscaler/OptiScaler-nightly/releases/download/nightly-race/OptiScaler_test.7z"
+        snapshots = {}
+        requests = []
+        def snapshot_game():
+            return {path.relative_to(self.game).as_posix(): path.read_bytes()
+                    for path in self.game.rglob("*") if path.is_file()}
+        def transport(url):
+            requests.append(url)
+            if url == asset_url:
+                data = payload
+            else:
+                # Deterministic interleaving: actual main ON completes after
+                # legacy dispatch, before the pending metadata response returns.
+                with patch.object(artifacts, "resolve_asset", return_value={"tag": "pinned"}), patch.object(self.installer, "cached_package", return_value=core), patch.object(self.installer, "optional_components", return_value=({"OptiPatcher.asi": plugin}, {}, {}, [])):
+                    self.assertEqual(self.installer.main(["install", str(self.game)]), 0)
+                journal = next((self.directory / ".dlor/state/dlor-optiscaler").glob("*/state.json"))
+                snapshots.update(game=snapshot_game(), journal=journal, state=journal.read_bytes())
+                self.assertEqual((self.target / "OptiScaler/libxess.dll").read_bytes(), b"PINNED MANAGED SUPPORT")
+                data = json.dumps([{"draft": False, "tag_name": "nightly-race", "assets": [{
+                    "name": "OptiScaler_test.7z", "size": len(payload),
+                    "browser_download_url": asset_url,
+                    "digest": "sha256:" + self.installer.hashlib.sha256(payload).hexdigest()}]}]).encode()
+            response = io.BytesIO(data)
+            response.headers = {"Content-Length": str(len(data))}
+            return response
+        spec = importlib.util.spec_from_file_location("opti_nightly", HERE / "scripts/nightly.py")
+        nightly = importlib.util.module_from_spec(spec)
+        with patch.dict(sys.modules, installer=self.installer):
+            spec.loader.exec_module(nightly)
+        discovery = types.SimpleNamespace(discover_game_directory=lambda *a, **kw: self.target)
+        with patch.dict(sys.modules, nightly=nightly, game_discovery=discovery), patch.dict(os.environ, {"HOME": str(self.directory), "OPTISCALER_CACHE_DIR": str(self.directory / "legacy-cache")}), patch.object(artifacts, "_open", transport):
+            for key in ("DLOR_OPTISCALER_ACTION", "DLOR_OPTISCALER_LATEST"):
+                os.environ.pop(key, None)
+            refusal = None
+            try:
+                self.installer.main(["upgrade", str(self.game)])
+            except self.installer.InstallerError as error:
+                refusal = str(error)
+            self.assertEqual(len(requests), 2, "real metadata, SHA verification and extraction must complete")
+            self.assertEqual(snapshot_game(), snapshots["game"], "legacy overlay changed a newly DLOR-managed game")
+            self.assertEqual(snapshots["journal"].read_bytes(), snapshots["state"])
+            self.assertIsNotNone(refusal, "managed transition must refuse rather than overlay")
+            self.assertIn("DLOR", refusal)
+
+    def test_upgrade_guards_preserve_ambiguous_and_symlinked_proxies(self):
+        state_home = self.directory / ".dlor/state/dlor-optiscaler"
+        files = self.files({"DXGI.DLL": b"owned fixture core"})
+        self.installer.apply_install(self.game, self.target, files, state_home)
+        journal = next(state_home.glob("*/state.json"))
+        before = journal.read_bytes()
+        proxy = self.target / "DXGI.DLL"
+        for kind, message in (("ambiguous", "Ambiguous Windows"), ("symlink", "Symlink inside")):
+            with self.subTest(kind=kind), patch.dict(os.environ, {"HOME": str(self.directory)}):
+                os.environ.pop("DLOR_OPTISCALER_ACTION", None)
+                if kind == "ambiguous":
+                    extra = self.target / "dxgi.dll"
+                    extra.write_bytes(b"foreign collision")
+                else:
+                    extra = self.directory / "outside-proxy"
+                    proxy.rename(extra)
+                    proxy.symlink_to(extra)
+                try:
+                    with self.assertRaisesRegex(self.installer.InstallerError, message):
+                        self.installer.main(["upgrade", str(self.game)])
+                    with self.assertRaisesRegex(self.installer.InstallerError, message):
+                        self.installer.apply_install(self.game, self.target, files, state_home, require_installed=True)
+                    self.assertEqual(journal.read_bytes(), before)
+                    self.assertEqual(extra.read_bytes(), b"foreign collision" if kind == "ambiguous" else b"owned fixture core")
+                finally:
+                    if kind == "symlink":
+                        proxy.unlink()
+                        extra.rename(proxy)
+                    else:
+                        extra.unlink()
 
     def test_cli_applies_explicit_environment_and_restores_on_off(self):
         core = self.directory / "core"
@@ -418,12 +608,12 @@ class InstallationTests(unittest.TestCase):
         artifacts = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(artifacts)
         calls = []
-        def resolve(repository, channel, pattern, cache):
+        def resolve(repository, channel, pattern, cache, **kwargs):
             import re
             calls.append((repository, channel))
             matches = [path for name, path in paths.items() if re.fullmatch(pattern, name)]
             path = archive if repository.endswith("OptiScaler-nightly") else matches[0]
-            return {"repository": repository, "tag": channel, "name": path.name, "url": "https://github.com/fixture/release", "sha256": self.installer.digest(path), "size": path.stat().st_size}
+            return {"repository": repository, "tag": channel.removeprefix("tag:"), "name": path.name, "url": "https://github.com/fixture/release", "sha256": self.installer.digest(path), "size": path.stat().st_size}
         discovery = types.SimpleNamespace(discover_game_directory=lambda *args, **kwargs: self.target)
         (self.directory / ".dlor/cache/dlor-optiscaler/artifacts").mkdir(parents=True)
         environment = {"HOME": str(self.directory), "DLOR_OPTISCALER_CHANNEL": "nightly", "DLOR_OPTISCALER_OPTIPATCHER": "1", "DLOR_OPTISCALER_FSR_PROFILE": "rdna2-valve-411"}
@@ -437,6 +627,9 @@ class InstallationTests(unittest.TestCase):
             self.assertEqual(self.installer.ini_value(data, "Plugins", "LoadCustomAmdxc64OnRdna2"), "auto")
             self.assertEqual(data, b"[Libraries]\nOptiDllPath=auto\n[Plugins]\nPath=auto\nLoadAsiPlugins=true\n[FSR]\nFsr4GpuSupport=auto\n")
             self.assertIn(("xXJSONDeruloXx/OptiScaler-Bleeding-Edge", "tag:fsr-4-1-1-rdna2"), calls)
+            os.environ.pop("DLOR_OPTISCALER_FSR_PROFILE")
+            self.installer.main(["upgrade", str(self.game)])
+            self.assertTrue((self.target / "OptiScaler/amdxc64.dll").is_file(), "Standalone upgrade must retain the installed profile")
             os.environ["DLOR_OPTISCALER_OPTIPATCHER"] = "0"
             os.environ["DLOR_OPTISCALER_FSR_PROFILE"] = "bundled"
             self.installer.main(["install", str(self.game)])
@@ -465,7 +658,7 @@ class InstallationTests(unittest.TestCase):
         ini.write_bytes(original)
         ini.chmod(0o640)
         calls = []
-        def resolve(repository, channel, pattern, cache):
+        def resolve(repository, channel, pattern, cache, **kwargs):
             import re
             calls.append((repository, channel))
             path = plugin if repository == "optiscaler/OptiPatcher" else archive

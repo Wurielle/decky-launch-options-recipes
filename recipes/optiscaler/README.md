@@ -1,8 +1,14 @@
 # OptiScaler nightly settings
 
-The settings in this recipe target the current OptiScaler v10 nightly configuration, not older stable builds. Use **DLOR OptiScaler** for independent installation, then import the wanted settings from **OptiScaler**. The legacy fgmod dropdown offers **None**, **Install** and **Uninstall**, defaulting to None. All disabled commands are empty; only an explicitly selected action runs fgmod. The original option ID is retained on None so re-importing replaces the old automatic OFF uninstaller. Nightly Upgrade remains available separately. Do not select the legacy actions or Nightly Upgrade against a DLOR-managed game. Configuration controls are ordinary environment assignments.
+The settings in this recipe target the current OptiScaler v10 nightly configuration, not older stable builds. Use **DLOR OptiScaler** for independent installation, then import the wanted settings from **OptiScaler**. The legacy fgmod dropdown offers **None**, **Install** and **Uninstall**, defaulting to None. All disabled commands are empty; only an explicitly selected action runs fgmod. The original option ID is retained on None so re-importing replaces the old automatic OFF uninstaller. Nightly Upgrade remains available with the same ID/name/priority and is compatible with DLOR-managed games; do not select the separate legacy Install/Uninstall actions against a DLOR-managed game. Configuration controls are ordinary environment assignments.
 
 Every dropdown defaults to **None**, which emits nothing and preserves the current INI. **Auto** is an explicit request to write `auto`, not an inactive/default choice. New settings do not automatically activate FG, change models, or download additional libraries. DLOR's physical environment updater applies selected overrides transactionally and restores still-owned values when removed/OFF. Existing FrameGen/HUDFix toggles retain their explicit ON/OFF semantics.
+
+## Nightly Upgrade and pinned downloads
+
+**DLOR OptiScaler** installs the exact core, OptiPatcher, compatibility profiles and conditional official 7zip downloads pinned in its [JSON manifest](../dlor-optiscaler/scripts/downloads.json). Enable **OptiScaler Nightly Upgrade** alongside DLOR to explicitly override only the core pin: every enabled launch requests fresh official nightly metadata and a complete upstream SHA256, without metadata TTL or stale/offline fallback. Metadata or checksum failure preserves the managed installation and the stock runner still continues the game. Disabling the option returns the next ordinary DLOR ON to the pinned core.
+
+Main DLOR ON performs that update through its existing journal; the later priority `-1` helper no-ops. Main DLOR OFF plus Nightly ON never reinstalls. Nightly alone can transactionally upgrade a valid existing owned installation, preserving the installed compatibility profile; an empty DLOR journal remains disabled. Only games with no DLOR journal use the SHA-verified physical legacy fgmod updater, preserving selected variants, supporting-DLL overlays, case layout and legacy cache override. It never overlays `~/fgmod` into DLOR-owned files. See the [installer contract and pin-maintenance instructions](../dlor-optiscaler/README.md).
 
 ## Current selectors
 
@@ -27,7 +33,7 @@ The multiplier includes the original frame: **2× writes 1**, **3× writes 2**, 
 
 ## Updating saved options
 
-Refetch/re-import this branch's catalog to obtain the updated commands. Obsolete saved aliases/output choices must be removed or replaced in existing profiles; removing catalog entries does not guarantee that the host deletes previously imported options. Select replacement routes deliberately rather than silently converting saved settings. Bleeding Edge download sources and the DLOR install/uninstall implementation are unchanged by this settings update.
+Refetch/re-import this branch's catalog to obtain the updated commands. Obsolete saved aliases/output choices must be removed or replaced in existing profiles; removing catalog entries does not guarantee that the host deletes previously imported options. Select replacement routes deliberately rather than silently converting saved settings. The named Bleeding Edge profiles remain pinned to their selected artifacts; Nightly Upgrade changes only official core release selection.
 
 ## Verification
 

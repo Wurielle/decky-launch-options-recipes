@@ -4,7 +4,9 @@ import json
 import os
 from pathlib import Path
 import shlex
+import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 from runner_test_support import install_runner
@@ -49,6 +51,32 @@ class ScriptLoggingTests(unittest.TestCase):
         path = self.bin / name
         path.write_text("#!/usr/bin/env bash\n" + body + "\n")
         path.chmod(0o755)
+
+    def verified_nightly_logging_fixture(self):
+        # Isolate host cleanup/logging from binary acquisition while retaining
+        # the real manifest -> loader -> verified-module trust chain.
+        runtime = self.root / "recipes/dlor-optiscaler/scripts"
+        runtime.mkdir(parents=True)
+        source = ROOT / "recipes/dlor-optiscaler/scripts"
+        for name in ("loader.py", "artifacts.py", "game_discovery.py",
+                     "update_optiscaler_config.py", "nightly.py", "downloads.json",
+                     "update-source-hashes.py"):
+            shutil.copyfile(source / name, runtime / name)
+        (runtime / "installer.py").write_text('''import os
+
+def main(argv=None):
+    assert not os.environ.get('LD_PRELOAD'), 'host module inherited preload'
+    assert not os.environ.get('LD_LIBRARY_PATH'), 'host module inherited Steam libraries'
+    assert not os.environ.get('STEAM_RUNTIME', '').startswith('/'), 'host module inherited Steam runtime'
+    print('Upgraded: synthetic logging fixture')
+    return 0
+''')
+        entry = self.root / "recipes/optiscaler/scripts"
+        entry.mkdir(parents=True)
+        subprocess.run([sys.executable, "-I", "-B", str(runtime / "update-source-hashes.py")],
+                       capture_output=True, text=True, check=True)
+        self.scripts["optiscaler-update-nightly"].write_bytes((entry / "update-nightly.sh").read_bytes())
+        self.env.update(TEST_NIGHTLY_RUNTIME=str(runtime), DLOR_SCRIPT_REVISION="a" * 40)
 
     def run_script(self, name, *args, stdin=False):
         command = ["bash", "-s", "--"] if stdin else ["bash", str(self.scripts[name])]
@@ -145,7 +173,11 @@ fi''')
                         else:
                             prefix.append(token)
                     self.assertNotIn("LD_PRELOAD", environment)
-                    self.assertTrue(set(environment) <= {"WINEDLLOVERRIDES"})
+                    allowed_environment = {"WINEDLLOVERRIDES"}
+                    if option["id"] == "optiscaler-nightly-upgrade":
+                        allowed_environment.update({"DLOR_OPTISCALER_LATEST", "DLOR_OPTISCALER_NIGHTLY_REVISION",
+                                                    "DLOR_OPTISCALER_NIGHTLY_REPOSITORY"})
+                    self.assertTrue(set(environment) <= allowed_environment)
                     self.assertEqual(prefix[0], "~/.dlor/run")
                     self.assertEqual(len(prefix), 5)
                     self.assertRegex(prefix[1], r"^[a-z0-9-]+$")
@@ -154,6 +186,7 @@ fi''')
                     self.assertEqual(prefix[4], "--")
 
     def test_host_tools_escape_steam_libraries_but_game_keeps_its_environment(self):
+        self.verified_nightly_logging_fixture()
         recipes = json.loads((ROOT / "recipes.json").read_text())
         options = {o["id"]: o for r in recipes for o in r["launchOptions"]}
         runtime = self.root / "Steam runtime"
@@ -174,8 +207,14 @@ if [[ -n "${LD_LIBRARY_PATH:-}" || -n "${LD_PRELOAD:-}" ]]; then
     exit 1
 fi
 if [[ "$*" == *raw.githubusercontent.com* ]]; then
-    while [[ "$1" != --output ]]; do shift; done
-    cat "$TEST_RECIPE_SCRIPT" > "$2"
+    url="${@: -1}"
+    while [[ "$1" != --output && "$1" != -o ]]; do shift; done
+    name="${url##*/}"
+    if [[ "$url" == */recipes/dlor-optiscaler/scripts/* && -f "$TEST_NIGHTLY_RUNTIME/$name" ]]; then
+        cat "$TEST_NIGHTLY_RUNTIME/$name" > "$2"
+    else
+        cat "$TEST_RECIPE_SCRIPT" > "$2"
+    fi
 elif [[ "$*" == *url_effective* ]]; then
     printf 'https://github.com/praydog/REFramework-nightly/releases/tag/test'
 else
@@ -246,8 +285,11 @@ fi''')
             with self.subTest(script=name):
                 marker.unlink(missing_ok=True)
                 self.tool("curl", f'''
-if [[ "$*" == *raw.githubusercontent.com* ]]; then
-    while [[ "$1" != --output ]]; do shift; done
+if [[ "$*" == */recipes/dlor-optiscaler/scripts/* ]]; then
+    echo 'verified source download failed' >&2
+    exit 22
+elif [[ "$*" == *raw.githubusercontent.com* ]]; then
+    while [[ "$1" != --output && "$1" != -o ]]; do shift; done
     cat {shlex.quote(str(self.scripts[name]))} > "$2"
 else
     echo 'network failed' >&2

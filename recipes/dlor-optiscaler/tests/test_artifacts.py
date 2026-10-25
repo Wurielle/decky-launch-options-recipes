@@ -37,6 +37,40 @@ class ArtifactsTests(unittest.TestCase):
     def response(self, content):
         return Response(content)
 
+    def test_all_binary_manifest_selections_require_no_metadata(self):
+        import re
+        manifest = json.loads((Path(__file__).resolve().parents[1] / 'scripts/downloads.json').read_bytes())
+        self.assertEqual(len(manifest['downloads']), 9)
+        with patch.object(artifacts, 'DOWNLOADS', manifest['downloads']), patch.object(artifacts, '_open', side_effect=AssertionError('pinned dependency queried mutable metadata')):
+            for pin in manifest['downloads'].values():
+                selected = artifacts.resolve_asset(pin['repository'], pin['channel'], re.escape(pin['name']), self.root)
+                self.assertEqual(selected, {key: value for key, value in pin.items() if key != 'channel'})
+
+    def test_manifest_pin_bypasses_metadata_and_latest_ignores_ttl(self):
+        pinned = {'repository': 'owner/project', 'tag': 'pinned-v0', 'name': 'tool.zip',
+                  'url': self.release['assets'][0]['browser_download_url'],
+                  'sha256': self.digest, 'size': len(self.payload)}
+        downloads = {'core': dict(pinned, channel='nightly')}
+        with patch.object(artifacts, 'DOWNLOADS', downloads, create=True):
+            with patch.object(artifacts, '_open', side_effect=AssertionError('pins must not fetch metadata')):
+                self.assertEqual(artifacts.resolve_asset('owner/project', 'nightly', r'tool\.zip', self.root), pinned)
+            with patch.object(artifacts, '_open', return_value=self.response(json.dumps([self.release]).encode())) as request:
+                latest = artifacts.resolve_asset('owner/project', 'nightly', r'tool\.zip', self.root, fresh=True)
+                self.assertEqual(latest['tag'], 'v1')
+                request.assert_called_once()
+            with patch.object(artifacts, '_open', return_value=self.response(json.dumps([dict(self.release, tag_name='v2')]).encode())) as request:
+                self.assertEqual(artifacts.resolve_asset('owner/project', 'nightly', r'tool\.zip', self.root, fresh=True)['tag'], 'v2')
+                request.assert_called_once()
+            with patch.object(artifacts, '_open', return_value=self.response(self.payload)):
+                artifacts.download_asset(dict(latest, tag='v2'), self.root)
+            import urllib.error
+            with patch.object(artifacts, '_open', side_effect=urllib.error.URLError('offline')):
+                with self.assertRaises(urllib.error.URLError):
+                    artifacts.resolve_asset('owner/project', 'nightly', r'tool\.zip', self.root, fresh=True)
+            with patch.object(artifacts, '_open', side_effect=AssertionError('missing pin fails closed')):
+                with self.assertRaises(artifacts.ArtifactError):
+                    artifacts.resolve_asset('unknown/repo', 'stable', r'.*', self.root)
+
     def test_stable_release_resolves_and_downloads_verified_private_cache(self):
         self.assertIsNotNone(artifacts, 'verified acquisition module is not implemented')
         with patch.object(artifacts, '_open', return_value=self.response(json.dumps(self.release).encode())) as request:

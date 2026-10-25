@@ -55,7 +55,7 @@ finish_log() {
     exec {console_out}>&- {console_err}>&-
 }
 
-LOADER_SHA256=90d5c94a9c6a5cf6885ddf266f8e91de036338586fc150d7a63a8d9228a8f5c5
+MANIFEST_SHA256=be0702b69d1e5fb683d87bb148dbefae9c42c238c99700ef70e1e670d333e8b5
 
 run_loader() (
     umask 077
@@ -69,11 +69,15 @@ run_loader() (
     trap cleanup_loader EXIT
     trap 'exit 130' INT
     trap 'exit 143' TERM
+    if [[ $entry_name == upgrade ]]; then
+        export DLOR_OPTISCALER_SOURCE_REVISION=${DLOR_OPTISCALER_NIGHTLY_REVISION-${DLOR_SCRIPT_REVISION-}}
+        export DLOR_OPTISCALER_SOURCE_REPOSITORY=${DLOR_OPTISCALER_NIGHTLY_REPOSITORY-${DLOR_REPOSITORY-Wurielle/decky-launch-options-recipes}}
+    fi
     revision=${DLOR_OPTISCALER_SOURCE_REVISION-${DLOR_SCRIPT_REVISION-}}
     repository=${DLOR_OPTISCALER_SOURCE_REPOSITORY-${DLOR_REPOSITORY-Wurielle/decky-launch-options-recipes}}
     if [[ ! $revision =~ ^[a-f0-9]{40}$ ||
           ! $repository =~ ^[A-Za-z0-9][A-Za-z0-9_.-]*/[A-Za-z0-9][A-Za-z0-9_.-]*$ ||
-          ! $LOADER_SHA256 =~ ^[a-f0-9]{64}$ ]]; then
+          ! $MANIFEST_SHA256 =~ ^[a-f0-9]{64}$ ]]; then
         printf 'DLOR OptiScaler: invalid source revision, repository or digest\n' >&2
         return 1
     fi
@@ -102,36 +106,53 @@ run_loader() (
         return 1
     fi
     # Refuse redirected source files before even the loader network request.
-    for name in loader.py installer.py artifacts.py game_discovery.py update_optiscaler_config.py; do
+    for name in downloads.json loader.py installer.py artifacts.py game_discovery.py update_optiscaler_config.py nightly.py; do
         if [[ -L $cache/$name || ( -e $cache/$name && ! -f $cache/$name ) ]]; then
             printf 'DLOR OptiScaler: unsafe source cache file: %s\n' "$cache/$name" >&2
             return 1
         fi
     done
     private_work=$(host mktemp -d "$cache/.loader.XXXXXXXX") || return 1
-    verify_loader() {
+    verify_source() {
         local actual
         actual=$(host sha256sum < "$1") || return 1
-        [[ ${actual%% *} == "$LOADER_SHA256" ]]
+        [[ ${actual%% *} == "$2" ]]
     }
-    if [[ ! -f $cache/loader.py ]] || ! verify_loader "$cache/loader.py"; then
-        printf 'Source cache checksum mismatch or missing; fetching loader.py\n' >&2
-        ( host_exec curl -fL --silent --show-error --connect-timeout 15 --max-time 180 \
-            --proto '=https' --proto-redir '=https' --max-redirs 5 --tlsv1.2 \
-            -o "$private_work/download" \
-            "https://raw.githubusercontent.com/$repository/$revision/recipes/dlor-optiscaler/scripts/loader.py" </dev/null ) &
-        download_pid=$!
-        wait "$download_pid"
-        status=$?
-        download_pid=''
-        (( status == 0 )) || return "$status"
-        verify_loader "$private_work/download" || { printf 'DLOR OptiScaler: loader checksum mismatch\n' >&2; return 1; }
-        host mv -f -- "$private_work/download" "$cache/loader.py" || return 1
-    fi
-    # Execute only a private verified snapshot, not mutable cached pathname bytes.
-    host cp -- "$cache/loader.py" "$private_work/loader.py" || return 1
-    verify_loader "$private_work/loader.py" || { printf 'DLOR OptiScaler: loader snapshot checksum mismatch\n' >&2; return 1; }
-    host python3 -I -B "$private_work/loader.py" "$entry_name" "$@"
+    snapshot_source() {
+        local name=$1 expected=$2
+        if [[ ! -f $cache/$name ]] || ! verify_source "$cache/$name" "$expected"; then
+            printf 'Source cache checksum mismatch or missing; fetching %s\n' "$name" >&2
+            ( host_exec curl -fL --silent --show-error --connect-timeout 15 --max-time 180 \
+                --proto '=https' --proto-redir '=https' --max-redirs 5 --tlsv1.2 \
+                -o "$private_work/download" \
+                "https://raw.githubusercontent.com/$repository/$revision/recipes/dlor-optiscaler/scripts/$name" </dev/null ) &
+            download_pid=$!
+            wait "$download_pid"
+            status=$?
+            download_pid=''
+            (( status == 0 )) || return "$status"
+            verify_source "$private_work/download" "$expected" || { printf 'DLOR OptiScaler: %s checksum mismatch\n' "$name" >&2; return 1; }
+            host mv -f -- "$private_work/download" "$cache/$name" || return 1
+        fi
+        host cp -- "$cache/$name" "$private_work/$name" || return 1
+        verify_source "$private_work/$name" "$expected" || { printf 'DLOR OptiScaler: %s snapshot checksum mismatch\n' "$name" >&2; return 1; }
+        host chmod 400 -- "$private_work/$name" || return 1
+    }
+    snapshot_source downloads.json "$MANIFEST_SHA256" || return $?
+    # Parse only a canonical digest line from already authenticated JSON, using
+    # builtins: no unverified Python/JSON parser executes to establish trust.
+    loader_digest='' digest_lines=0
+    while IFS= read -r line; do
+        if [[ $line =~ ^[[:space:]]*\"loader.py\":\ \"([a-f0-9]{64})\",?$ ]]; then
+            loader_digest=${BASH_REMATCH[1]}
+            (( digest_lines += 1 ))
+        fi
+    done < "$private_work/downloads.json"
+    (( digest_lines == 1 )) || { printf 'DLOR OptiScaler: invalid loader manifest entry\n' >&2; return 1; }
+    snapshot_source loader.py "$loader_digest" || return $?
+    DLOR_OPTISCALER_MANIFEST="$private_work/downloads.json" \
+    DLOR_OPTISCALER_MANIFEST_SHA256="$MANIFEST_SHA256" \
+        host python3 -I -B "$private_work/loader.py" "$entry_name" "$@"
 )
 
 entry_name=install

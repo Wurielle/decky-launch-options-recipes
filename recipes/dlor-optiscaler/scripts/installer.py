@@ -77,7 +77,7 @@ def remove_owned(path):
 
 
 @contextmanager
-def game_state(game, state_home, *, asi_only=False):
+def game_state(game, state_home, *, asi_only=False, recover=True):
     game = Path(game).resolve(strict=True)
     if not game.is_dir():
         raise InstallerError("Game root is not a directory")
@@ -124,7 +124,7 @@ def game_state(game, state_home, *, asi_only=False):
                         changed = True
             if changed:
                 save_state(journal, state)
-        if state.get("transaction"):
+        if recover and state.get("transaction"):
             recover_transaction(game, directory, journal, state)
         yield game, directory, journal, state
     finally:
@@ -284,7 +284,7 @@ def restore_settings(data, settings):
     return edit_ini(data, changes, restoring=True)
 
 
-def apply_install(game, target, files, state_home, *, proxy="dxgi", configuration=None, relative_to_root=False, components=None, asi_only=False, explicit_overrides=None, expected_configuration_data=None):
+def apply_install(game, target, files, state_home, *, proxy="dxgi", configuration=None, relative_to_root=False, components=None, asi_only=False, explicit_overrides=None, expected_configuration_data=None, require_installed=False):
     explicit_overrides = explicit_overrides or {}
     if any(key not in (configuration or {}) or (configuration or {})[key] != value for key, value in explicit_overrides.items()):
         raise InstallerError("Explicit override does not match requested configuration")
@@ -292,6 +292,12 @@ def apply_install(game, target, files, state_home, *, proxy="dxgi", configuratio
         raise InstallerError("Only Plugins.LoadAsiPlugins may be configured")
     with game_state(game, state_home, asi_only=asi_only) as (root, directory, journal, state):
         relative = Path(target).relative_to(root)
+        if require_installed:
+            path = safe_target(root, (relative / (proxy + ".dll")).as_posix())
+            proxy_key = path.relative_to(root).as_posix()
+            record = state["files"].get(proxy_key)
+            if not record or not path.is_file() or digest(path) != record["installed"]:
+                raise InstallerError("OptiScaler is no longer installed unchanged; refusing upgrade")
         if state.get("target", relative.as_posix()) != relative.as_posix() and state["files"]:
             raise InstallerError("Managed installation target changed")
         base = Path() if relative_to_root else relative
@@ -807,7 +813,7 @@ def optional_components(cache):
         raise InstallerError("Unsupported FSR compatibility profile")
     plugins, libraries, settings, components = {}, {}, {}, []
     # Mandatory even when an older imported checkbox still exports "0".
-    asset = resolve_asset("optiscaler/OptiPatcher", "stable", r"OptiPatcher\.asi", cache)
+    asset = resolve_asset("optiscaler/OptiPatcher", "stable", r"OptiPatcher(?:_v[0-9.]+)?\.asi", cache)
     plugins["OptiPatcher.asi"] = download_asset(asset, cache)
     components.append(asset)
     for tag, name in profiles[profile]:
@@ -822,7 +828,7 @@ def optional_components(cache):
 def main(argv=None):
     import argparse
     parser = argparse.ArgumentParser(description="Install or uninstall recipe-owned OptiScaler files")
-    parser.add_argument("action", choices=("install", "uninstall"))
+    parser.add_argument("action", choices=("install", "uninstall", "upgrade"))
     parser.add_argument("game")
     parser.add_argument("--result", type=Path)
     parser.add_argument("--argv-file", type=Path)
@@ -836,6 +842,33 @@ def main(argv=None):
         result = uninstall(root, state_home, asi_only=True)
         print("OptiScaler uninstall completed; changed external files preserved:", len(result["preserved"]))
         return 0
+    if args.action == "upgrade":
+        # Ordinary assignments are visible to both helpers in the stock runner.
+        # Main ON already performs the fresh transaction; main OFF must win.
+        if os.environ.get("DLOR_OPTISCALER_ACTION") in ("install", "uninstall"):
+            return 0
+        journal_path = state_home / hashlib.sha256(os.fsencode(root)).hexdigest() / "state.json"
+        if not journal_path.exists() and not journal_path.is_symlink():
+            from nightly import legacy_upgrade
+            return legacy_upgrade(root)
+        with game_state(root, state_home, asi_only=True) as (_, directory, journal, state):
+            if not state["files"]:
+                return 0
+            path = safe_target(root, (Path(state.get("target", ".")) / "dxgi.dll").as_posix())
+            proxy_key = path.relative_to(root).as_posix()
+            record = state["files"].get(proxy_key)
+            if not record or not path.is_file() or digest(path) != record["installed"]:
+                raise InstallerError("Nightly upgrade requires an unchanged DLOR-owned proxy")
+            if "DLOR_OPTISCALER_FSR_PROFILE" not in os.environ:
+                tags = {component.get("tag") for component in state.get("components", [])
+                        if component.get("repository") == "xXJSONDeruloXx/OptiScaler-Bleeding-Edge"}
+                profiles = {"opti-9-2-a": "rdna23-int8", "fsr-4-1-1": "rdna34-official-411", "fsr-4-1-1-rdna2": "rdna2-valve-411"}
+                selected = [profile for tag, profile in profiles.items() if tag in tags]
+                if len(selected) > 1:
+                    raise InstallerError("Ambiguous installed compatibility profile")
+                if selected:
+                    os.environ["DLOR_OPTISCALER_FSR_PROFILE"] = selected[0]
+        os.environ["DLOR_OPTISCALER_LATEST"] = "1"
     from artifacts import resolve_asset
     from game_discovery import discover_game_directory
     game_argv = []
@@ -854,7 +887,8 @@ def main(argv=None):
     target = (root if known == "." else safe_target(root, known)) if known is not None else discover_game_directory(root, game_argv, executable=os.environ.get("DLOR_OPTISCALER_EXECUTABLE"))
     proxy = choose_proxy(target, previous)
     cache = home / ".dlor/cache/dlor-optiscaler/artifacts"
-    asset = resolve_asset("optiscaler/OptiScaler-nightly", "nightly", r"(?i)(?!.*(?:debug|symbols|source)).*optiscaler.*\.7z", cache)
+    resolution = {"fresh": True} if os.environ.get("DLOR_OPTISCALER_LATEST") == "1" else {}
+    asset = resolve_asset("optiscaler/OptiScaler-nightly", "nightly", r"(?i)(?!.*(?:debug|symbols|source)).*optiscaler.*\.7z", cache, **resolution)
     core = cached_package(asset, cache)
     plugins, libraries, settings, components = optional_components(cache)
     from update_optiscaler_config import resolve_overrides, render_overrides
@@ -873,7 +907,7 @@ def main(argv=None):
     plan = build_plan(root, target, core, proxy=proxy, plugins=plugins, extra_libraries=libraries, configuration_data=effective)
     plan["settings"].update(settings)
     plan["settings"].update(overrides)
-    result = apply_install(root, target, plan["files"], state_home, proxy=proxy, configuration=plan["settings"], relative_to_root=True, components=[asset, *components], asi_only=True, explicit_overrides=overrides, expected_configuration_data=effective)
+    result = apply_install(root, target, plan["files"], state_home, proxy=proxy, configuration=plan["settings"], relative_to_root=True, components=[asset, *components], asi_only=True, explicit_overrides=overrides, expected_configuration_data=effective, require_installed=args.action == "upgrade")
     if args.result:
         atomic_write(args.result, (json.dumps(result) + "\n").encode())
     print("OptiScaler installed:", asset["tag"], "proxy", proxy)

@@ -1,8 +1,9 @@
 """Recipe-local, public GitHub acquisition; no credentials or payload execution.
 
-Only GitHub's full ``sha256:`` asset digest is accepted as authenticity evidence.
-Metadata is fresh for six hours; a transient outage may use at most seven-day-old
-metadata only if its already-cached archive rehashes correctly. Archives are keyed
+Normal recipe calls select exact descriptors from the loader-authenticated JSON.
+Explicit fresh resolution requires GitHub's full ``sha256:`` asset digest and
+never accepts metadata TTL reuse or offline fallback. The generic resolver
+retains six-hour/seven-day verified offline caching for non-fresh callers. Archives are keyed
 by repository, release tag, name and digest (hashed descriptor), locked per cache,
 and atomically published. ZIP and stdlib-readable tar variants need no tools;
 7z/BCJ2 uses system 7zz/7z or a SHA-verified official Linux console in this cache.
@@ -48,6 +49,8 @@ MAX_ENTRIES = 10000
 MAX_UNPACKED = 2 * 1024 * 1024 * 1024
 MAX_FILE = 1024 * 1024 * 1024
 TOOL_TIMEOUT = 180
+# Set only by the verified loader, from its authenticated private JSON snapshot.
+DOWNLOADS = None
 
 
 def _url(url):
@@ -174,7 +177,7 @@ def _validate_asset(asset):
         raise ArtifactError('invalid release tag')
 
 
-def resolve_asset(repository: str, channel: str, pattern: str, cache: Path) -> dict:
+def resolve_asset(repository: str, channel: str, pattern: str, cache: Path, *, fresh=False) -> dict:
     """Resolve stable, nightly, or tag:<exact tag> without changing asset shape.
 
     Explicit tags use a conservative ASCII Git-ref subset (1–255 characters):
@@ -193,6 +196,15 @@ def resolve_asset(repository: str, channel: str, pattern: str, cache: Path) -> d
                             part.endswith(('.', '.lock')) for part in tag.split('/'))):
         raise ArtifactError('invalid explicit release tag')
     re.compile(pattern)
+    if DOWNLOADS is not None and not fresh:
+        matches = [asset for asset in DOWNLOADS.values()
+                   if asset['repository'] == repository and asset['channel'] == channel
+                   and re.fullmatch(pattern, asset['name'])]
+        if len(matches) != 1:
+            raise ArtifactError('download manifest selection must match exactly once')
+        asset = {key: matches[0][key] for key in ('repository', 'tag', 'name', 'url', 'sha256', 'size')}
+        _validate_asset(asset)
+        return asset
     with _lock(cache) as cache:
         meta = _private(cache / 'metadata') / (hashlib.sha256(json.dumps([repository, channel, pattern]).encode()).hexdigest() + '.json')
         previous = None
@@ -209,7 +221,7 @@ def resolve_asset(repository: str, channel: str, pattern: str, cache: Path) -> d
                         previous = candidate
         except (OSError, ValueError, KeyError, TypeError):
             pass
-        if previous is not None and age <= METADATA_TTL:
+        if not fresh and previous is not None and age <= METADATA_TTL:
             return previous
         url = f'https://api.github.com/repos/{repository}/releases'
         url += ('/tags/' + quote(tag, safe='') if tag is not None else
@@ -220,7 +232,7 @@ def resolve_asset(repository: str, channel: str, pattern: str, cache: Path) -> d
         except (urllib.error.URLError, TimeoutError, ConnectionError, OSError) as exc:
             # Authorization errors, redirects and invalid metadata are NOT offline.
             transient = not isinstance(exc, urllib.error.HTTPError) or exc.code in (408, 429, 500, 502, 503, 504)
-            if transient and previous is not None and _verified(_asset_path(previous, cache), previous):
+            if not fresh and transient and previous is not None and _verified(_asset_path(previous, cache), previous):
                 return previous
             raise
         release = json.loads(raw)
