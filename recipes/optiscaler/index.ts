@@ -114,7 +114,7 @@ const frameGenInputValues = [
     },
     {
         id: 'upscaler',
-        name: 'OptiFG (Upscaler)',
+        name: 'OptiFG',
         value: 'upscaler',
     },
     {
@@ -157,7 +157,7 @@ const frameGenOutputValues = [
     },
     {
         id: 'reprojection',
-        name: 'Reprojection (WIP; mouse / first-person only)',
+        name: 'Reprojection',
         value: 'reprojection',
     },
 ] as const
@@ -187,37 +187,37 @@ const dx11UpscalerValues = [
     },
     {
         id: 'fsr22',
-        name: 'FSR 2.2 (native)',
+        name: 'FSR 2.2',
         value: 'fsr22',
     },
     {
         id: 'fsr31',
-        name: 'FSR 3.1 (native)',
+        name: 'FSR 3.1',
         value: 'fsr31',
     },
     {
         id: 'xess',
-        name: 'XeSS (native, Arc only)',
+        name: 'XeSS',
         value: 'xess',
     },
     {
         id: 'xess12',
-        name: 'XeSS (DX11on12)',
+        name: 'XeSS',
         value: 'xess_12',
     },
     {
         id: 'fsr21-12',
-        name: 'FSR 2.1 (DX11on12)',
+        name: 'FSR 2.1',
         value: 'fsr21_12',
     },
     {
         id: 'fsr22-12',
-        name: 'FSR 2.2 (DX11on12)',
+        name: 'FSR 2.2',
         value: 'fsr22_12',
     },
     {
         id: 'ffx-12',
-        name: 'FidelityFX / FSR4 (DX11on12)',
+        name: 'FidelityFX / FSR4',
         value: 'ffx_12',
     },
     {
@@ -268,32 +268,32 @@ const vulkanUpscalerValues = [
     },
     {
         id: 'fsr21',
-        name: 'FSR 2.1 (native)',
+        name: 'FSR 2.1',
         value: 'fsr21',
     },
     {
         id: 'fsr22',
-        name: 'FSR 2.2 (native)',
+        name: 'FSR 2.2',
         value: 'fsr22',
     },
     {
         id: 'ffx',
-        name: 'FidelityFX (native Vulkan)',
+        name: 'FidelityFX',
         value: 'ffx',
     },
     {
         id: 'xess',
-        name: 'XeSS (native)',
+        name: 'XeSS',
         value: 'xess',
     },
     {
         id: 'fsr21-12',
-        name: 'FSR 2.1 (VKon12)',
+        name: 'FSR 2.1',
         value: 'fsr21_12',
     },
     {
         id: 'ffx-12',
-        name: 'FidelityFX / FSR4 (VKon12)',
+        name: 'FidelityFX / FSR4',
         value: 'ffx_12',
     },
     {
@@ -354,25 +354,25 @@ const booleanValues = [
 const mfgOptions: LaunchOption[] = ([['xefg', 'XeFG', 3], ['dlssg', 'DLSSG', 5]] as const).flatMap(([engine, section, maximum]) => {
     const prefix = `optiscaler-${engine}`
     const counts = Array.from({length: maximum}, (_, index) => ({
-        id: `${index + 1}`, name: `${index + 2}× (${index + 1} generated)`, value: index + 1,
+        id: `${index + 1}`, name: `${index + 2}×`, value: index + 1,
     }))
     return [
         ...optiScalerDropdown(
-            `${prefix}-mfg-count`, `OptiScaler ${section} MFG Multiplier`, `${prefix}-mfg-count`,
+            `${prefix}-mfg-count`, `OptiScaler FrameGen ${section} MFG Multiplier`, `${prefix}-mfg-count`,
             `${section}_InterpolationCount`,
-            [{id: 'auto', name: 'Auto (2× default)', value: 'auto'}, ...counts],
+            [{id: 'auto', name: 'Auto', value: 'auto'}, ...counts],
         ),
         ...optiScalerDropdown(
-            `${prefix}-mfg-game-count`, `OptiScaler ${section} Game MFG Override`, `${prefix}-mfg-game-count`,
+            `${prefix}-mfg-game-count`, `OptiScaler FrameGen ${section} Game MFG Override`, `${prefix}-mfg-game-count`,
             `${section}_OverrideInterpolationCount`,
             [
-                {id: 'auto', name: 'Auto (no override)', value: 'auto'},
-                {id: '0', name: 'Off (0 generated)', value: 0},
+                {id: 'auto', name: 'Auto', value: 'auto'},
+                {id: '0', name: 'Off', value: 0},
                 ...counts,
             ],
         ),
         ...optiScalerDropdown(
-            `${prefix}-target-fps`, `OptiScaler ${section} Dynamic MFG Target FPS`, `${prefix}-target-fps`,
+            `${prefix}-target-fps`, `OptiScaler FrameGen ${section} Dynamic MFG Target FPS`, `${prefix}-target-fps`,
             `${section}_FramerateTargetDMFG`,
             [
                 {id: 'auto', name: 'Auto', value: 'auto'},
@@ -387,10 +387,10 @@ const dynamicMfgOptions: LaunchOption[] = ([
     ['xefg-dynamic-mfg', 'XeFG Dynamic MFG', 'XeFG_DynamicMFG'],
     ['xefg-dynamic-allow-1x', 'XeFG Dynamic MFG Allow 1×', 'XeFG_DynamicAllow1X'],
     ['xefg-target-as-cap-dmfg', 'XeFG Dynamic MFG Use Target as FPS Limit', 'XeFG_TargetAsCapDMFG'],
-    ['dlssg-force-dmfg', 'DLSSG Dynamic MFG (forces FG)', 'DLSSG_ForceDMFG'],
+    ['dlssg-force-dmfg', 'DLSSG Dynamic MFG', 'DLSSG_ForceDMFG'],
     ['dlssg-override-force-dmfg', 'DLSSG Native Game Dynamic MFG Override', 'DLSSG_OverrideForceDMFG'],
 ] as const).flatMap(([id, name, setting]) => optiScalerDropdown(
-    `optiscaler-${id}`, `OptiScaler ${name}`, `optiscaler-${id}`, setting, booleanValues,
+    `optiscaler-${id}`, `OptiScaler FrameGen ${name}`, `optiscaler-${id}`, setting, booleanValues,
 ))
 
 const launchOptions: LaunchOption[] = [
@@ -454,9 +454,9 @@ const launchOptions: LaunchOption[] = [
         [
             {id: 'auto', name: 'Auto', value: 'auto'},
             {id: 'disabled', name: 'No replacement', value: 'None'},
-            {id: 'nukems', name: 'Nukem (FSR3 FG)', value: 'Nukems'},
-            {id: 'arturs', name: 'Artur / Enabler (MFG)', value: 'Arturs'},
-            {id: 'ffx', name: 'FidelityFX (FSR3/4 FG)', value: 'FFX'},
+            {id: 'nukems', name: 'Nukem', value: 'Nukems'},
+            {id: 'arturs', name: 'Artur / Enabler', value: 'Arturs'},
+            {id: 'ffx', name: 'FidelityFX', value: 'FFX'},
             {id: 'combo', name: 'FidelityFX + Enabler', value: 'Combo'},
         ],
     ),
@@ -485,21 +485,21 @@ const launchOptions: LaunchOption[] = [
     ),
     ...optiScalerDropdown(
         'optiscaler-upscalers-dx11',
-        'OptiScaler Upscaler (Dx11)',
+        'OptiScaler Upscaler',
         'optiscaler-upscalers-dx11',
         'Upscalers_Dx11Upscaler',
         dx11UpscalerValues,
     ),
     ...optiScalerDropdown(
         'optiscaler-upscalers-dx12',
-        'OptiScaler Upscaler (Dx12)',
+        'OptiScaler Upscaler',
         'optiscaler-upscalers-dx12',
         'Upscalers_Dx12Upscaler',
         dx12UpscalerValues,
     ),
     ...optiScalerDropdown(
         'optiscaler-upscalers-vk',
-        'OptiScaler Upscaler (Vulkan)',
+        'OptiScaler Upscaler',
         'optiscaler-upscalers-vk',
         'Upscalers_VulkanUpscaler',
         vulkanUpscalerValues,
@@ -517,17 +517,17 @@ const launchOptions: LaunchOption[] = [
             },
             {
                 id: '0',
-                name: 'Backend 0 (runtime order)',
+                name: 'Backend 0',
                 value: 0,
             },
             {
                 id: '1',
-                name: 'Backend 1 (runtime order)',
+                name: 'Backend 1',
                 value: 1,
             },
             {
                 id: '2',
-                name: 'Backend 2 (runtime order)',
+                name: 'Backend 2',
                 value: 2,
             },
         ],
@@ -549,7 +549,7 @@ const launchOptions: LaunchOption[] = [
             {id: '0', name: 'No override', value: 0},
             {id: '1', name: 'FP8', value: 1},
             {id: '2', name: 'INT8', value: 2},
-            {id: '3', name: 'INT8-2 (RDNA2)', value: 3},
+            {id: '3', name: 'INT8-2', value: 3},
             {id: '4', name: 'INT8 Lite', value: 4},
         ],
     ),
@@ -568,20 +568,20 @@ const launchOptions: LaunchOption[] = [
     ),
     ...optiScalerDropdown(
         'optiscaler-fsr-fg-index',
-        'OptiScaler FSR FrameGen Backend',
+        'OptiScaler FrameGen FSR Backend',
         'optiscaler-fsr-fg-index',
         'FSR_FGIndex',
         [
             {id: 'auto', name: 'Auto', value: 'auto'},
-            {id: '0', name: 'Backend 0 (runtime order)', value: 0},
-            {id: '1', name: 'Backend 1 (runtime order)', value: 1},
+            {id: '0', name: 'Backend 0', value: 0},
+            {id: '1', name: 'Backend 1', value: 1},
         ],
     ),
     ...mfgOptions,
     ...dynamicMfgOptions,
     ...optiScalerDropdown(
         'optiscaler-xefg-rounding-dmfg',
-        'OptiScaler XeFG Dynamic MFG Target Rounding',
+        'OptiScaler FrameGen XeFG Dynamic MFG Target Rounding',
         'optiscaler-xefg-rounding-dmfg',
         'XeFG_RoundingDMFG',
         [

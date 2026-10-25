@@ -37,7 +37,7 @@ const recipe = {
         },
         // Compatibility profiles use a third-party distribution, not an AMD
         // driver installer. No profile rewrites FSR activation settings.
-        ...choices('fsr-profile', 'FSR4 compatibility (third-party)', 'DLOR_OPTISCALER_FSR_PROFILE', [
+        ...choices('fsr-profile', 'FSR4 compatibility', 'DLOR_OPTISCALER_FSR_PROFILE', [
             'bundled', 'rdna23-int8', 'rdna34-official-411', 'rdna2-valve-411',
         ]),
     ],

@@ -25,9 +25,12 @@ class SettingsTests(unittest.TestCase):
         module = (ROOT / ".generated/recipes-build/recipes/optiscaler/index.js").as_uri()
         result = subprocess.run(["node", "--input-type=module", "-e",
                                  "const {default: recipe} = await import(process.argv[1]); "
-                                 "console.log(JSON.stringify(recipe));", module],
+                                 "const {default: installer} = await import(new URL('../dlor-optiscaler/index.js', process.argv[1])); "
+                                 "console.log(JSON.stringify([recipe, installer]));", module],
                                 cwd=ROOT, env=environment, capture_output=True, text=True, check=True)
-        cls.options = json.loads(result.stdout)["launchOptions"]
+        recipes = json.loads(result.stdout)
+        cls.options = recipes[0]["launchOptions"]
+        cls.installer_options = recipes[1]["launchOptions"]
 
     def assignments(self, value_id):
         return [dict(token.split("=", 1) for token in shlex.split(option["on"])
@@ -121,12 +124,27 @@ class SettingsTests(unittest.TestCase):
         self.assertFalse(any("OptiScaler_FSRFG_InterpolationCount=" in option["on"]
                              for option in self.options))
 
-    def test_reprojection_is_explicitly_experimental(self):
+    def test_reprojection_uses_current_output(self):
         option = next((o for o in self.options if o["id"] == "optiscaler-framegen-output-reprojection"), None)
         assert option is not None, 'Reprojection choice is missing'
         self.assertEqual(option["on"], 'OptiScaler_FrameGen_FGOutput="reprojection"')
-        self.assertIn("WIP", option["valueName"])
-        self.assertIn("mouse", option["valueName"].lower())
+        self.assertEqual(option["valueName"], "Reprojection")
+
+    def test_option_labels_have_no_parenthetical_text(self):
+        for option in [*self.options, *self.installer_options]:
+            for field in ("name", "valueName"):
+                with self.subTest(option=option["id"], field=field):
+                    self.assertNotRegex(option.get(field, ""), r"[()]")
+
+    def test_framegen_controls_share_the_framegen_label_prefix(self):
+        for option in self.options:
+            variables = [token.split("=", 1)[0] for token in shlex.split(option.get("on", ""))]
+            related = any(variable.startswith(("OptiScaler_FrameGen_", "OptiScaler_OptiFG_",
+                                               "OptiScaler_XeFG_", "OptiScaler_DLSSG_"))
+                          or variable == "OptiScaler_FSR_FGIndex" for variable in variables)
+            if related:
+                with self.subTest(option=option["id"]):
+                    self.assertTrue(option["name"].startswith("OptiScaler FrameGen"))
 
     def test_every_setting_round_trips_through_physical_updater(self):
         path = ROOT / "recipes/dlor-optiscaler/scripts/update_optiscaler_config.py"
