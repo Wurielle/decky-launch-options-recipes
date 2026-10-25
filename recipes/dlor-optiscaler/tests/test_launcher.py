@@ -56,7 +56,7 @@ def main(argv=None):
     if len(argv) < 2:
         print('fixture usage: ACTION GAME_ROOT', file=sys.stderr)
         return 2
-    record = {'argv': argv, 'env': {k: v for k, v in os.environ.items() if k in ('STEAM_RUNTIME', 'LD_LIBRARY_PATH', 'LD_PRELOAD', 'PATH', 'PYTHONHOME', 'PYTHONPATH', 'WINEDLLOVERRIDES', 'work', 'status', 'entry_name', 'helper_pid', 'logger_pid', 'merged', 'console_out', 'console_err')}, 'isolated': sys.flags.isolated,
+    record = {'argv': argv, 'env': {k: v for k, v in os.environ.items() if k in ('STEAM_RUNTIME', 'LD_LIBRARY_PATH', 'LD_PRELOAD', 'PATH', 'PYTHONHOME', 'PYTHONPATH', 'WINEDLLOVERRIDES', 'SteamDeck', 'work', 'status', 'entry_name', 'helper_pid', 'logger_pid', 'merged', 'console_out', 'console_err')}, 'isolated': sys.flags.isolated,
               'bytecode': sys.dont_write_bytecode}
     pathlib.Path(os.environ['FIXTURE_TRACE']).write_text(json.dumps(record))
     print('fixture installer output', flush=True)
@@ -319,7 +319,7 @@ os.execv('/usr/bin/{tool}', ['{tool}', *sys.argv[1:]])
             shutil.copyfile(SCRIPTS / 'nightly.py', self.scripts / 'nightly.py')
         if not (self.scripts / 'loader.py').exists():
             shutil.copyfile(SCRIPTS / 'loader.py', self.scripts / 'loader.py')
-        result = subprocess.run([sys.executable, '-I', '-B', str(self.scripts / updater.name)],
+        result = subprocess.run([sys.executable, '-I', '-B', str(self.scripts / updater.name), '--source-revision', REVISION],
                                 capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         return json.loads(result.stdout)
@@ -361,6 +361,7 @@ os.execv('/usr/bin/{tool}', ['{tool}', *sys.argv[1:]])
         self.assertEqual(trace['argv'], ['install', str(self.game)])
         self.assertEqual(trace['isolated'], 1)
         self.assertTrue(trace['bytecode'])
+        self.assertEqual(trace['env']['SteamDeck'], '0')
         self.assertEqual(self.fetches.read_text().splitlines(), ['downloads.json', 'loader.py', 'installer.py', 'artifacts.py', 'game_discovery.py', 'update_optiscaler_config.py'])
         logs = list((self.home / '.dlor/logs/dlor-optiscaler/install').glob('*.log'))
         self.assertEqual(len(logs), 1)
@@ -370,7 +371,7 @@ os.execv('/usr/bin/{tool}', ['{tool}', *sys.argv[1:]])
     def game_command(self, *extra):
         output = self.root / 'game-result.json'
         code = ("import json, os, pathlib, sys; "
-                "pathlib.Path(sys.argv[1]).write_text(json.dumps({'argv': sys.argv[2:], 'env': {k: v for k, v in os.environ.items() if k in ('STEAM_RUNTIME', 'LD_LIBRARY_PATH', 'LD_PRELOAD', 'PATH', 'PYTHONHOME', 'PYTHONPATH', 'WINEDLLOVERRIDES', 'work', 'status', 'entry_name', 'helper_pid', 'logger_pid', 'merged', 'console_out', 'console_err', 's', 'REPLY', 'p', 'f', 'COPROC', 'COPROC_PID', 'ORIGINAL_TEST_VALUE', 'DLOR_SCRIPT_REVISION', 'DLOR_REPOSITORY')}})); "
+                "pathlib.Path(sys.argv[1]).write_text(json.dumps({'argv': sys.argv[2:], 'env': {k: v for k, v in os.environ.items() if k in ('STEAM_RUNTIME', 'LD_LIBRARY_PATH', 'LD_PRELOAD', 'PATH', 'PYTHONHOME', 'PYTHONPATH', 'WINEDLLOVERRIDES', 'SteamDeck', 'work', 'status', 'entry_name', 'helper_pid', 'logger_pid', 'merged', 'console_out', 'console_err', 's', 'REPLY', 'p', 'f', 'COPROC', 'COPROC_PID', 'ORIGINAL_TEST_VALUE', 'DLOR_SCRIPT_REVISION', 'DLOR_REPOSITORY')}})); "
                 "print('GAMEPLAY-SENTINEL', flush=True); sys.exit(23)")
         return [sys.executable, '-I', '-B', '-c', code, str(output), *extra]
 
@@ -397,12 +398,11 @@ os.execv('/usr/bin/{tool}', ['{tool}', *sys.argv[1:]])
         self.generate()
         runpy.run_path(str(SCRIPTS.parents[2] / 'scripts/runner_test_support.py'))['install_runner'](self.home)
         recipe = self.compiled_recipe()
-        context = (f'DLOR_OPTISCALER_SOURCE_REVISION="{REVISION}" '
-                   'DLOR_OPTISCALER_SOURCE_REPOSITORY="Wurielle/decky-launch-options-recipes" ')
+        self.env['SteamDeck'] = '1'
         for enabled, action in ((True, 'install'), (False, 'uninstall')):
             with self.subTest(enabled=enabled):
-                expected = (('WINEDLLOVERRIDES="dxgi=n,b" ' if enabled else '') + context
-                            + f'DLOR_OPTISCALER_ACTION="{action}" ~/.dlor/run dlor-optiscaler {action} {REVISION} -- %command%')
+                expected = (('WINEDLLOVERRIDES="dxgi=n,b" SteamDeck=0 ' if enabled else '')
+                            + f'~/.dlor/run dlor-optiscaler {action} {REVISION} -- %command%')
                 self.assertEqual(recipe['launchOptions'][0]['on' if enabled else 'off'], expected)
                 self.env.pop('DLOR_SCRIPT_REVISION', None)
                 final, env, variables = self.consumer_launch(recipe, self.game_command('quoted " café path'), enabled)
@@ -412,10 +412,13 @@ os.execv('/usr/bin/{tool}', ['{tool}', *sys.argv[1:]])
                 self.assertEqual(json.loads(self.trace.read_text())['argv'], [action, str(self.game)])
                 observed = json.loads((self.root / 'game-result.json').read_text())
                 self.assertEqual(observed['argv'], ['quoted " café path', '--original-arg'])
+                self.assertEqual(observed['env']['SteamDeck'], '0' if enabled else '1')
                 if enabled:
                     self.assertEqual(variables['WINEDLLOVERRIDES'], 'dxgi=n,b')
+                    self.assertEqual(variables['SteamDeck'], '0')
                 else:
                     self.assertNotIn('WINEDLLOVERRIDES', variables)
+                    self.assertNotIn('SteamDeck', variables)
 
     def test_actual_consumer_executes_file_backed_entrypoint(self):
         import runpy
@@ -664,9 +667,7 @@ os.execv('/usr/bin/sha256sum', ['sha256sum', *sys.argv[1:]])
         self.assertEqual((nightly["name"], nightly["priority"], nightly["off"]),
                          ("OptiScaler Nightly Upgrade", -1, ""))
         parsed = self.actual_consumer().parse_launch_option(nightly["on"])
-        self.assertEqual(parsed["env_vars"], {
-            "DLOR_OPTISCALER_LATEST": "1", "DLOR_OPTISCALER_NIGHTLY_REVISION": REVISION,
-            "DLOR_OPTISCALER_NIGHTLY_REPOSITORY": "Wurielle/decky-launch-options-recipes"})
+        self.assertEqual(parsed["env_vars"], {})
         self.assertEqual(parsed["prefix"], ["~/.dlor/run", "optiscaler", "update-nightly", REVISION, "--"])
         self.assertNotIn("python", nightly["on"])
         recipe = self.fixture_recipe()
@@ -680,7 +681,8 @@ os.execv('/usr/bin/sha256sum', ['sha256sum', *sys.argv[1:]])
             result = subprocess.run(final, env=env, capture_output=True, text=True, timeout=20)
             self.assertEqual(result.returncode, 23, result.stdout + result.stderr)
             self.assertEqual(json.loads(self.trace.read_text())["argv"], ["upgrade", str(self.game)])
-            self.assertEqual(variables["DLOR_OPTISCALER_LATEST"], "1")
+            self.assertNotIn("DLOR_OPTISCALER_LATEST", variables)
+            self.assertNotIn("DLOR_OPTISCALER_ACTION", variables)
 
     def test_recipe_has_short_file_calls_and_none_only_dropdown_defaults(self):
         recipe = self.compiled_recipe()
@@ -689,11 +691,9 @@ os.execv('/usr/bin/sha256sum', ['sha256sum', *sys.argv[1:]])
         consumer = self.actual_consumer()
         for action, key in [('install', 'on'), ('uninstall', 'off')]:
             option = toggle[key]
-            self.assertLess(len(option), 320)
+            self.assertLess(len(option), 150)
             parsed = consumer.parse_launch_option(option)
-            expected = {'DLOR_OPTISCALER_ACTION': action, 'DLOR_OPTISCALER_SOURCE_REVISION': REVISION,
-                        'DLOR_OPTISCALER_SOURCE_REPOSITORY': 'Wurielle/decky-launch-options-recipes'}
-            if key == 'on': expected['WINEDLLOVERRIDES'] = 'dxgi=n,b'
+            expected = {'WINEDLLOVERRIDES': 'dxgi=n,b', 'SteamDeck': '0'} if key == 'on' else {}
             self.assertEqual(parsed['env_vars'], expected)
             self.assertEqual(parsed['prefix'], ['~/.dlor/run', 'dlor-optiscaler', action, REVISION, '--'])
             self.assertEqual(parsed['pre_commands'], [])
@@ -791,7 +791,7 @@ os.execv('/usr/bin/sha256sum', ['sha256sum', *sys.argv[1:]])
 
     def test_invalid_revision_repository_and_digest_are_rejected(self):
         self.generate()
-        for key, value in [('DLOR_SCRIPT_REVISION', 'main'), ('DLOR_REPOSITORY', 'owner/../repo')]:
+        for key, value in [('DLOR_OPTISCALER_SOURCE_REVISION', 'main'), ('DLOR_OPTISCALER_SOURCE_REPOSITORY', 'owner/../repo')]:
             with self.subTest(key=key):
                 old = self.env.get(key)
                 self.env[key] = value

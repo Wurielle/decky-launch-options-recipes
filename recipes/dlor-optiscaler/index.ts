@@ -4,9 +4,6 @@ import { remoteScript } from '../shared/remote-script.js'
 const group = 'DLOR OptiScaler'
 const install = remoteScript('dlor-optiscaler', 'install')
 const uninstall = remoteScript('dlor-optiscaler', 'uninstall')
-// remoteScript validates build metadata. The helper-only runner does not export
-// its revision; supply module acquisition context without changing other recipes'.
-const sourceContext = `DLOR_OPTISCALER_SOURCE_REVISION="${process.env.RECIPE_COMMIT_SHA}" DLOR_OPTISCALER_SOURCE_REPOSITORY="${process.env.RECIPE_REPOSITORY_OWNER}/${process.env.RECIPE_REPOSITORY_NAME}"`
 
 // The core always uses the official nightly and the declared DXGI proxy.
 // OptiPatcher is mandatory in the main install; profiles only select files.
@@ -31,8 +28,8 @@ const recipe = {
             id: 'dlor-optiscaler',
             group,
             name: group,
-            on: `WINEDLLOVERRIDES="dxgi=n,b" ${sourceContext} DLOR_OPTISCALER_ACTION="install" ${install}`,
-            off: `${sourceContext} DLOR_OPTISCALER_ACTION="uninstall" ${uninstall}`,
+            on: `WINEDLLOVERRIDES="dxgi=n,b" SteamDeck=0 ${install}`,
+            off: uninstall,
             enableGlobally: false,
         },
         // Compatibility profiles use a third-party distribution, not an AMD

@@ -2,9 +2,6 @@ import type { LaunchOption, Recipe } from '../shared/types.js'
 import { remoteScript } from '../shared/remote-script.js'
 
 const updateNightly = remoteScript('optiscaler', 'update-nightly')
-// The stock runner applies assignments to every helper. Main DLOR ON resolves
-// latest once; its separate upgrade helper no-ops after ON or OFF at priority -1.
-const nightlyContext = `DLOR_OPTISCALER_LATEST="1" DLOR_OPTISCALER_NIGHTLY_REVISION="${process.env.RECIPE_COMMIT_SHA}" DLOR_OPTISCALER_NIGHTLY_REPOSITORY="${process.env.RECIPE_REPOSITORY_OWNER}/${process.env.RECIPE_REPOSITORY_NAME}"`
 
 type OptiScalerDropdownValue = {
     id: string
@@ -395,7 +392,7 @@ const launchOptions: LaunchOption[] = [
         id: 'optiscaler-nightly-upgrade',
         group: optiScalerGroup,
         name: 'OptiScaler Nightly Upgrade',
-        on: `${nightlyContext} ${updateNightly}`,
+        on: updateNightly,
         off: '',
         enableGlobally: false,
         priority: -1,

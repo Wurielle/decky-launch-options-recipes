@@ -55,6 +55,8 @@ finish_log() {
     exec {console_out}>&- {console_err}>&-
 }
 
+BUNDLE_REVISION=8f744ceb877b9da85a55d161e25fae26b2c112eb
+BUNDLE_REPOSITORY=Wurielle/decky-launch-options-recipes
 MANIFEST_SHA256=be0702b69d1e5fb683d87bb148dbefae9c42c238c99700ef70e1e670d333e8b5
 
 run_loader() (
@@ -69,12 +71,13 @@ run_loader() (
     trap cleanup_loader EXIT
     trap 'exit 130' INT
     trap 'exit 143' TERM
-    if [[ $entry_name == upgrade ]]; then
-        export DLOR_OPTISCALER_SOURCE_REVISION=${DLOR_OPTISCALER_NIGHTLY_REVISION-${DLOR_SCRIPT_REVISION-}}
-        export DLOR_OPTISCALER_SOURCE_REPOSITORY=${DLOR_OPTISCALER_NIGHTLY_REPOSITORY-${DLOR_REPOSITORY-Wurielle/decky-launch-options-recipes}}
-    fi
-    revision=${DLOR_OPTISCALER_SOURCE_REVISION-${DLOR_SCRIPT_REVISION-}}
-    repository=${DLOR_OPTISCALER_SOURCE_REPOSITORY-${DLOR_REPOSITORY-Wurielle/decky-launch-options-recipes}}
+    revision=${DLOR_OPTISCALER_SOURCE_REVISION-$BUNDLE_REVISION}
+    repository=${DLOR_OPTISCALER_SOURCE_REPOSITORY-$BUNDLE_REPOSITORY}
+    export DLOR_OPTISCALER_SOURCE_REVISION=$revision
+    export DLOR_OPTISCALER_SOURCE_REPOSITORY=$repository
+    # Actions belong to the physical entrypoint, not ambient game assignments.
+    unset DLOR_OPTISCALER_ACTION DLOR_OPTISCALER_LATEST
+    if [[ $entry_name == install ]]; then export SteamDeck=0; fi
     if [[ ! $revision =~ ^[a-f0-9]{40}$ ||
           ! $repository =~ ^[A-Za-z0-9][A-Za-z0-9_.-]*/[A-Za-z0-9][A-Za-z0-9_.-]*$ ||
           ! $MANIFEST_SHA256 =~ ^[a-f0-9]{64}$ ]]; then

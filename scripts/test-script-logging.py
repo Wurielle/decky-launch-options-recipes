@@ -174,9 +174,6 @@ fi''')
                             prefix.append(token)
                     self.assertNotIn("LD_PRELOAD", environment)
                     allowed_environment = {"WINEDLLOVERRIDES"}
-                    if option["id"] == "optiscaler-nightly-upgrade":
-                        allowed_environment.update({"DLOR_OPTISCALER_LATEST", "DLOR_OPTISCALER_NIGHTLY_REVISION",
-                                                    "DLOR_OPTISCALER_NIGHTLY_REPOSITORY"})
                     self.assertTrue(set(environment) <= allowed_environment)
                     self.assertEqual(prefix[0], "~/.dlor/run")
                     self.assertEqual(len(prefix), 5)
