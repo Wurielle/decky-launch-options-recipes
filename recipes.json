@@ -6,14 +6,38 @@
         "id": "optiscaler",
         "group": "",
         "name": "OptiScaler",
+        "on": "",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler",
+        "valueName": "None",
+        "fallbackValue": true
+      },
+      {
+        "id": "optiscaler-install",
+        "group": "",
+        "name": "OptiScaler",
         "on": "~/fgmod/fgmod %command%",
-        "off": "~/fgmod/fgmod-uninstaller.sh %command%"
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler",
+        "valueName": "Install"
+      },
+      {
+        "id": "optiscaler-uninstall",
+        "group": "",
+        "name": "OptiScaler",
+        "on": "~/fgmod/fgmod-uninstaller.sh %command%",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler",
+        "valueName": "Uninstall"
       },
       {
         "id": "optiscaler-nightly-upgrade",
         "group": "OptiScaler",
         "name": "OptiScaler Nightly Upgrade",
-        "on": "~/.dlor/run optiscaler update-nightly 2df869d60830c31e2f6d45aec41caed4379e03f8 -- %command%",
+        "on": "~/.dlor/run optiscaler update-nightly 9f798aee90e30d6881413ad6139542d7ae9a26db -- %command%",
         "off": "",
         "enableGlobally": false,
         "priority": -1
@@ -3536,7 +3560,7 @@
         "id": "reframework-install-update",
         "group": "REFramework",
         "name": "REFramework",
-        "on": "WINEDLLOVERRIDES=\"dinput8.dll=n,b\" ~/.dlor/run reframework update 2df869d60830c31e2f6d45aec41caed4379e03f8 -- %command%",
+        "on": "WINEDLLOVERRIDES=\"dinput8.dll=n,b\" ~/.dlor/run reframework update 9f798aee90e30d6881413ad6139542d7ae9a26db -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "reframework",
@@ -3546,7 +3570,7 @@
         "id": "reframework-uninstall",
         "group": "REFramework",
         "name": "REFramework",
-        "on": "~/.dlor/run reframework uninstall 2df869d60830c31e2f6d45aec41caed4379e03f8 -- %command%",
+        "on": "~/.dlor/run reframework uninstall 9f798aee90e30d6881413ad6139542d7ae9a26db -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "reframework",
@@ -3561,8 +3585,8 @@
         "id": "dlor-optiscaler",
         "group": "DLOR OptiScaler",
         "name": "DLOR OptiScaler",
-        "on": "WINEDLLOVERRIDES=\"dxgi=n,b\" DLOR_OPTISCALER_SOURCE_REVISION=\"2df869d60830c31e2f6d45aec41caed4379e03f8\" DLOR_OPTISCALER_SOURCE_REPOSITORY=\"Wurielle/decky-launch-options-recipes\" ~/.dlor/run dlor-optiscaler install 2df869d60830c31e2f6d45aec41caed4379e03f8 -- %command%",
-        "off": "DLOR_OPTISCALER_SOURCE_REVISION=\"2df869d60830c31e2f6d45aec41caed4379e03f8\" DLOR_OPTISCALER_SOURCE_REPOSITORY=\"Wurielle/decky-launch-options-recipes\" ~/.dlor/run dlor-optiscaler uninstall 2df869d60830c31e2f6d45aec41caed4379e03f8 -- %command%",
+        "on": "WINEDLLOVERRIDES=\"dxgi=n,b\" DLOR_OPTISCALER_SOURCE_REVISION=\"9f798aee90e30d6881413ad6139542d7ae9a26db\" DLOR_OPTISCALER_SOURCE_REPOSITORY=\"Wurielle/decky-launch-options-recipes\" ~/.dlor/run dlor-optiscaler install 9f798aee90e30d6881413ad6139542d7ae9a26db -- %command%",
+        "off": "DLOR_OPTISCALER_SOURCE_REVISION=\"9f798aee90e30d6881413ad6139542d7ae9a26db\" DLOR_OPTISCALER_SOURCE_REPOSITORY=\"Wurielle/decky-launch-options-recipes\" ~/.dlor/run dlor-optiscaler uninstall 9f798aee90e30d6881413ad6139542d7ae9a26db -- %command%",
         "enableGlobally": false
       },
       {
