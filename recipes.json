@@ -13,7 +13,7 @@
         "id": "optiscaler-nightly-upgrade",
         "group": "OptiScaler",
         "name": "OptiScaler Nightly Upgrade",
-        "on": "~/.dlor/run optiscaler update-nightly b8e1fdf2668761ff5d771f02c6524ef1a8869cff -- %command%",
+        "on": "~/.dlor/run optiscaler update-nightly 2df869d60830c31e2f6d45aec41caed4379e03f8 -- %command%",
         "off": "",
         "enableGlobally": false,
         "priority": -1
@@ -3536,7 +3536,7 @@
         "id": "reframework-install-update",
         "group": "REFramework",
         "name": "REFramework",
-        "on": "WINEDLLOVERRIDES=\"dinput8.dll=n,b\" ~/.dlor/run reframework update b8e1fdf2668761ff5d771f02c6524ef1a8869cff -- %command%",
+        "on": "WINEDLLOVERRIDES=\"dinput8.dll=n,b\" ~/.dlor/run reframework update 2df869d60830c31e2f6d45aec41caed4379e03f8 -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "reframework",
@@ -3546,7 +3546,7 @@
         "id": "reframework-uninstall",
         "group": "REFramework",
         "name": "REFramework",
-        "on": "~/.dlor/run reframework uninstall b8e1fdf2668761ff5d771f02c6524ef1a8869cff -- %command%",
+        "on": "~/.dlor/run reframework uninstall 2df869d60830c31e2f6d45aec41caed4379e03f8 -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "reframework",
@@ -3561,8 +3561,8 @@
         "id": "dlor-optiscaler",
         "group": "DLOR OptiScaler",
         "name": "DLOR OptiScaler",
-        "on": "WINEDLLOVERRIDES=\"dxgi=n,b\" DLOR_OPTISCALER_SOURCE_REVISION=\"b8e1fdf2668761ff5d771f02c6524ef1a8869cff\" DLOR_OPTISCALER_SOURCE_REPOSITORY=\"Wurielle/decky-launch-options-recipes\" ~/.dlor/run dlor-optiscaler install b8e1fdf2668761ff5d771f02c6524ef1a8869cff -- %command%",
-        "off": "DLOR_OPTISCALER_SOURCE_REVISION=\"b8e1fdf2668761ff5d771f02c6524ef1a8869cff\" DLOR_OPTISCALER_SOURCE_REPOSITORY=\"Wurielle/decky-launch-options-recipes\" ~/.dlor/run dlor-optiscaler uninstall b8e1fdf2668761ff5d771f02c6524ef1a8869cff -- %command%",
+        "on": "WINEDLLOVERRIDES=\"dxgi=n,b\" DLOR_OPTISCALER_SOURCE_REVISION=\"2df869d60830c31e2f6d45aec41caed4379e03f8\" DLOR_OPTISCALER_SOURCE_REPOSITORY=\"Wurielle/decky-launch-options-recipes\" ~/.dlor/run dlor-optiscaler install 2df869d60830c31e2f6d45aec41caed4379e03f8 -- %command%",
+        "off": "DLOR_OPTISCALER_SOURCE_REVISION=\"2df869d60830c31e2f6d45aec41caed4379e03f8\" DLOR_OPTISCALER_SOURCE_REPOSITORY=\"Wurielle/decky-launch-options-recipes\" ~/.dlor/run dlor-optiscaler uninstall 2df869d60830c31e2f6d45aec41caed4379e03f8 -- %command%",
         "enableGlobally": false
       },
       {
