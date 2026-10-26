@@ -87,7 +87,7 @@
     "loader.py": "989ccccd9c3590ddf25f7df5480a969b0143c2e1ad7861cd9748f95b993a7193",
     "installer.py": "e4f18751b79cf2d4cfceb617641b6c703c4e7ae763566c803857bbdd865e0a4f",
     "artifacts.py": "1c82cff6d6c85a2f5496c117aef52a473db61eba6b53cc0a316bebf64ddd12de",
-    "game_discovery.py": "f5d2aeb6bf3abd9c8e1968427abb21d848e3d273c2f9fc792666042f37b0fe49",
+    "game_discovery.py": "bacaa7f9f133250ddc8b9818387ba9dcde061865527a5308253ef61907b915e5",
     "update_optiscaler_config.py": "a3e77b1d47bd0a458c3cdf87e360e21f96f4c821ec2d921e31443d2704513006",
     "nightly.py": "a7e036a5e129e96083db6b47a7b5f12cee9915c8eee82e493e2e57d7437bdfcb"
   }

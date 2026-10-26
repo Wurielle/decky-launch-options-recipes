@@ -114,6 +114,83 @@ class DiscoveryTests(unittest.TestCase):
         self.assertIsNone(discovery.discover_ini(self.root))
         self.assertEqual(discovery.discover_game_directory(self.root, []), game.parent)
 
+    def test_clean_title_match_finds_dynamic_renderer_without_launch_context(self):
+        root = self.root / 'Cyberpunk 2077'
+        launcher = self.file('Cyberpunk 2077/REDprelauncher.exe', synthetic_pe(('d3d11.dll',)))
+        game = self.file('Cyberpunk 2077/unlisted location/renderer/Cyberpunk2077.EXE', synthetic_pe(('KERNEL32.dll',)))
+        self.file('Cyberpunk 2077/tools/CrashReporter.exe', synthetic_pe(('d3d11.dll',)))
+        self.file('Cyberpunk 2077/redist/setup.exe', synthetic_pe(('d3d12.dll',)))
+        self.assertIsNone(discovery.discover_ini(root))
+        with patch('subprocess.run', side_effect=AssertionError('pre-launch discovery inspected processes')):
+            self.assertEqual(discovery.discover_game_directory(root, []), game.parent)
+        self.assertNotEqual(game.parent, launcher.parent)
+        self.assertEqual({p.name for p in root.rglob('*') if p.is_file()},
+                         {'REDprelauncher.exe', 'Cyberpunk2077.EXE', 'CrashReporter.exe', 'setup.exe'})
+
+    def test_equal_title_variants_refuse_with_candidate_diagnostics(self):
+        root = self.root / 'A Different Game'
+        self.file('A Different Game/DX11/ADifferentGame.exe', synthetic_pe(('d3d11.dll',)))
+        self.file('A Different Game/DX12/A-Different-Game.exe', synthetic_pe(('KERNEL32.dll',)))
+        with self.assertRaises(discovery.DiscoveryError) as error:
+            discovery.discover_game_directory(root, [])
+        self.assertIn('DX11/ADifferentGame.exe', str(error.exception))
+        self.assertIn('DX12/A-Different-Game.exe', str(error.exception))
+        self.assertIn('name match', str(error.exception))
+
+    def test_graphics_helpers_do_not_mask_unique_generic_renderer(self):
+        for helper in ('REDprelauncher.exe', 'CrashReportClient.exe', 'GameUpdater.exe', 'setup.exe', 'unins000.exe'):
+            with self.subTest(helper=helper):
+                root = self.root / helper
+                game = self.file(f'{helper}/custom/location/ActualGame.exe', synthetic_pe(('d3d12.dll',)))
+                self.file(f'{helper}/tools/{helper}', synthetic_pe(('d3d11.dll',)))
+                self.assertEqual(discovery.discover_game_directory(root, []), game.parent)
+
+    def test_title_named_bootstrap_does_not_hide_unassociated_nested_renderer(self):
+        root = self.root / 'Another Project'
+        self.file('Another Project/AnotherProject.exe', synthetic_pe(('d3d11.dll',)))
+        nested = self.file('Another Project/unknown engine/Render.exe', synthetic_pe(('d3d12.dll',)))
+        with self.assertRaises(discovery.DiscoveryError) as error:
+            discovery.discover_game_directory(root, [])
+        self.assertIn('bootstrap', str(error.exception))
+        self.assertIn(nested.relative_to(root).as_posix(), str(error.exception))
+
+    def test_local_steam_title_supports_a_renamed_install_folder(self):
+        root = self.root / 'steamapps/common/custom folder'
+        game = self.file('steamapps/common/custom folder/odd location/ActualTitle.exe', synthetic_pe(('KERNEL32.dll',)))
+        self.file('steamapps/common/custom folder/launcher.exe', synthetic_pe(('d3d11.dll',)))
+        self.file('steamapps/appmanifest_12345.acf', b'"AppState"\n{\n"appid" "12345"\n"name" "Actual Title"\n"installdir" "custom folder"\n}\n')
+        with patch.dict('os.environ', {'SteamAppId': '12345'}):
+            self.assertEqual(discovery.discover_game_directory(root, []), game.parent)
+
+    def test_unusable_steam_metadata_does_not_select_a_dynamic_executable(self):
+        root = self.root / 'steamapps/common/custom folder'
+        self.file('steamapps/common/custom folder/ActualTitle.exe', synthetic_pe(('KERNEL32.dll',)))
+        manifest = self.file('steamapps/appmanifest_12345.acf')
+        good = b'"appid" "12345"\n"name" "Actual Title"\n"installdir" "custom folder"\n'
+        bad = [good.replace(b'12345', b'67890'), good.replace(b'custom folder', b'another folder'),
+               good + b'"name" "duplicate"\n', b'x' * 65537, b'\xff']
+        with patch.dict('os.environ', {'SteamAppId': '12345'}):
+            for data in bad:
+                with self.subTest(data_length=len(data)):
+                    manifest.write_bytes(data)
+                    with self.assertRaises(discovery.DiscoveryError):
+                        discovery.discover_game_directory(root, [])
+            manifest.unlink()
+            outside = self.file('external-title.acf', good)
+            manifest.symlink_to(outside)
+            with self.assertRaises(discovery.DiscoveryError):
+                discovery.discover_game_directory(root, [])
+
+    def test_name_matching_preserves_unicode_and_rejects_invalid_pe(self):
+        root = self.root / 'Grüße 2'
+        game = self.file('Grüße 2/alternate/GRÜSSE_2.EXE', synthetic_pe(('KERNEL32.dll',)))
+        self.assertEqual(discovery.discover_game_directory(root, []), game.parent)
+        for data in (b'not a PE', synthetic_pe(machine=0x14C), synthetic_pe(characteristics=0x2022)):
+            game.write_bytes(data)
+            with self.assertRaises(discovery.DiscoveryError) as error:
+                discovery.discover_game_directory(root, [])
+            self.assertIn('invalid or unsupported AMD64 PE', str(error.exception))
+
     def test_main_argv_renderer_disambiguates_without_choosing_argument_exe(self):
         main = self.file("任意/Main Folder/Actual.EXE", synthetic_pe())
         other = self.file("different/other.exe", synthetic_pe(("vulkan-1.dll",)))

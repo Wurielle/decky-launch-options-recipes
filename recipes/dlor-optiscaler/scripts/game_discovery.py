@@ -6,6 +6,7 @@ itself may pass through Steam library symlinks and is resolved once per call.
 This is discovery over a stable tree, not an atomic filesystem-write guard.
 """
 from pathlib import Path, PurePosixPath, PureWindowsPath
+import os
 import struct
 import re
 
@@ -246,6 +247,67 @@ def _shipping_targets(bootstrap: Path, candidates: list[Path]) -> list[Path]:
             and bootstrap.parent in p.parents and p.parent != bootstrap.parent]
 
 
+def _normalized_name(value: str) -> str:
+    return ''.join(character for character in value.casefold() if character.isalnum())
+
+
+def _steam_title(root: Path) -> str | None:
+    """Use only bounded local metadata that identifies this same installation."""
+    appid = os.environ.get('SteamAppId', '')
+    if (not re.fullmatch(r'[0-9]{1,20}', appid) or root.parent.name.casefold() != 'common'
+            or root.parent.parent.name.casefold() != 'steamapps'):
+        return None
+    manifest = root.parent.parent / f'appmanifest_{appid}.acf'
+    try:
+        if manifest.is_symlink() or not manifest.is_file():
+            return None
+        with manifest.open('rb') as stream:
+            data = stream.read(65537)
+        if len(data) > 65536:
+            return None
+        text = data.decode('utf-8-sig')
+        fields = {}
+        for key in ('appid', 'name', 'installdir'):
+            values = re.findall(r'^\s*"' + key + r'"\s*"([^"\r\n]*)"\s*$', text, re.M)
+            if len(values) != 1:
+                return None
+            fields[key] = values[0]
+        if fields['appid'] == appid and fields['installdir'].casefold() == root.name.casefold():
+            return fields['name'] or None
+    except (OSError, UnicodeError):
+        pass
+    return None
+
+
+def _is_helper(path: Path) -> bool:
+    name = _normalized_name(path.stem)
+    if any(part in name for part in ('launcher', 'bootstrap', 'crashreport', 'crashhandler',
+                                    'updater', 'uninstaller', 'vcredist', 'redistributable')):
+        return True
+    return re.fullmatch(r'(?:setup|unins|uninstall|install|installer|dxsetup)(?:[0-9]+|[_ .-].*)?',
+                        path.stem, re.IGNORECASE) is not None
+
+
+def _selection_error(root, files, valid, renderers, reason="No unique AMD64 rendering executable found", *, names=None):
+    valid, renderers = set(valid), set(renderers)
+    names = names or {_normalized_name(root.name)}
+    executables = sorted((path for path in files if path.suffix.casefold() == '.exe'),
+                         key=lambda path: path.relative_to(root).as_posix().casefold())
+    descriptions = []
+    for path in executables[:20]:
+        labels = ['valid AMD64' if path in valid else 'invalid or unsupported AMD64 PE']
+        if _normalized_name(path.stem) in names:
+            labels.append('name match')
+        if path in renderers:
+            labels.append('renderer evidence')
+        if _is_helper(path):
+            labels.append('launcher/helper name')
+        descriptions.append(f"{path.relative_to(root).as_posix()!r} [{', '.join(labels)}]")
+    if len(executables) > 20:
+        descriptions.append(f"{len(executables) - 20} further executables omitted")
+    return DiscoveryError(reason + '; candidates: ' + ('; '.join(descriptions) or 'none'))
+
+
 def _renderer(root: Path, files: list[Path], argv: list[str], executable: str | None) -> Path:
     override = _local_path(root, executable) if executable is not None else None
     if override is not None and (override.suffix.casefold() != ".exe" or _pe_imports(override) is None):
@@ -270,21 +332,42 @@ def _renderer(root: Path, files: list[Path], argv: list[str], executable: str | 
         if nested and override is None:
             raise DiscoveryError("Launch executable may be a bootstrap; nested renderers are unassociated")
         return context
-    if len(renderers) == 1:
-        return renderers[0]
+    # A fresh helper has no game argv. A unique title/folder-name match can
+    # identify a dynamic renderer without requiring a static graphics import.
+    names = list(dict.fromkeys(_normalized_name(name) for name in (_steam_title(root), root.name) if name))
+    for title in names:
+        named = [path for path in valid if title and _normalized_name(path.stem) == title and not _is_helper(path)]
+        if len(named) > 1:
+            raise _selection_error(root, files, valid, renderers, names=names)
+        if len(named) == 1:
+            shipping = _shipping_targets(named[0], renderers)
+            if len(shipping) == 1:
+                return shipping[0]
+            if not shipping:
+                nested = [path for path in renderers if path != named[0] and not _is_helper(path)
+                          and named[0].parent in path.parents and path.parent != named[0].parent]
+                if nested:
+                    raise _selection_error(root, files, valid, renderers,
+                                           "Name-matched executable may be a bootstrap; nested renderers are unassociated", names=names)
+                return named[0]
+    preferred = [path for path in renderers if not _is_helper(path)]
+    if len(preferred) == 1:
+        return preferred[0]
     if not renderers and len(valid) == 1 and context == valid[0]:
         return valid[0]  # Unique launched AMD64 game may load graphics dynamically.
-    raise DiscoveryError("No unique AMD64 rendering executable found")
+    raise _selection_error(root, files, valid, renderers, names=names)
 
 
 def discover_game_directory(root: Path, argv: list[str], *, executable: str | None = None) -> Path:
     """Return the installation directory, never an executable path.
 
-    A unique existing INI wins over argv and executable. Otherwise normal
-    graphics-import/Unreal shipping metadata selects candidates; the first
-    local, metadata-valid AMD64 argv executable supplies launch context. External
-    argv tools are ignored, never inspected. A sole launched AMD64 executable
-    also works without static graphics imports. Ambiguity raises DiscoveryError.
+    A unique existing INI wins over argv and executable. Normal graphics imports
+    and Unreal shipping metadata supply renderer evidence. Without launch argv,
+    a unique normalized executable-name match to the same-install local Steam
+    title or folder name also supports dynamically loaded graphics. Generic
+    launcher/helper names are not preferred automatically, and unassociated
+    nested renderers or equal title variants remain ambiguous. External argv
+    tools are ignored. Refusals include bounded candidate-path diagnostics.
 
     executable is an optional advanced, root-contained AMD64 override for
     disambiguation/dynamic loading, not ordinary setup. Known paired Unreal

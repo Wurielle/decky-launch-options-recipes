@@ -42,6 +42,34 @@ class InstallationTests(unittest.TestCase):
             result[relative] = path
         return result
 
+    def test_clean_name_discovery_installs_and_removes_only_renderer_files(self):
+        from test_discovery import synthetic_pe
+        game = self.directory / 'Cyberpunk 2077'
+        target = game / 'unlisted/renderer location'
+        target.mkdir(parents=True)
+        executable = target / 'Cyberpunk2077.exe'
+        executable.write_bytes(synthetic_pe(('KERNEL32.dll',)))
+        (game / 'REDprelauncher.exe').write_bytes(synthetic_pe(('d3d11.dll',)))
+        (game / 'CrashReportClient.exe').write_bytes(synthetic_pe(('d3d11.dll',)))
+        (target / 'foreign-user.dll').write_bytes(b'keep foreign bytes')
+        original = {p: p.read_bytes() for p in game.rglob('*') if p.is_file()}
+        core = self.directory / 'synthetic core'
+        (core / 'OptiScaler').mkdir(parents=True)
+        (core / 'OptiScaler.dll').write_bytes(b'synthetic OptiScaler injector')
+        (core / 'OptiScaler.ini').write_bytes(b'[Plugins]\nLoadAsiPlugins=false\nPath=auto\n[Libraries]\nOptiDllPath=auto\n')
+        (core / 'OptiScaler/libxess.dll').write_bytes(b'synthetic support')
+        plugin = self.files({'OptiPatcher.asi': b'synthetic ASI'})['OptiPatcher.asi']
+        acquisition = types.SimpleNamespace(resolve_asset=lambda *a, **kw: {'tag': 'synthetic-pinned-core'})
+        with patch.dict(sys.modules, artifacts=acquisition), patch.object(self.installer, 'cached_package', return_value=core), patch.object(self.installer, 'optional_components', return_value=({'OptiPatcher.asi': plugin}, {}, {}, [])), patch.dict(os.environ, HOME=str(self.directory)):
+            self.assertEqual(self.installer.main(['install', str(game)]), 0)
+            self.assertTrue((target / 'dxgi.dll').is_file())
+            self.assertTrue((target / 'OptiScaler/plugins/OptiPatcher.asi').is_file())
+            self.assertFalse((game / 'dxgi.dll').exists())
+            state = json.loads(next((self.directory / '.dlor/state/dlor-optiscaler').glob('*/state.json')).read_bytes())
+            self.assertEqual(state['target'], target.relative_to(game).as_posix())
+            self.assertEqual(self.installer.main(['uninstall', str(game)]), 0)
+        self.assertEqual({p: p.read_bytes() for p in game.rglob('*') if p.is_file()}, original)
+
     def test_optional_components_use_versioned_official_pins_without_metadata(self):
         import artifacts
         manifest = json.loads((HERE / "scripts/downloads.json").read_bytes())
