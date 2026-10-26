@@ -37,7 +37,7 @@
         "id": "optiscaler-nightly-upgrade",
         "group": "OptiScaler",
         "name": "OptiScaler Nightly Upgrade",
-        "on": "~/.dlor/run optiscaler update-nightly e1eba1e11e98fa6076150e6a1ded5d9bb17628e9 -- %command%",
+        "on": "~/.dlor/run optiscaler update-nightly a35fff2618441c2b6e7d710032cef9a3d8e5e5c3 -- %command%",
         "off": "",
         "enableGlobally": false,
         "priority": -1
@@ -3560,7 +3560,7 @@
         "id": "reframework-install-update",
         "group": "REFramework",
         "name": "REFramework",
-        "on": "WINEDLLOVERRIDES=\"dinput8.dll=n,b\" ~/.dlor/run reframework update e1eba1e11e98fa6076150e6a1ded5d9bb17628e9 -- %command%",
+        "on": "WINEDLLOVERRIDES=\"dinput8.dll=n,b\" ~/.dlor/run reframework update a35fff2618441c2b6e7d710032cef9a3d8e5e5c3 -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "reframework",
@@ -3570,7 +3570,7 @@
         "id": "reframework-uninstall",
         "group": "REFramework",
         "name": "REFramework",
-        "on": "~/.dlor/run reframework uninstall e1eba1e11e98fa6076150e6a1ded5d9bb17628e9 -- %command%",
+        "on": "~/.dlor/run reframework uninstall a35fff2618441c2b6e7d710032cef9a3d8e5e5c3 -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "reframework",
@@ -3585,8 +3585,8 @@
         "id": "dlor-optiscaler",
         "group": "DLOR OptiScaler",
         "name": "DLOR OptiScaler",
-        "on": "WINEDLLOVERRIDES=\"dxgi=n,b\" SteamDeck=0 ~/.dlor/run dlor-optiscaler install e1eba1e11e98fa6076150e6a1ded5d9bb17628e9 -- %command%",
-        "off": "~/.dlor/run dlor-optiscaler uninstall e1eba1e11e98fa6076150e6a1ded5d9bb17628e9 -- %command%",
+        "on": "WINEDLLOVERRIDES=\"dxgi=n,b\" SteamDeck=0 ~/.dlor/run dlor-optiscaler install a35fff2618441c2b6e7d710032cef9a3d8e5e5c3 -- %command%",
+        "off": "~/.dlor/run dlor-optiscaler uninstall a35fff2618441c2b6e7d710032cef9a3d8e5e5c3 -- %command%",
         "enableGlobally": false
       },
       {
