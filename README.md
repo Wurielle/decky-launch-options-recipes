@@ -30,15 +30,18 @@ Here's what the generated recipes look like:
         "id": "optiscaler",
         "group": "OptiScaler",
         "name": "OptiScaler",
-        "on": "~/fgmod/fgmod %command%",
-        "off": "~/fgmod/fgmod-uninstaller.sh %command%",
-        "enableGlobally": false
+        "on": "",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler",
+        "valueName": "None",
+        "fallbackValue": true
       },
       {
         "id": "optiscaler-dx11-upscaler",
         "group": "OptiScaler",
         "name": "OptiScaler Dx11 FSR4",
-        "on": "OptiScaler_Upscalers_Dx11Upscaler=fsr31_12",
+        "on": "OptiScaler_Upscalers_Dx11Upscaler=ffx_12",
         "off": "",
         "enableGlobally": true
       },
@@ -46,7 +49,7 @@ Here's what the generated recipes look like:
         "id": "optiscaler-dx12-upscaler",
         "group": "OptiScaler",
         "name": "OptiScaler Dx12 FSR4",
-        "on": "OptiScaler_Upscalers_Dx12Upscaler=fsr31",
+        "on": "OptiScaler_Upscalers_Dx12Upscaler=ffx",
         "off": "",
         "enableGlobally": true
       }

@@ -1,0 +1,94 @@
+{
+  "version": 1,
+  "downloads": {
+    "optiscaler-0": {
+      "repository": "optiscaler/OptiScaler-nightly",
+      "tag": "nightly-20261025",
+      "name": "OptiScaler_v10.0.0-pre1_20261025.7z",
+      "url": "https://github.com/optiscaler/OptiScaler-nightly/releases/download/nightly-20261025/OptiScaler_v10.0.0-pre1_20261025.7z",
+      "sha256": "6bb2e9cd6ac0204c76c974df1c202afb1fc7a765844a9ccf608103557aa595fe",
+      "size": 57146678,
+      "channel": "nightly"
+    },
+    "optipatcher-0": {
+      "repository": "optiscaler/OptiPatcher",
+      "tag": "v0.42",
+      "name": "OptiPatcher_v0.42.asi",
+      "url": "https://github.com/optiscaler/OptiPatcher/releases/download/v0.42/OptiPatcher_v0.42.asi",
+      "sha256": "2a6e033aeda72d63281889480b2380da830530cf6e1e448e2056d451ade75f1b",
+      "size": 107520,
+      "channel": "stable"
+    },
+    "fsr-rdna23-0": {
+      "repository": "xXJSONDeruloXx/OptiScaler-Bleeding-Edge",
+      "tag": "opti-9-2-a",
+      "name": "amd_fidelityfx_upscaler_dx12.dll",
+      "url": "https://github.com/xXJSONDeruloXx/OptiScaler-Bleeding-Edge/releases/download/opti-9-2-a/amd_fidelityfx_upscaler_dx12.dll",
+      "sha256": "c7720bc16bede334f59a1a32cd22edbcbbb159685ed5240e61350a5fb0bc8a94",
+      "size": 41036800,
+      "channel": "tag:opti-9-2-a"
+    },
+    "fsr-rdna34-0": {
+      "repository": "xXJSONDeruloXx/OptiScaler-Bleeding-Edge",
+      "tag": "fsr-4-1-1",
+      "name": "amdxcffx64.dll",
+      "url": "https://github.com/xXJSONDeruloXx/OptiScaler-Bleeding-Edge/releases/download/fsr-4-1-1/amdxcffx64.dll",
+      "sha256": "a2b136b6affd35a49b141a936be935f7d5ddc8d8f9b8c9afbe62ff9ddb2538a0",
+      "size": 66830768,
+      "channel": "tag:fsr-4-1-1"
+    },
+    "fsr-rdna2-0": {
+      "repository": "xXJSONDeruloXx/OptiScaler-Bleeding-Edge",
+      "tag": "fsr-4-1-1-rdna2",
+      "name": "amdxcffx64.dll",
+      "url": "https://github.com/xXJSONDeruloXx/OptiScaler-Bleeding-Edge/releases/download/fsr-4-1-1-rdna2/amdxcffx64.dll",
+      "sha256": "4e7dc37aebea3a90e3d3cc43e24cb2b54176b2535315f20dbe63b3b7cfc56b1e",
+      "size": 65657608,
+      "channel": "tag:fsr-4-1-1-rdna2"
+    },
+    "fsr-rdna2-1": {
+      "repository": "xXJSONDeruloXx/OptiScaler-Bleeding-Edge",
+      "tag": "fsr-4-1-1-rdna2",
+      "name": "amdxc64.dll",
+      "url": "https://github.com/xXJSONDeruloXx/OptiScaler-Bleeding-Edge/releases/download/fsr-4-1-1-rdna2/amdxc64.dll",
+      "sha256": "a0a0af61d475e30a70966b3459f3793df772faf8f26ae3261d10554ff592cbd5",
+      "size": 72656088,
+      "channel": "tag:fsr-4-1-1-rdna2"
+    },
+    "7zip-0": {
+      "repository": "ip7z/7zip",
+      "tag": "26.05",
+      "name": "7z2605-linux-x64.tar.xz",
+      "url": "https://github.com/ip7z/7zip/releases/download/26.05/7z2605-linux-x64.tar.xz",
+      "sha256": "22cf82fcc6eb7474f1d5bb4f02c0f8ebd573a718089d6833dc30f8350a3b232e",
+      "size": 1579976,
+      "channel": "stable"
+    },
+    "7zip-1": {
+      "repository": "ip7z/7zip",
+      "tag": "26.05",
+      "name": "7z2605-linux-arm64.tar.xz",
+      "url": "https://github.com/ip7z/7zip/releases/download/26.05/7z2605-linux-arm64.tar.xz",
+      "sha256": "0b71f6cfc34669b3bf69f2347efd3429f77020665003a13b9cdc53b784270421",
+      "size": 1317128,
+      "channel": "stable"
+    },
+    "7zip-2": {
+      "repository": "ip7z/7zip",
+      "tag": "26.05",
+      "name": "7z2605-linux-x86.tar.xz",
+      "url": "https://github.com/ip7z/7zip/releases/download/26.05/7z2605-linux-x86.tar.xz",
+      "sha256": "e8d8b762a4ee97fffa36a35b9831bbd0a7bb4645e5fafad839f9c22e297587a8",
+      "size": 1712924,
+      "channel": "stable"
+    }
+  },
+  "runtime": {
+    "loader.py": "989ccccd9c3590ddf25f7df5480a969b0143c2e1ad7861cd9748f95b993a7193",
+    "installer.py": "e4f18751b79cf2d4cfceb617641b6c703c4e7ae763566c803857bbdd865e0a4f",
+    "artifacts.py": "1c82cff6d6c85a2f5496c117aef52a473db61eba6b53cc0a316bebf64ddd12de",
+    "game_discovery.py": "bacaa7f9f133250ddc8b9818387ba9dcde061865527a5308253ef61907b915e5",
+    "update_optiscaler_config.py": "a3e77b1d47bd0a458c3cdf87e360e21f96f4c821ec2d921e31443d2704513006",
+    "nightly.py": "a7e036a5e129e96083db6b47a7b5f12cee9915c8eee82e493e2e57d7437bdfcb"
+  }
+}
