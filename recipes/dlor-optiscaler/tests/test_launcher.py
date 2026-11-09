@@ -393,7 +393,7 @@ os.execv('/usr/bin/{tool}', ['{tool}', *sys.argv[1:]])
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         return json.loads(result.stdout)
 
-    def test_fsr_choices_preserve_legacy_surface_and_global_inert_default(self):
+    def test_fsr_choices_use_generation_labels_and_global_inert_default(self):
         recipe = self.compiled_recipe()
         main = recipe['launchOptions'][0]
         self.assertFalse(main['enableGlobally'])
@@ -402,25 +402,28 @@ os.execv('/usr/bin/{tool}', ['{tool}', *sys.argv[1:]])
         self.assertEqual({entry['valueId'] for entry in entries}, {'dlor-optiscaler-fsr-profile'})
         self.assertEqual([entry['valueName'] for entry in entries if entry['enableGlobally']], ['None'])
         self.assertEqual([entry['valueName'] for entry in entries if entry.get('fallbackValue')], ['None'])
-        legacy = ('none', 'bundled', 'rdna23-int8', 'rdna34-official-411', 'rdna2-valve-411')
+        retained = ('none', 'bundled')
         by_id = {entry['id']: entry for entry in entries}
+        self.assertEqual(len(entries), 11)
+        for removed in ('rdna23-int8', 'rdna34-official-411', 'rdna2-valve-411'):
+            self.assertNotIn('dlor-optiscaler-fsr-profile-' + removed, by_id)
         self.assertIn('dlor-optiscaler-fsr-profile-sdk-amd', by_id)
         sdk = by_id['dlor-optiscaler-fsr-profile-sdk-amd']
         self.assertEqual(sdk['valueName'], 'AMD SDK')
         self.assertEqual(sdk['on'], 'DLOR_OPTISCALER_FSR_PROFILE="sdk-amd"')
         self.assertFalse(sdk['enableGlobally'])
         self.assertFalse(any('lossy2' in identifier or 'lite' in identifier for identifier in by_id))
-        for value in legacy:
+        for value in retained:
             entry = by_id['dlor-optiscaler-fsr-profile-' + value]
-            self.assertEqual(entry['valueName'], 'None' if value == 'none' else value)
+            self.assertEqual(entry['valueName'], 'None' if value == 'none' else 'Bundled')
             self.assertEqual(entry['on'], '' if value == 'none' else f'DLOR_OPTISCALER_FSR_PROFILE="{value}"')
             self.assertEqual(entry['off'], '')
-        for family, label in (('rx6000', 'RX 6000'), ('rx7000', 'RX 7000'), ('igpu-rdna2', 'Steam Deck / RDNA2 iGPU'), ('igpu-rdna3', 'RDNA3 iGPU')):
+        for family, label in (('rx6000', 'RDNA 2'), ('rx7000', 'RDNA 3'), ('igpu-rdna2', 'RDNA 2 iGPU'), ('igpu-rdna3', 'RDNA 3 iGPU')):
             for variant in ('exact', 'lossy'):
                 value = f'zgauthier-{family}-{variant}'
                 self.assertIn('dlor-optiscaler-fsr-profile-' + value, by_id)
                 entry = by_id['dlor-optiscaler-fsr-profile-' + value]
-                self.assertEqual(entry['valueName'], f'zgauthier {variant.capitalize()} · {label}')
+                self.assertEqual(entry['valueName'], f'{label} - {variant.capitalize()}')
                 self.assertEqual(entry['on'], f'DLOR_OPTISCALER_FSR_PROFILE="{value}"')
                 self.assertEqual(entry['off'], '')
                 self.assertFalse(entry['enableGlobally'])
@@ -784,7 +787,7 @@ os.execv('/usr/bin/sha256sum', ['sha256sum', *sys.argv[1:]])
         self.assertEqual(set(groups), {'dlor-optiscaler-fsr-profile'})
         self.assertFalse(any('DLOR_OPTISCALER_CHANNEL' in o['on'] or 'DLOR_OPTISCALER_PROXY' in o['on'] for o in options))
         fsr = groups['dlor-optiscaler-fsr-profile']
-        values = ['bundled', 'rdna23-int8', 'rdna34-official-411', 'rdna2-valve-411', 'sdk-amd',
+        values = ['bundled', 'sdk-amd',
                   *[f'zgauthier-{family}-{variant}' for family in ('rx6000', 'rx7000', 'igpu-rdna2', 'igpu-rdna3')
                     for variant in ('exact', 'lossy')]]
         self.assertEqual([v['on'] for v in fsr], ['', *[f'DLOR_OPTISCALER_FSR_PROFILE="{value}"' for value in values]])

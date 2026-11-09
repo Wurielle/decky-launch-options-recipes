@@ -25,11 +25,11 @@ function choices(option: string, name: string, variable: string, values: readonl
 }
 
 const optimizedProfiles = [
-    ['rx6000', 'RX 6000'], ['rx7000', 'RX 7000'],
-    ['igpu-rdna2', 'Steam Deck / RDNA2 iGPU'], ['igpu-rdna3', 'RDNA3 iGPU'],
+    ['rx6000', 'RDNA 2'], ['rx7000', 'RDNA 3'],
+    ['igpu-rdna2', 'RDNA 2 iGPU'], ['igpu-rdna3', 'RDNA 3 iGPU'],
 ].flatMap(([family, label]) => ['Exact', 'Lossy'].map(variant => ({
     value: `zgauthier-${family}-${variant.toLowerCase()}`,
-    label: `zgauthier ${variant} · ${label}`,
+    label: `${label} - ${variant}`,
 })))
 
 const recipe = {
@@ -45,7 +45,7 @@ const recipe = {
         },
         // Sources select files, never FSR activation settings or GPU presets.
         ...choices('fsr-profile', 'FSR4 compatibility', 'DLOR_OPTISCALER_FSR_PROFILE', [
-            'bundled', 'rdna23-int8', 'rdna34-official-411', 'rdna2-valve-411',
+            { value: 'bundled', label: 'Bundled' },
             { value: 'sdk-amd', label: 'AMD SDK' },
             ...optimizedProfiles,
         ]),
