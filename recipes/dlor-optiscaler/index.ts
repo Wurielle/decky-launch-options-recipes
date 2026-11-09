@@ -16,10 +16,10 @@ function choices(option: string, name: string, variable: string, values: readonl
             name,
             on: value === null ? '' : `${variable}="${value}"`,
             off: '',
-            enableGlobally: value === null,
+            enableGlobally: value === 'sdk-amd',
             valueId: `dlor-optiscaler-${option}`,
             valueName: choice === null ? 'None' : typeof choice === 'string' ? choice : choice.label,
-            ...(value === null ? { fallbackValue: true } : {}),
+            ...(value === 'sdk-amd' ? { fallbackValue: true } : {}),
         }
     })
 }
