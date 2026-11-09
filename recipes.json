@@ -37,7 +37,7 @@
         "id": "optiscaler-nightly-upgrade",
         "group": "OptiScaler",
         "name": "OptiScaler Nightly Upgrade",
-        "on": "~/.dlor/run optiscaler update-nightly 6ba4b74c5bab9efdf262ad7c045f4dfcb75f4213 -- %command%",
+        "on": "~/.dlor/run optiscaler update-nightly 6f6df6fde95bd12c8dfa91bd831c884473289cbb -- %command%",
         "off": "",
         "enableGlobally": false,
         "priority": -1
@@ -3560,7 +3560,7 @@
         "id": "reframework-install-update",
         "group": "REFramework",
         "name": "REFramework",
-        "on": "WINEDLLOVERRIDES=\"dinput8.dll=n,b\" ~/.dlor/run reframework update 6ba4b74c5bab9efdf262ad7c045f4dfcb75f4213 -- %command%",
+        "on": "WINEDLLOVERRIDES=\"dinput8.dll=n,b\" ~/.dlor/run reframework update 6f6df6fde95bd12c8dfa91bd831c884473289cbb -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "reframework",
@@ -3570,7 +3570,7 @@
         "id": "reframework-uninstall",
         "group": "REFramework",
         "name": "REFramework",
-        "on": "~/.dlor/run reframework uninstall 6ba4b74c5bab9efdf262ad7c045f4dfcb75f4213 -- %command%",
+        "on": "~/.dlor/run reframework uninstall 6f6df6fde95bd12c8dfa91bd831c884473289cbb -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "reframework",
@@ -3585,8 +3585,8 @@
         "id": "dlor-optiscaler",
         "group": "DLOR OptiScaler",
         "name": "DLOR OptiScaler",
-        "on": "WINEDLLOVERRIDES=\"dxgi=n,b\" SteamDeck=0 ~/.dlor/run dlor-optiscaler install 6ba4b74c5bab9efdf262ad7c045f4dfcb75f4213 -- %command%",
-        "off": "~/.dlor/run dlor-optiscaler uninstall 6ba4b74c5bab9efdf262ad7c045f4dfcb75f4213 -- %command%",
+        "on": "WINEDLLOVERRIDES=\"dxgi=n,b\" SteamDeck=0 ~/.dlor/run dlor-optiscaler install 6f6df6fde95bd12c8dfa91bd831c884473289cbb -- %command%",
+        "off": "~/.dlor/run dlor-optiscaler uninstall 6f6df6fde95bd12c8dfa91bd831c884473289cbb -- %command%",
         "enableGlobally": false
       },
       {
@@ -3595,10 +3595,9 @@
         "name": "FSR4 compatibility",
         "on": "",
         "off": "",
-        "enableGlobally": true,
+        "enableGlobally": false,
         "valueId": "dlor-optiscaler-fsr-profile",
-        "valueName": "None",
-        "fallbackValue": true
+        "valueName": "None"
       },
       {
         "id": "dlor-optiscaler-fsr-profile-bundled",
@@ -3616,9 +3615,10 @@
         "name": "FSR4 compatibility",
         "on": "DLOR_OPTISCALER_FSR_PROFILE=\"sdk-amd\"",
         "off": "",
-        "enableGlobally": false,
+        "enableGlobally": true,
         "valueId": "dlor-optiscaler-fsr-profile",
-        "valueName": "AMD SDK"
+        "valueName": "AMD SDK",
+        "fallbackValue": true
       },
       {
         "id": "dlor-optiscaler-fsr-profile-zgauthier-rx6000-exact",
