@@ -37,7 +37,7 @@
         "id": "optiscaler-nightly-upgrade",
         "group": "OptiScaler",
         "name": "OptiScaler Nightly Upgrade",
-        "on": "~/.dlor/run optiscaler update-nightly a35fff2618441c2b6e7d710032cef9a3d8e5e5c3 -- %command%",
+        "on": "~/.dlor/run optiscaler update-nightly 37cb197a8cb1e6d8ef82c80925dda8e981dbf41f -- %command%",
         "off": "",
         "enableGlobally": false,
         "priority": -1
@@ -3560,7 +3560,7 @@
         "id": "reframework-install-update",
         "group": "REFramework",
         "name": "REFramework",
-        "on": "WINEDLLOVERRIDES=\"dinput8.dll=n,b\" ~/.dlor/run reframework update a35fff2618441c2b6e7d710032cef9a3d8e5e5c3 -- %command%",
+        "on": "WINEDLLOVERRIDES=\"dinput8.dll=n,b\" ~/.dlor/run reframework update 37cb197a8cb1e6d8ef82c80925dda8e981dbf41f -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "reframework",
@@ -3570,7 +3570,7 @@
         "id": "reframework-uninstall",
         "group": "REFramework",
         "name": "REFramework",
-        "on": "~/.dlor/run reframework uninstall a35fff2618441c2b6e7d710032cef9a3d8e5e5c3 -- %command%",
+        "on": "~/.dlor/run reframework uninstall 37cb197a8cb1e6d8ef82c80925dda8e981dbf41f -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "reframework",
@@ -3585,8 +3585,8 @@
         "id": "dlor-optiscaler",
         "group": "DLOR OptiScaler",
         "name": "DLOR OptiScaler",
-        "on": "WINEDLLOVERRIDES=\"dxgi=n,b\" SteamDeck=0 ~/.dlor/run dlor-optiscaler install a35fff2618441c2b6e7d710032cef9a3d8e5e5c3 -- %command%",
-        "off": "~/.dlor/run dlor-optiscaler uninstall a35fff2618441c2b6e7d710032cef9a3d8e5e5c3 -- %command%",
+        "on": "WINEDLLOVERRIDES=\"dxgi=n,b\" SteamDeck=0 ~/.dlor/run dlor-optiscaler install 37cb197a8cb1e6d8ef82c80925dda8e981dbf41f -- %command%",
+        "off": "~/.dlor/run dlor-optiscaler uninstall 37cb197a8cb1e6d8ef82c80925dda8e981dbf41f -- %command%",
         "enableGlobally": false
       },
       {
@@ -3595,7 +3595,7 @@
         "name": "FSR4 compatibility",
         "on": "",
         "off": "",
-        "enableGlobally": false,
+        "enableGlobally": true,
         "valueId": "dlor-optiscaler-fsr-profile",
         "valueName": "None",
         "fallbackValue": true
@@ -3639,6 +3639,96 @@
         "enableGlobally": false,
         "valueId": "dlor-optiscaler-fsr-profile",
         "valueName": "rdna2-valve-411"
+      },
+      {
+        "id": "dlor-optiscaler-fsr-profile-sdk-amd",
+        "group": "DLOR OptiScaler",
+        "name": "FSR4 compatibility",
+        "on": "DLOR_OPTISCALER_FSR_PROFILE=\"sdk-amd\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "dlor-optiscaler-fsr-profile",
+        "valueName": "AMD SDK"
+      },
+      {
+        "id": "dlor-optiscaler-fsr-profile-zgauthier-rx6000-exact",
+        "group": "DLOR OptiScaler",
+        "name": "FSR4 compatibility",
+        "on": "DLOR_OPTISCALER_FSR_PROFILE=\"zgauthier-rx6000-exact\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "dlor-optiscaler-fsr-profile",
+        "valueName": "zgauthier Exact · RX 6000"
+      },
+      {
+        "id": "dlor-optiscaler-fsr-profile-zgauthier-rx6000-lossy",
+        "group": "DLOR OptiScaler",
+        "name": "FSR4 compatibility",
+        "on": "DLOR_OPTISCALER_FSR_PROFILE=\"zgauthier-rx6000-lossy\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "dlor-optiscaler-fsr-profile",
+        "valueName": "zgauthier Lossy · RX 6000"
+      },
+      {
+        "id": "dlor-optiscaler-fsr-profile-zgauthier-rx7000-exact",
+        "group": "DLOR OptiScaler",
+        "name": "FSR4 compatibility",
+        "on": "DLOR_OPTISCALER_FSR_PROFILE=\"zgauthier-rx7000-exact\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "dlor-optiscaler-fsr-profile",
+        "valueName": "zgauthier Exact · RX 7000"
+      },
+      {
+        "id": "dlor-optiscaler-fsr-profile-zgauthier-rx7000-lossy",
+        "group": "DLOR OptiScaler",
+        "name": "FSR4 compatibility",
+        "on": "DLOR_OPTISCALER_FSR_PROFILE=\"zgauthier-rx7000-lossy\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "dlor-optiscaler-fsr-profile",
+        "valueName": "zgauthier Lossy · RX 7000"
+      },
+      {
+        "id": "dlor-optiscaler-fsr-profile-zgauthier-igpu-rdna2-exact",
+        "group": "DLOR OptiScaler",
+        "name": "FSR4 compatibility",
+        "on": "DLOR_OPTISCALER_FSR_PROFILE=\"zgauthier-igpu-rdna2-exact\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "dlor-optiscaler-fsr-profile",
+        "valueName": "zgauthier Exact · Steam Deck / RDNA2 iGPU"
+      },
+      {
+        "id": "dlor-optiscaler-fsr-profile-zgauthier-igpu-rdna2-lossy",
+        "group": "DLOR OptiScaler",
+        "name": "FSR4 compatibility",
+        "on": "DLOR_OPTISCALER_FSR_PROFILE=\"zgauthier-igpu-rdna2-lossy\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "dlor-optiscaler-fsr-profile",
+        "valueName": "zgauthier Lossy · Steam Deck / RDNA2 iGPU"
+      },
+      {
+        "id": "dlor-optiscaler-fsr-profile-zgauthier-igpu-rdna3-exact",
+        "group": "DLOR OptiScaler",
+        "name": "FSR4 compatibility",
+        "on": "DLOR_OPTISCALER_FSR_PROFILE=\"zgauthier-igpu-rdna3-exact\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "dlor-optiscaler-fsr-profile",
+        "valueName": "zgauthier Exact · RDNA3 iGPU"
+      },
+      {
+        "id": "dlor-optiscaler-fsr-profile-zgauthier-igpu-rdna3-lossy",
+        "group": "DLOR OptiScaler",
+        "name": "FSR4 compatibility",
+        "on": "DLOR_OPTISCALER_FSR_PROFILE=\"zgauthier-igpu-rdna3-lossy\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "dlor-optiscaler-fsr-profile",
+        "valueName": "zgauthier Lossy · RDNA3 iGPU"
       }
     ]
   }
