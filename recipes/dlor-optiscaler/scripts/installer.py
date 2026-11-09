@@ -800,28 +800,75 @@ def choose_proxy(target, previous=None):
     return "dxgi"
 
 
-def optional_components(cache):
+# Source coordinates select manifest pins, never mutable latest metadata. A member
+# map selects only the wanted DLL and notices from a multi-variant archive.
+FSR_PROFILES = {
+    "bundled": [],
+    "sdk-amd": [
+        ("GPUOpen-LibrariesAndSDKs/FidelityFX-SDK", "v2.4.0", "license.md", "licenses/fsr-profile/AMD-FidelityFX-SDK-LICENSE.md"),
+        ("GPUOpen-LibrariesAndSDKs/FidelityFX-SDK", "v2.4.0", "amd_fidelityfx_upscaler_dx12.dll", None),
+    ],
+    "rdna23-int8": [("xXJSONDeruloXx/OptiScaler-Bleeding-Edge", "opti-9-2-a", "amd_fidelityfx_upscaler_dx12.dll", None)],
+    "rdna34-official-411": [("xXJSONDeruloXx/OptiScaler-Bleeding-Edge", "fsr-4-1-1", "amdxcffx64.dll", None)],
+    "rdna2-valve-411": [("xXJSONDeruloXx/OptiScaler-Bleeding-Edge", "fsr-4-1-1-rdna2", name, None) for name in ("amdxcffx64.dll", "amdxc64.dll")],
+}
+for family, flavor in (("rx6000", "cyboman-rx6000"), ("rx7000", "cyboman-rx7000"),
+                       ("igpu-rdna2", "igpu-cyboman-rdna2"), ("igpu-rdna3", "igpu-cyboman-rdna3")):
+    for variant in ("exact", "lossy"):
+        date, version = "2026-11-05", "4.1.2"
+        members = {"amd_fidelityfx_upscaler_dx12.dll": variant + "/amd_fidelityfx_upscaler_dx12.dll",
+                   "licenses/fsr-profile/NOTICE.md": "NOTICE.md"}
+        if variant != "exact":
+            members["licenses/fsr-profile/WARNING.txt"] = variant + "/WARNING.txt"
+        FSR_PROFILES[f"zgauthier-{family}-{variant}"] = [
+            ("zgauthier2000/fsr4-shader-performance-overrides", "dll-" + date,
+             "LICENSE", "licenses/fsr-profile/zgauthier-LICENSE"),
+            ("zgauthier2000/fsr4-shader-performance-overrides", "dll-" + date,
+             f"fsr{version}-{flavor}-{date}.7z", members),
+        ]
+
+
+def optional_components(cache, *, profile=None, retained_components=None):
     from artifacts import resolve_asset, download_asset
-    profile = os.environ.get("DLOR_OPTISCALER_FSR_PROFILE", "bundled")
-    profiles = {
-        "bundled": [],
-        "rdna23-int8": [("opti-9-2-a", "amd_fidelityfx_upscaler_dx12.dll")],
-        "rdna34-official-411": [("fsr-4-1-1", "amdxcffx64.dll")],
-        "rdna2-valve-411": [("fsr-4-1-1-rdna2", "amdxcffx64.dll"), ("fsr-4-1-1-rdna2", "amdxc64.dll")],
-    }
-    if profile not in profiles:
+    if profile is None:
+        profile = os.environ.get("DLOR_OPTISCALER_FSR_PROFILE", "bundled")
+    if profile not in FSR_PROFILES:
         raise InstallerError("Unsupported FSR compatibility profile")
     plugins, libraries, settings, components = {}, {}, {}, []
     # Mandatory even when an older imported checkbox still exports "0".
     asset = resolve_asset("optiscaler/OptiPatcher", "stable", r"OptiPatcher(?:_v[0-9.]+)?\.asi", cache)
     plugins["OptiPatcher.asi"] = download_asset(asset, cache)
     components.append(asset)
-    for tag, name in profiles[profile]:
-        asset = resolve_asset("xXJSONDeruloXx/OptiScaler-Bleeding-Edge", "tag:" + tag, re.escape(name), cache)
-        libraries[name] = download_asset(asset, cache)
-        components.append(asset)
+    for repository, tag, name, members in FSR_PROFILES[profile]:
+        retained = None
+        if retained_components is None:
+            asset = resolve_asset(repository, "tag:" + tag, re.escape(name), cache)
+        else:
+            matches = [entry for entry in retained_components if entry.get("name") == name and entry.get("repository") == repository and entry.get("fsr_profile") == profile]
+            if len(matches) != 1:
+                raise InstallerError("Incomplete installed FSR profile provenance")
+            retained = matches[0]
+            # Journal-only profile metadata must not alter the canonical
+            # descriptor/cache key used by the original verified download.
+            asset = {key: retained[key] for key in ("repository", "tag", "name", "url", "sha256", "size")}
+        component = {**asset, "fsr_profile": profile}
+        if not isinstance(members, dict):
+            libraries[members or name] = download_asset(asset, cache)
+        else:
+            directory = cached_package(asset, cache)
+            selected = {}
+            for destination, member in members.items():
+                source = safe_target(directory, member)
+                if not source.is_file():
+                    raise InstallerError("Selected FSR archive member is missing")
+                selected[destination] = {"path": member, "sha256": digest(source)}
+                libraries[destination] = source
+            if retained is not None and selected != retained.get("fsr_members"):
+                raise InstallerError("Installed FSR archive member provenance changed")
+            component["fsr_members"] = selected
+        components.append(component)
     if profile != "bundled":
-        print("Explicit third-party FSR compatibility profile:", profile)
+        print("Explicit FSR file profile:", profile)
     return plugins, libraries, settings, components
 
 
@@ -838,6 +885,8 @@ def main(argv=None):
     root = Path(args.game).resolve(strict=True)
     home = Path.home().resolve(strict=True)
     state_home = home / ".dlor/state/dlor-optiscaler"
+    retained_components = None
+    profile = os.environ.get("DLOR_OPTISCALER_FSR_PROFILE")
     if args.action == "uninstall":
         result = uninstall(root, state_home, asi_only=True)
         print("OptiScaler uninstall completed; changed external files preserved:", len(result["preserved"]))
@@ -859,15 +908,20 @@ def main(argv=None):
             record = state["files"].get(proxy_key)
             if not record or not path.is_file() or digest(path) != record["installed"]:
                 raise InstallerError("Nightly upgrade requires an unchanged DLOR-owned proxy")
-            if "DLOR_OPTISCALER_FSR_PROFILE" not in os.environ:
-                tags = {component.get("tag") for component in state.get("components", [])
-                        if component.get("repository") == "xXJSONDeruloXx/OptiScaler-Bleeding-Edge"}
-                profiles = {"opti-9-2-a": "rdna23-int8", "fsr-4-1-1": "rdna34-official-411", "fsr-4-1-1-rdna2": "rdna2-valve-411"}
-                selected = [profile for tag, profile in profiles.items() if tag in tags]
-                if len(selected) > 1:
-                    raise InstallerError("Ambiguous installed compatibility profile")
-                if selected:
-                    os.environ["DLOR_OPTISCALER_FSR_PROFILE"] = selected[0]
+            marked = [component for component in state.get("components", []) if component.get("fsr_profile")]
+            selected_profiles = {component["fsr_profile"] for component in marked}
+            # Old journals recorded only mirror release coordinates. Migrate
+            # that identity without replacing its exact installed descriptor.
+            legacy = [component for component in state.get("components", [])
+                      if component.get("repository") == "xXJSONDeruloXx/OptiScaler-Bleeding-Edge"]
+            legacy_profiles = {"opti-9-2-a": "rdna23-int8", "fsr-4-1-1": "rdna34-official-411", "fsr-4-1-1-rdna2": "rdna2-valve-411"}
+            selected_profiles.update(legacy_profiles[component["tag"]] for component in legacy if component.get("tag") in legacy_profiles)
+            if len(selected_profiles) > 1:
+                raise InstallerError("Ambiguous installed compatibility profile")
+            installed_profile = next(iter(selected_profiles), "bundled")
+            if profile is None or profile == installed_profile:
+                profile = installed_profile
+                retained_components = marked or [{**component, "fsr_profile": profile} for component in legacy] or None
         os.environ["DLOR_OPTISCALER_LATEST"] = "1"
     from artifacts import resolve_asset
     from game_discovery import discover_game_directory
@@ -890,7 +944,7 @@ def main(argv=None):
     resolution = {"fresh": True} if os.environ.get("DLOR_OPTISCALER_LATEST") == "1" else {}
     asset = resolve_asset("optiscaler/OptiScaler-nightly", "nightly", r"(?i)(?!.*(?:debug|symbols|source)).*optiscaler.*\.7z", cache, **resolution)
     core = cached_package(asset, cache)
-    plugins, libraries, settings, components = optional_components(cache)
+    plugins, libraries, settings, components = optional_components(cache, profile=profile, retained_components=retained_components)
     from update_optiscaler_config import resolve_overrides, render_overrides
     anchors = [path for path in core.rglob("*") if path.name.casefold() == "optiscaler.ini" and path.is_file()]
     if len(anchors) != 1:

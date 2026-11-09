@@ -40,11 +40,32 @@ class ArtifactsTests(unittest.TestCase):
     def test_all_binary_manifest_selections_require_no_metadata(self):
         import re
         manifest = json.loads((Path(__file__).resolve().parents[1] / 'scripts/downloads.json').read_bytes())
-        self.assertEqual(len(manifest['downloads']), 9)
+        self.assertEqual(len(manifest['downloads']), 16)
         with patch.object(artifacts, 'DOWNLOADS', manifest['downloads']), patch.object(artifacts, '_open', side_effect=AssertionError('pinned dependency queried mutable metadata')):
             for pin in manifest['downloads'].values():
                 selected = artifacts.resolve_asset(pin['repository'], pin['channel'], re.escape(pin['name']), self.root)
                 self.assertEqual(selected, {key: value for key, value in pin.items() if key != 'channel'})
+
+    def test_commit_pinned_raw_sources_download_and_reuse_verified_bytes(self):
+        revision = 'a' * 40
+        url = f'https://raw.githubusercontent.com/GPUOpen-LibrariesAndSDKs/FidelityFX-SDK/{revision}/Kits/FidelityFX/bin/amd_fidelityfx_upscaler_dx12.dll'
+        asset = {'repository': 'GPUOpen-LibrariesAndSDKs/FidelityFX-SDK', 'tag': 'v2.4.0',
+                 'name': 'amd_fidelityfx_upscaler_dx12.dll', 'url': url,
+                 'sha256': self.digest, 'size': len(self.payload)}
+        self.assertEqual(artifacts._url(url), url)
+        with patch.object(artifacts, '_open', return_value=self.response(self.payload)):
+            target = artifacts.download_asset(asset, self.root)
+        self.assertEqual(target.read_bytes(), self.payload)
+        with patch.object(artifacts, '_open', side_effect=AssertionError('warm raw source fetched')):
+            self.assertEqual(artifacts.download_asset(asset, self.root), target)
+        for ref in ('main', 'v2.4.0', 'a' * 39, 'a' * 41, '../' + revision):
+            with self.subTest(ref=ref), self.assertRaises(artifacts.ArtifactError):
+                artifacts._url(url.replace(revision, ref))
+        for invalid in (url + '?raw=1', url.replace('/Kits/', '/../Kits/'),
+                        url.replace('raw.githubusercontent.com', 'raw.githubusercontent.com.evil.test'),
+                        url.replace('/Kits/', '/%2e%2e/Kits/')):
+            with self.subTest(url=invalid), self.assertRaises(artifacts.ArtifactError):
+                artifacts._url(invalid)
 
     def test_manifest_pin_bypasses_metadata_and_latest_ignores_ttl(self):
         pinned = {'repository': 'owner/project', 'tag': 'pinned-v0', 'name': 'tool.zip',

@@ -55,8 +55,13 @@ DOWNLOADS = None
 
 def _url(url):
     parsed = urlsplit(url)
+    raw_source = parsed.hostname == 'raw.githubusercontent.com'
+    if raw_source and (parsed.query or not re.fullmatch(
+            r'/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/[a-f0-9]{40}/[A-Za-z0-9_./()+ -]+', parsed.path)
+            or any(part in ('', '.', '..') for part in parsed.path.split('/')[1:])):
+        raise ArtifactError('raw GitHub sources require an immutable commit path')
     if (parsed.scheme != 'https' or parsed.hostname not in
-            {'api.github.com', 'github.com', 'release-assets.githubusercontent.com'}
+            {'api.github.com', 'github.com', 'release-assets.githubusercontent.com', 'raw.githubusercontent.com'}
             or parsed.username or parsed.password or parsed.port not in (None, 443)
             or parsed.fragment or any(ord(c) < 33 for c in url)):
         raise ArtifactError('non-official HTTPS URL rejected')

@@ -81,12 +81,75 @@
       "sha256": "e8d8b762a4ee97fffa36a35b9831bbd0a7bb4645e5fafad839f9c22e297587a8",
       "size": 1712924,
       "channel": "stable"
+    },
+    "fsr-sdk-dx12": {
+      "repository": "GPUOpen-LibrariesAndSDKs/FidelityFX-SDK",
+      "tag": "v2.4.0",
+      "name": "amd_fidelityfx_upscaler_dx12.dll",
+      "url": "https://raw.githubusercontent.com/GPUOpen-LibrariesAndSDKs/FidelityFX-SDK/7539ae8b6568ad29ed78a753404351daf3b5cca7/Kits/FidelityFX/signedbin/amd_fidelityfx_upscaler_dx12.dll",
+      "sha256": "aad4fccccb29084a655f9a4f9f613bd22c8c03fb4a0f8840148cc6543b4ccace",
+      "size": 57664272,
+      "channel": "tag:v2.4.0"
+    },
+    "fsr-zgauthier-rx6000": {
+      "repository": "zgauthier2000/fsr4-shader-performance-overrides",
+      "tag": "dll-2026-11-05",
+      "name": "fsr4.1.2-cyboman-rx6000-2026-11-05.7z",
+      "url": "https://github.com/zgauthier2000/fsr4-shader-performance-overrides/releases/download/dll-2026-11-05/fsr4.1.2-cyboman-rx6000-2026-11-05.7z",
+      "sha256": "58eb2b04a729460844efeb8d8b21bca67e2fc835c7f2c1ca064d243c0352389d",
+      "size": 9612224,
+      "channel": "tag:dll-2026-11-05"
+    },
+    "fsr-zgauthier-rx7000": {
+      "repository": "zgauthier2000/fsr4-shader-performance-overrides",
+      "tag": "dll-2026-11-05",
+      "name": "fsr4.1.2-cyboman-rx7000-2026-11-05.7z",
+      "url": "https://github.com/zgauthier2000/fsr4-shader-performance-overrides/releases/download/dll-2026-11-05/fsr4.1.2-cyboman-rx7000-2026-11-05.7z",
+      "sha256": "182dc6e4e608b584e63ae043f4e0c2455593164ddb989275d895de5bb750ab52",
+      "size": 9422171,
+      "channel": "tag:dll-2026-11-05"
+    },
+    "fsr-zgauthier-igpu-rdna2": {
+      "repository": "zgauthier2000/fsr4-shader-performance-overrides",
+      "tag": "dll-2026-11-05",
+      "name": "fsr4.1.2-igpu-cyboman-rdna2-2026-11-05.7z",
+      "url": "https://github.com/zgauthier2000/fsr4-shader-performance-overrides/releases/download/dll-2026-11-05/fsr4.1.2-igpu-cyboman-rdna2-2026-11-05.7z",
+      "sha256": "da7c7681bffe7ac60a01e859d5b107900d963557793ef67ddcfd03a832e1c03f",
+      "size": 9567439,
+      "channel": "tag:dll-2026-11-05"
+    },
+    "fsr-zgauthier-igpu-rdna3": {
+      "repository": "zgauthier2000/fsr4-shader-performance-overrides",
+      "tag": "dll-2026-11-05",
+      "name": "fsr4.1.2-igpu-cyboman-rdna3-2026-11-05.7z",
+      "url": "https://github.com/zgauthier2000/fsr4-shader-performance-overrides/releases/download/dll-2026-11-05/fsr4.1.2-igpu-cyboman-rdna3-2026-11-05.7z",
+      "sha256": "6553cfeaa824fd1fa36985278e5ce835d27bbb758e99a1db5efaf331fe72dc4f",
+      "size": 9553046,
+      "channel": "tag:dll-2026-11-05"
+    },
+    "fsr-sdk-license": {
+      "repository": "GPUOpen-LibrariesAndSDKs/FidelityFX-SDK",
+      "url": "https://raw.githubusercontent.com/GPUOpen-LibrariesAndSDKs/FidelityFX-SDK/7539ae8b6568ad29ed78a753404351daf3b5cca7/docs/license.md",
+      "sha256": "410f9c138e766e846acf2dc93db768198def0293a017d7e3296815b451688dbe",
+      "size": 65681,
+      "tag": "v2.4.0",
+      "name": "license.md",
+      "channel": "tag:v2.4.0"
+    },
+    "fsr-zgauthier-license": {
+      "repository": "zgauthier2000/fsr4-shader-performance-overrides",
+      "url": "https://raw.githubusercontent.com/zgauthier2000/fsr4-shader-performance-overrides/d1c3b30db656bf6a38634642542ee7736127d211/LICENSE",
+      "sha256": "edaef632cbb643e4e7a221717a6c441a4c1a7c918e6e4d56debc3d8739b233f6",
+      "size": 17984,
+      "tag": "dll-2026-11-05",
+      "name": "LICENSE",
+      "channel": "tag:dll-2026-11-05"
     }
   },
   "runtime": {
     "loader.py": "989ccccd9c3590ddf25f7df5480a969b0143c2e1ad7861cd9748f95b993a7193",
-    "installer.py": "e4f18751b79cf2d4cfceb617641b6c703c4e7ae763566c803857bbdd865e0a4f",
-    "artifacts.py": "1c82cff6d6c85a2f5496c117aef52a473db61eba6b53cc0a316bebf64ddd12de",
+    "installer.py": "cda4b79536625601fb009e6f6d5e89cd5f7ef54630a5a7e99eb0201178105399",
+    "artifacts.py": "296c599f8b3f36d12713e753cb44adea86bc24b699ad15661ca9555196c36946",
     "game_discovery.py": "bacaa7f9f133250ddc8b9818387ba9dcde061865527a5308253ef61907b915e5",
     "update_optiscaler_config.py": "a3e77b1d47bd0a458c3cdf87e360e21f96f4c821ec2d921e31443d2704513006",
     "nightly.py": "a7e036a5e129e96083db6b47a7b5f12cee9915c8eee82e493e2e57d7437bdfcb"
