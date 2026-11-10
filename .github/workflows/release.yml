@@ -93,7 +93,9 @@ jobs:
           mkdir $(pwd)/cli
           curl -L -o $(pwd)/cli/decky "https://github.com/SteamDeckHomebrew/cli/releases/latest/download/decky-linux-x86_64"
           chmod +x $(pwd)/cli/decky
-          $(pwd)/cli/decky plugin build $(pwd)
+          # The runner's UID has no home in the builder image. Its pnpm bootstrap
+          # needs a writable home; use the image's root user for this CI build.
+          $(pwd)/cli/decky plugin build --build-as-root $(pwd)
           mv "out/Launch Options Recipes.zip" "out/decky-launch-options-recipes.zip"
 
       - name: Upload artifacts to Release
