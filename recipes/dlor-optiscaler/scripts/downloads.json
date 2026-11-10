@@ -148,7 +148,7 @@
   },
   "runtime": {
     "loader.py": "989ccccd9c3590ddf25f7df5480a969b0143c2e1ad7861cd9748f95b993a7193",
-    "installer.py": "cda4b79536625601fb009e6f6d5e89cd5f7ef54630a5a7e99eb0201178105399",
+    "installer.py": "c88ef92cb062aa6a79bab70e78b5a7e9c77304660cfea23eef614492e34cbc1e",
     "artifacts.py": "296c599f8b3f36d12713e753cb44adea86bc24b699ad15661ca9555196c36946",
     "game_discovery.py": "bacaa7f9f133250ddc8b9818387ba9dcde061865527a5308253ef61907b915e5",
     "update_optiscaler_config.py": "a3e77b1d47bd0a458c3cdf87e360e21f96f4c821ec2d921e31443d2704513006",

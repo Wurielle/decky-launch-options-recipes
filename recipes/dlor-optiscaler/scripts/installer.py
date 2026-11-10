@@ -359,9 +359,6 @@ def apply_install(game, target, files, state_home, *, proxy="dxgi", configuratio
         for path, source in plan:
             if source.is_symlink() or not source.is_file() or (path.exists() and not path.is_file()):
                 raise InstallerError("Installation payload must contain regular files")
-            record = state["files"].get(path.relative_to(root).as_posix())
-            if record and path.exists() and path.name.casefold() != "optiscaler.ini" and digest(path) not in (record["installed"], record.get("pending")):
-                raise InstallerError("Owned file was changed outside this recipe")
         previous = deepcopy(state)
         desired = {path.relative_to(root).as_posix() for path, source in plan}
         stale = [(key, safe_target(root, key), record) for key, record in state["files"].items() if key not in desired]
@@ -411,13 +408,15 @@ def apply_install(game, target, files, state_home, *, proxy="dxgi", configuratio
                 if current is not None and path.name.casefold() == "optiscaler.ini" and configuration is None:
                     continue  # Keep existing game-specific settings, including user edits.
                 wanted = digest(source)
+                # Install reapplies the planned payload after manual replacements.
+                # Only a change since rollback preparation blocks this write.
+                if current != changes.get(key, {}).get("previous", wanted):
+                    raise InstallerError("File changed during installation")
                 record = state["files"].get(key)
                 if record:
                     if path.name.casefold() == "optiscaler.ini" and current not in (None, record["installed"], record.get("pending")):
                         # Rebasing owned settings must never acquire the user's other bytes.
                         record["foreign_edits"] = True
-                    if current not in (None, record["installed"], record.get("pending")) and not (path.name.casefold() == "optiscaler.ini" and configuration is not None):
-                        raise InstallerError("Owned file was changed outside this recipe")
                     if current == wanted and record["installed"] == wanted:
                         continue
                     record["pending"] = wanted

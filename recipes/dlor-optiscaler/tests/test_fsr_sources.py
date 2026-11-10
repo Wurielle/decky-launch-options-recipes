@@ -196,15 +196,33 @@ class FsrSourceTests(unittest.TestCase):
                 destination.unlink()
                 ini.unlink()
 
-    def test_changed_owned_fsr_library_refuses_switch_without_other_writes(self):
+    def test_default_install_overwrites_custom_fsr_and_supporting_files(self):
+        support = self.core / "OptiScaler/libxess.dll"
+        support.write_bytes(b"synthetic bundled support")
+        self.run_action("install")
+        library = self.target / "OptiScaler" / DLL
+        supporting = self.target / "OptiScaler/libxess.dll"
+        for _ in range(2):
+            library.write_bytes(b"custom test FSR")
+            supporting.write_bytes(b"custom test support")
+            self.assertEqual(self.run_action("install"), 0)
+            self.assertEqual(library.read_bytes(), b"synthetic bundled SDK")
+            self.assertEqual(supporting.read_bytes(), b"synthetic bundled support")
+        self.run_action("uninstall")
+        self.assertFalse(library.exists())
+        self.assertFalse(supporting.exists())
+
+    def test_changed_owned_fsr_library_is_overwritten_on_reinstall_and_switch(self):
         self.add_optimized()
         self.run_action("install", "zgauthier-igpu-rdna2-exact")
         library = self.target / "OptiScaler" / DLL
+        for profile, expected in (("zgauthier-igpu-rdna2-exact", b"synthetic optimized exact"),
+                                  ("bundled", b"synthetic bundled SDK")):
+            library.write_bytes(b"user edited FSR library")
+            self.assertEqual(self.run_action("install", profile), 0)
+            self.assertEqual(library.read_bytes(), expected)
+        # Uninstall still preserves a subsequent manual replacement.
         library.write_bytes(b"user edited FSR library")
-        before = self.snapshot()
-        with self.assertRaisesRegex(self.installer.InstallerError, "changed outside"):
-            self.run_action("install", "bundled")
-        self.assertEqual(self.snapshot(), before)
         self.run_action("uninstall")
         self.assertEqual(library.read_bytes(), b"user edited FSR library")
 
@@ -308,6 +326,7 @@ class FsrSourceTests(unittest.TestCase):
         self.add_sdk()
         self.add_optimized()
         self.run_action("install", "sdk-amd")
+        (self.target / "OptiScaler" / DLL).write_bytes(b"custom FSR before interrupted update")
         before = {p.relative_to(self.game).as_posix(): p.read_bytes() for p in self.game.rglob("*") if p.is_file()}
         state = self.state()
         write = self.installer.atomic_write
