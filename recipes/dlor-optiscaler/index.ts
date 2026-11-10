@@ -35,13 +35,21 @@ const optimizedProfiles = [
 const recipe = {
     name: group,
     launchOptions: [
-        {
-            id: 'dlor-optiscaler',
+        // Reuse the old toggle ID for None so re-import clears its OFF uninstaller.
+        ...[
+            { id: 'dlor-optiscaler', name: 'None', command: '' },
+            { id: 'dlor-optiscaler-install', name: 'Install', command: `WINEDLLOVERRIDES="dxgi=n,b" SteamDeck=0 ${install}` },
+            { id: 'dlor-optiscaler-uninstall', name: 'Uninstall', command: uninstall },
+        ].map((action): LaunchOption => ({
+            id: action.id,
             name: group,
-            on: `WINEDLLOVERRIDES="dxgi=n,b" SteamDeck=0 ${install}`,
-            off: uninstall,
+            on: action.command,
+            off: '',
             enableGlobally: false,
-        },
+            valueId: 'dlor-optiscaler',
+            valueName: action.name,
+            ...(action.id === 'dlor-optiscaler' ? { fallbackValue: true } : {}),
+        })),
         // Sources select files, never FSR activation settings or GPU presets.
         ...choices('fsr-override', 'FSR Override', 'DLOR_OPTISCALER_FSR_PROFILE', [
             { value: 'bundled', label: 'Bundled' },

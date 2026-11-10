@@ -397,7 +397,7 @@ os.execv('/usr/bin/{tool}', ['{tool}', *sys.argv[1:]])
         recipe = self.compiled_recipe()
         main = recipe['launchOptions'][0]
         self.assertFalse(main['enableGlobally'])
-        entries = recipe['launchOptions'][1:]
+        entries = [option for option in recipe['launchOptions'] if option['valueId'] == 'dlor-optiscaler-fsr-override']
         self.assertEqual({entry['name'] for entry in entries}, {'FSR Override'})
         self.assertEqual({entry['valueId'] for entry in entries}, {'dlor-optiscaler-fsr-override'})
         self.assertEqual([entry['valueName'] for entry in entries if entry['enableGlobally']], ['AMD SDK'])
@@ -443,8 +443,8 @@ os.execv('/usr/bin/{tool}', ['{tool}', *sys.argv[1:]])
         runpy.run_path(str(SCRIPTS.parents[2] / 'scripts/runner_test_support.py'))['install_runner'](self.home)
         recipe = self.compiled_recipe()
         consumer = self.actual_consumer()
-        entries = recipe['launchOptions'][1:]
-        settings = {'launchOptions': recipe['launchOptions'], 'profiles': {'123': {'state': {'dlor-optiscaler': True}}}}
+        entries = [option for option in recipe['launchOptions'] if option['valueId'] == 'dlor-optiscaler-fsr-override']
+        settings = {'launchOptions': recipe['launchOptions'], 'profiles': {'123': {'state': {'dlor-optiscaler-install': True}}}}
         state = settings['profiles']['123']['state']
 
         def launch(expected):
@@ -472,7 +472,30 @@ os.execv('/usr/bin/{tool}', ['{tool}', *sys.argv[1:]])
         state['dlor-optiscaler-fsr-override-none'] = True
         launch(None)
 
-    def test_file_backed_toggle_through_actual_consumer(self):
+    def test_unselected_actions_do_not_download_or_change_installation(self):
+        recipe = self.fixture_recipe()
+        self.env.update(FIXTURE_OFFLINE='1', SteamDeck='1', WINEDLLOVERRIDES='version=n')
+        installed = self.game / 'dxgi.dll'
+        installed.write_bytes(b'existing installation')
+        for state in ({}, {'dlor-optiscaler': True}, {'dlor-optiscaler': False},
+                      {'dlor-optiscaler-install': False, 'dlor-optiscaler-uninstall': False}):
+            with self.subTest(state=state):
+                final, env, variables = self.consumer_launch(recipe, self.game_command('default arg'), action=None, state=state)
+                self.assertNotIn(str(self.home / '.dlor/run'), final)
+                result = subprocess.run(final, env=env, capture_output=True, text=True, timeout=20)
+                self.assertEqual(result.returncode, 23, result.stdout + result.stderr)
+                self.assertFalse(self.fetches.exists())
+                self.assertFalse(self.trace.exists())
+                self.assertFalse((self.home / '.dlor/cache').exists())
+                self.assertEqual(installed.read_bytes(), b'existing installation')
+                observed = json.loads((self.root / 'game-result.json').read_text())
+                self.assertEqual(observed['argv'], ['default arg', '--original-arg'])
+                self.assertEqual(observed['env']['SteamDeck'], '1')
+                self.assertEqual(observed['env']['WINEDLLOVERRIDES'], 'version=n')
+                self.assertNotIn('SteamDeck', variables)
+                self.assertNotIn('WINEDLLOVERRIDES', variables)
+
+    def test_file_backed_actions_through_actual_consumer(self):
         import runpy
         self.generate()
         runpy.run_path(str(SCRIPTS.parents[2] / 'scripts/runner_test_support.py'))['install_runner'](self.home)
@@ -482,9 +505,11 @@ os.execv('/usr/bin/{tool}', ['{tool}', *sys.argv[1:]])
             with self.subTest(enabled=enabled):
                 expected = (('WINEDLLOVERRIDES="dxgi=n,b" SteamDeck=0 ' if enabled else '')
                             + f'~/.dlor/run dlor-optiscaler {action} {REVISION} -- %command%')
-                self.assertEqual(recipe['launchOptions'][0]['on' if enabled else 'off'], expected)
+                choice = next(option for option in recipe['launchOptions'] if option['id'] == 'dlor-optiscaler-' + action)
+                self.assertEqual(choice['on'], expected)
+                self.assertEqual(choice['off'], '')
                 self.env.pop('DLOR_SCRIPT_REVISION', None)
-                final, env, variables = self.consumer_launch(recipe, self.game_command('quoted " café path'), enabled)
+                final, env, variables = self.consumer_launch(recipe, self.game_command('quoted " café path'), action)
                 self.assertEqual(final[:5], [str(self.home / '.dlor/run'), 'dlor-optiscaler', action, REVISION, '--'])
                 result = subprocess.run(final, env=env, capture_output=True, text=True, timeout=20)
                 self.assertEqual(result.returncode, 23, result.stdout + result.stderr)
@@ -584,11 +609,14 @@ os.execv('/usr/bin/{tool}', ['{tool}', *sys.argv[1:]])
             spec.loader.exec_module(consumer)
         return consumer
 
-    def consumer_launch(self, recipe, game, enabled=True, helpers=()):
+    def consumer_launch(self, recipe, game, action='install', helpers=(), state=None):
         from unittest.mock import patch
         consumer = self.actual_consumer()
+        selected = {} if action is None else {('dlor-optiscaler' if action == 'none' else 'dlor-optiscaler-' + action): True}
+        if state is not None:
+            selected.update(state)
         settings = {'launchOptions': [*helpers, *recipe['launchOptions']],
-                    'profiles': {'123': {'state': {'dlor-optiscaler': enabled, **{h['id']: True for h in helpers}},
+                    'profiles': {'123': {'state': {**selected, **{h['id']: True for h in helpers}},
                                          'originalLaunchOptions': 'ORIGINAL_TEST_VALUE="original value" %command% --original-arg'}}}
         with patch.dict(os.environ, self.env, clear=True), patch.object(sys, 'argv', ['run.py', *game]):
             final, variables = consumer.get_final_args_details(settings, '123')
@@ -625,7 +653,7 @@ os.execv('/usr/bin/{tool}', ['{tool}', *sys.argv[1:]])
         for key in ('DLOR_SCRIPT_REVISION', 'DLOR_REPOSITORY'):
             self.assertEqual(game['env'][key], self.env[key])
 
-    def test_actual_consumer_chains_unchanged_dev_helpers_on_off_and_failure(self):
+    def test_actual_consumer_chains_helpers_with_install_uninstall_and_failure(self):
         import hashlib
         import runpy
         repo = SCRIPTS.parents[2]
@@ -671,7 +699,7 @@ os.execv('/usr/bin/sha256sum', ['sha256sum', *sys.argv[1:]])
                 self.env['FIXTURE_FAIL'] = '1' if fail else '0'
                 self.trace.unlink(missing_ok=True)
                 helper_trace.unlink(missing_ok=True)
-                final, env, variables = self.consumer_launch(recipe, game, enabled, helpers)
+                final, env, variables = self.consumer_launch(recipe, game, 'install' if enabled else 'uninstall', helpers)
                 self.assertEqual(final[:2], [str(self.home / '.dlor/run'), 'fixture'])
                 self.assertNotIn('--wrapper', final)
                 result = subprocess.run(final, env=env, capture_output=True, text=True, timeout=25)
@@ -756,7 +784,7 @@ os.execv('/usr/bin/sha256sum', ['sha256sum', *sys.argv[1:]])
         digest = hashlib.sha256((self.scripts / 'downloads.json').read_bytes()).hexdigest()
         (self.scripts / 'update-nightly.sh').write_text(generator['render_entry']('upgrade', digest))
         for enabled in (True, False):
-            final, env, variables = self.consumer_launch(recipe, self.game_command('nightly literal'), enabled, helpers=(nightly,))
+            final, env, variables = self.consumer_launch(recipe, self.game_command('nightly literal'), 'install' if enabled else 'uninstall', helpers=(nightly,))
             result = subprocess.run(final, env=env, capture_output=True, text=True, timeout=20)
             self.assertEqual(result.returncode, 23, result.stdout + result.stderr)
             self.assertEqual(json.loads(self.trace.read_text())["argv"], ["upgrade", str(self.game)])
@@ -766,13 +794,17 @@ os.execv('/usr/bin/sha256sum', ['sha256sum', *sys.argv[1:]])
     def test_recipe_has_short_file_calls_and_none_only_dropdown_defaults(self):
         recipe = self.compiled_recipe()
         self.assertEqual(recipe['name'], 'DLOR OptiScaler')
-        toggle = recipe['launchOptions'][0]
+        actions = [option for option in recipe['launchOptions'] if option['valueId'] == 'dlor-optiscaler']
+        self.assertEqual([option['valueName'] for option in actions], ['None', 'Install', 'Uninstall'])
+        self.assertTrue(all(option['off'] == '' and not option['enableGlobally'] and 'group' not in option for option in actions))
+        self.assertEqual([option['valueName'] for option in actions if option.get('fallbackValue')], ['None'])
+        self.assertEqual(actions[0]['on'], '')
         consumer = self.actual_consumer()
-        for action, key in [('install', 'on'), ('uninstall', 'off')]:
-            option = toggle[key]
+        for action in ('install', 'uninstall'):
+            option = next(option['on'] for option in actions if option['id'] == 'dlor-optiscaler-' + action)
             self.assertLess(len(option), 150)
             parsed = consumer.parse_launch_option(option)
-            expected = {'WINEDLLOVERRIDES': 'dxgi=n,b', 'SteamDeck': '0'} if key == 'on' else {}
+            expected = {'WINEDLLOVERRIDES': 'dxgi=n,b', 'SteamDeck': '0'} if action == 'install' else {}
             self.assertEqual(parsed['env_vars'], expected)
             self.assertEqual(parsed['prefix'], ['~/.dlor/run', 'dlor-optiscaler', action, REVISION, '--'])
             self.assertEqual(parsed['pre_commands'], [])
@@ -785,7 +817,7 @@ os.execv('/usr/bin/sha256sum', ['sha256sum', *sys.argv[1:]])
                 self.assertNotIn('eval', option[key])
                 self.assertNotIn('coproc', option[key])
                 self.assertNotIn('\n', option[key])
-        options = recipe['launchOptions'][1:]
+        options = [option for option in recipe['launchOptions'] if option['valueId'] == 'dlor-optiscaler-fsr-override']
         groups = {}
         for option in options:
             if 'valueId' in option:
@@ -928,11 +960,11 @@ os.execv('/usr/bin/sha256sum', ['sha256sum', *sys.argv[1:]])
         self.assertIn('fixture installer output', result.stdout)
         self.assertIn('GAMEPLAY-SENTINEL', result.stdout)
 
-    def test_actual_consumer_cold_off_adds_no_wine_override(self):
+    def test_actual_consumer_cold_uninstall_adds_no_wine_override(self):
         recipe = self.fixture_recipe()
         self.env.pop('DLOR_SCRIPT_REVISION')
         self.env['WINEDLLOVERRIDES'] = 'version=n'
-        final, env, variables = self.consumer_launch(recipe, self.game_command(), enabled=False)
+        final, env, variables = self.consumer_launch(recipe, self.game_command(), action='uninstall')
         result = subprocess.run(final, env=env, capture_output=True, text=True, timeout=20)
         self.assertEqual(result.returncode, 23, result.stdout + result.stderr)
         self.assertEqual(json.loads(self.trace.read_text())['argv'], ['uninstall', str(self.game)])
@@ -960,7 +992,7 @@ os.execv('/usr/bin/sha256sum', ['sha256sum', *sys.argv[1:]])
                                     f'#!{sys.executable} -I\nimport pathlib, sys\nargs = sys.argv[1:]\n' + body)
                     self.env['FIXTURE_OFFLINE'] = '1' if variant == 'offline' else '0'
                     self.env['WINEDLLOVERRIDES'] = 'ambient=n'
-                    final, env, variables = self.consumer_launch(recipe, self.game_command('fallback arg'), enabled)
+                    final, env, variables = self.consumer_launch(recipe, self.game_command('fallback arg'), 'install' if enabled else 'uninstall')
                     result = subprocess.run(final, env=env, capture_output=True, text=True, timeout=20)
                     self.assertEqual(result.returncode, 23, result.stdout + result.stderr)
                     self.assertFalse(self.trace.exists())

@@ -3584,9 +3584,30 @@
       {
         "id": "dlor-optiscaler",
         "name": "DLOR OptiScaler",
+        "on": "",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "dlor-optiscaler",
+        "valueName": "None",
+        "fallbackValue": true
+      },
+      {
+        "id": "dlor-optiscaler-install",
+        "name": "DLOR OptiScaler",
         "on": "WINEDLLOVERRIDES=\"dxgi=n,b\" SteamDeck=0 ~/.dlor/run dlor-optiscaler install f2316110dd6d3cc6251a219f2c98c2030c2765d6 -- %command%",
-        "off": "~/.dlor/run dlor-optiscaler uninstall f2316110dd6d3cc6251a219f2c98c2030c2765d6 -- %command%",
-        "enableGlobally": false
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "dlor-optiscaler",
+        "valueName": "Install"
+      },
+      {
+        "id": "dlor-optiscaler-uninstall",
+        "name": "DLOR OptiScaler",
+        "on": "~/.dlor/run dlor-optiscaler uninstall f2316110dd6d3cc6251a219f2c98c2030c2765d6 -- %command%",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "dlor-optiscaler",
+        "valueName": "Uninstall"
       },
       {
         "id": "dlor-optiscaler-fsr-override-none",
