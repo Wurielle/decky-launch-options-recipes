@@ -398,34 +398,34 @@ os.execv('/usr/bin/{tool}', ['{tool}', *sys.argv[1:]])
         main = recipe['launchOptions'][0]
         self.assertFalse(main['enableGlobally'])
         entries = recipe['launchOptions'][1:]
-        self.assertEqual({entry['name'] for entry in entries}, {'FSR4 compatibility'})
-        self.assertEqual({entry['valueId'] for entry in entries}, {'dlor-optiscaler-fsr-profile'})
+        self.assertEqual({entry['name'] for entry in entries}, {'FSR Override'})
+        self.assertEqual({entry['valueId'] for entry in entries}, {'dlor-optiscaler-fsr-override'})
         self.assertEqual([entry['valueName'] for entry in entries if entry['enableGlobally']], ['AMD SDK'])
         self.assertEqual([entry['valueName'] for entry in entries if entry.get('fallbackValue')], ['AMD SDK'])
         retained = ('none', 'bundled')
         by_id = {entry['id']: entry for entry in entries}
         self.assertEqual(len(entries), 11)
         for removed in ('rdna23-int8', 'rdna34-official-411', 'rdna2-valve-411'):
-            self.assertNotIn('dlor-optiscaler-fsr-profile-' + removed, by_id)
-        self.assertIn('dlor-optiscaler-fsr-profile-sdk-amd', by_id)
-        sdk = by_id['dlor-optiscaler-fsr-profile-sdk-amd']
+            self.assertNotIn('dlor-optiscaler-fsr-override-' + removed, by_id)
+        self.assertIn('dlor-optiscaler-fsr-override-sdk-amd', by_id)
+        sdk = by_id['dlor-optiscaler-fsr-override-sdk-amd']
         self.assertEqual(sdk['valueName'], 'AMD SDK')
         self.assertEqual(sdk['on'], 'DLOR_OPTISCALER_FSR_PROFILE="sdk-amd"')
         self.assertTrue(sdk['enableGlobally'])
         self.assertTrue(sdk['fallbackValue'])
-        self.assertFalse(by_id['dlor-optiscaler-fsr-profile-none']['enableGlobally'])
-        self.assertFalse(by_id['dlor-optiscaler-fsr-profile-none'].get('fallbackValue', False))
+        self.assertFalse(by_id['dlor-optiscaler-fsr-override-none']['enableGlobally'])
+        self.assertFalse(by_id['dlor-optiscaler-fsr-override-none'].get('fallbackValue', False))
         self.assertFalse(any('lossy2' in identifier or 'lite' in identifier for identifier in by_id))
         for value in retained:
-            entry = by_id['dlor-optiscaler-fsr-profile-' + value]
+            entry = by_id['dlor-optiscaler-fsr-override-' + value]
             self.assertEqual(entry['valueName'], 'None' if value == 'none' else 'Bundled')
             self.assertEqual(entry['on'], '' if value == 'none' else f'DLOR_OPTISCALER_FSR_PROFILE="{value}"')
             self.assertEqual(entry['off'], '')
         for family, label in (('rx6000', 'RDNA 2'), ('rx7000', 'RDNA 3'), ('igpu-rdna2', 'RDNA 2 iGPU'), ('igpu-rdna3', 'RDNA 3 iGPU')):
             for variant in ('exact', 'lossy'):
                 value = f'zgauthier-{family}-{variant}'
-                self.assertIn('dlor-optiscaler-fsr-profile-' + value, by_id)
-                entry = by_id['dlor-optiscaler-fsr-profile-' + value]
+                self.assertIn('dlor-optiscaler-fsr-override-' + value, by_id)
+                entry = by_id['dlor-optiscaler-fsr-override-' + value]
                 self.assertEqual(entry['valueName'], f'{label} - {variant.capitalize()}')
                 self.assertEqual(entry['on'], f'DLOR_OPTISCALER_FSR_PROFILE="{value}"')
                 self.assertEqual(entry['off'], '')
@@ -463,13 +463,13 @@ os.execv('/usr/bin/{tool}', ['{tool}', *sys.argv[1:]])
         launch('sdk-amd')
         # A separately chosen global value takes precedence over the fallback.
         for entry in entries:
-            entry['enableGlobally'] = entry['id'] == 'dlor-optiscaler-fsr-profile-bundled'
+            entry['enableGlobally'] = entry['id'] == 'dlor-optiscaler-fsr-override-bundled'
         launch('bundled')
-        selected = 'dlor-optiscaler-fsr-profile-zgauthier-igpu-rdna2-lossy'
+        selected = 'dlor-optiscaler-fsr-override-zgauthier-igpu-rdna2-lossy'
         state[selected] = True
         launch('zgauthier-igpu-rdna2-lossy')
         state.pop(selected)
-        state['dlor-optiscaler-fsr-profile-none'] = True
+        state['dlor-optiscaler-fsr-override-none'] = True
         launch(None)
 
     def test_file_backed_toggle_through_actual_consumer(self):
@@ -790,14 +790,14 @@ os.execv('/usr/bin/sha256sum', ['sha256sum', *sys.argv[1:]])
         for option in options:
             if 'valueId' in option:
                 groups.setdefault(option['valueId'], []).append(option)
-        self.assertEqual(set(groups), {'dlor-optiscaler-fsr-profile'})
+        self.assertEqual(set(groups), {'dlor-optiscaler-fsr-override'})
         self.assertFalse(any('DLOR_OPTISCALER_CHANNEL' in o['on'] or 'DLOR_OPTISCALER_PROXY' in o['on'] for o in options))
-        fsr = groups['dlor-optiscaler-fsr-profile']
+        fsr = groups['dlor-optiscaler-fsr-override']
         values = ['bundled', 'sdk-amd',
                   *[f'zgauthier-{family}-{variant}' for family in ('rx6000', 'rx7000', 'igpu-rdna2', 'igpu-rdna3')
                     for variant in ('exact', 'lossy')]]
         self.assertEqual([v['on'] for v in fsr], ['', *[f'DLOR_OPTISCALER_FSR_PROFILE="{value}"' for value in values]])
-        self.assertTrue(all(v['name'] == 'FSR4 compatibility' for v in fsr))
+        self.assertTrue(all(v['name'] == 'FSR Override' for v in fsr))
         defaults = [v for v in fsr if v.get('fallbackValue')]
         self.assertEqual(len(defaults), 1)
         self.assertEqual((defaults[0]['valueName'], defaults[0]['on'], defaults[0]['off']), ('AMD SDK', 'DLOR_OPTISCALER_FSR_PROFILE="sdk-amd"', ''))

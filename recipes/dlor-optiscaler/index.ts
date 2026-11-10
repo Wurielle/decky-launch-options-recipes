@@ -37,14 +37,13 @@ const recipe = {
     launchOptions: [
         {
             id: 'dlor-optiscaler',
-            group,
             name: group,
             on: `WINEDLLOVERRIDES="dxgi=n,b" SteamDeck=0 ${install}`,
             off: uninstall,
             enableGlobally: false,
         },
         // Sources select files, never FSR activation settings or GPU presets.
-        ...choices('fsr-profile', 'FSR4 compatibility', 'DLOR_OPTISCALER_FSR_PROFILE', [
+        ...choices('fsr-override', 'FSR Override', 'DLOR_OPTISCALER_FSR_PROFILE', [
             { value: 'bundled', label: 'Bundled' },
             { value: 'sdk-amd', label: 'AMD SDK' },
             ...optimizedProfiles,
