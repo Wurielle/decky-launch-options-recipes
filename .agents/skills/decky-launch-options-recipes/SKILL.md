@@ -50,7 +50,6 @@ export default recipe
    - Keep source arrays compact and ordered the same way the UI should display values, then use `map` or `flatMap` to produce `LaunchOption[]`.
    - Use small helper functions for repeated command fragments, such as quoted environment-variable assignments.
    - Do not generate IDs from user-facing labels when values need stable compatibility; define explicit `id` values for non-trivial choices.
-   - Add a top-of-file dropdown fallback policy comment when a recipe intentionally uses a default other than `None`.
    - Keep recipe-specific instructions beside the relevant code as comments, not in this skill. Add or update comments when an implementation depends on non-obvious command ordering, overwrite rules, archive layout, or variant selection. Explain the constraint and its reason; point to supporting script comments from the recipe source when needed instead of duplicating them.
 
 3. Build or check recipes using the repo script, usually `pnpm recipes:build` or `pnpm recipes:check`.
@@ -157,20 +156,10 @@ Use predictable, hyphen-case IDs.
 
 ## Dropdown Defaults
 
-Every dropdown should include one fallback/default choice.
+Every dropdown must include a `None` option as its only fallback/default choice.
 
-- Default to a `None` option with empty `on`, empty `off`, and `fallbackValue: true`.
-- Use a non-`None` fallback only when that label corresponds to a tool-specific reset/default mechanism.
-- A non-`None` fallback must emit the reset/default launch option in `on` or `off`; do not rename `None` while leaving both `on` and `off` empty.
-- When using a non-`None` fallback, add this comment template at the top of the recipe file before imports:
-
-```ts
-// Dropdown fallback policy: use "<Fallback label>" instead of "None" because
-// <specific launch option mechanism> resets <tool state>, while empty launch
-// options would leave <existing tool/config state> unchanged.
-```
-
-For example, an `Auto` fallback is appropriate when `TOOL_SETTING="auto"` actively resets a persisted setting; an empty command would leave that setting unchanged.
+- Give `None` empty `on`, empty `off`, and `fallbackValue: true` so it preserves user-defined application settings.
+- Other choices, including `Auto` or tool-specific reset/default mechanisms, may be available for explicit selection but must not be the fallback/default. Their launch options can override user-defined application settings.
 
 ## Dropdown Pattern
 
@@ -215,7 +204,7 @@ Before finishing:
 - Confirm the recipe compiles against `Recipe`.
 - Confirm every launch option has a stable `id`.
 - Confirm dropdown IDs include tool, option/config name, and value.
-- Confirm each dropdown has one fallback/default choice when appropriate.
+- Confirm every dropdown includes `None` with empty `on` and `off` as its only fallback/default choice.
 - Confirm `%command%` is present for wrappers and absent for pure environment-variable options.
 - Confirm every `curl` command used by a Steam launch option is prefixed with the shared `hostRuntime` value.
 - Confirm artifact downloads reuse a versioned cache and recover from invalid archives.
