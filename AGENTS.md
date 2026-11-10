@@ -30,6 +30,8 @@ Name constants holding script commands after the corresponding script, convertin
 
 For recipe changes, run `pnpm recipes:check` before submitting. For frontend or plugin changes, run `pnpm build`. If `recipes.json` changes after a recipe edit, include the generated file in the same change.
 
+Run `pnpm test:frontend` for the source persistence and clipboard regression checks. For live Steam UI testing, use `CONSOLE_SSH_HOST=<ssh-alias> pnpm console:ui` to capture screenshots, inspect controls, click, and type through an SSH tunnel. See the README's remote testing section. Verify real non-empty paste content rather than treating an empty clipboard response as success.
+
 ## Commit & Pull Request Guidelines
 
 Recent history uses short conventional-style commits such as `feat: add mangohud fps limit`, `fix: add missing MangoHud in name`, and `chore: rebuild recipes.json`. Keep commits scoped and descriptive. Pull requests should explain the recipe or plugin behavior changed, list validation commands run, and include screenshots only for UI-facing changes.

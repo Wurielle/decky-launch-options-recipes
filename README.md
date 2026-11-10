@@ -110,6 +110,31 @@ the generator does this automatically for builds from another repository.
 
 Runner logs are saved to `~/.dlor/logs/run/`.
 
+### Remote Steam UI testing
+
+With SSH access to the test device and Steam's CEF debugging endpoint available
+on its loopback port 8080, install dependencies and use Playwright to control the
+running Steam UI:
+
+```sh
+CONSOLE_SSH_HOST=<ssh-alias> pnpm console:ui pages
+CONSOLE_SSH_HOST=<ssh-alias> pnpm console:ui snapshot
+CONSOLE_SSH_HOST=<ssh-alias> pnpm console:ui screenshot
+CONSOLE_SSH_HOST=<ssh-alias> pnpm console:ui click-text "Manage recipes source"
+```
+
+The helper opens a temporary SSH tunnel and disconnects after each command without
+closing Steam. Screenshots default to `.generated/console-ui/latest.png`.
+Set `CONSOLE_UI_PAGE` to another title from `pages`, or `CONSOLE_CDP_PORT` if needed.
+Run `pnpm console:ui help` for mouse, keyboard, text entry, and diagnostic commands.
+Keep screenshots and device credentials out of commits. Run offline frontend
+regression checks with `pnpm test:frontend`.
+
+For a real paste regression check, open **Manage recipes source** and copy a recipe
+URL on the test device, then run `pnpm test:console-clipboard` with the same SSH
+host setting. It clears the field, clicks the installed plugin's Paste button,
+checks non-empty saved text, captures the result, and restores the original source.
+
 ### Build-time environment variables
 
 Recipe string fields can use `{{env:VARIABLE_NAME}}` placeholders. The recipe generator replaces each placeholder with

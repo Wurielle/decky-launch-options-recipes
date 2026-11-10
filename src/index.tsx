@@ -16,12 +16,12 @@ import {QueryClientProvider} from "@tanstack/react-query";
 import {queryClient, useGetRecipesQuery} from "./query";
 import {useCallback, useEffect, useLayoutEffect, useRef, useState} from "react";
 import {v4 as uuid} from 'uuid';
-import {Store, StoreOptions, useStore} from '@tanstack/react-store'
-import {produce} from "immer";
+import {useStore} from '@tanstack/react-store'
 import {readClipboardText} from "./clipboard";
 import {BrowseLogsButton} from "./logs";
+import {createRecipesStore, defaultRecipesSource} from './recipes-store';
 
-const defaultRecipesSource = 'https://raw.githubusercontent.com/Wurielle/decky-launch-options-recipes/refs/heads/dev/recipes.json'
+const recipesStore = createRecipesStore(localStorage)
 
 function getGitHubSourceDescription(value: string) {
     try {
@@ -47,23 +47,6 @@ function getGitHubSourceDescription(value: string) {
     }
 }
 
-function createStore<S>(state: S, options: StoreOptions<S, (state: S) => void> = {}) {
-    return new Store<S, (state: S) => void>(state, {
-        updateFn: (state) => (updater) => produce(state, updater),
-        ...options
-    });
-}
-
-const localStorageKey = 'decky-launch-options-recipes-store'
-const storageStoreValue = localStorage.getItem(localStorageKey)
-const recipesStore = createStore({
-    recipesSource: defaultRecipesSource,
-    ...(storageStoreValue ? JSON.parse(storageStoreValue) : {})
-});
-recipesStore.subscribe(({currentVal}) => {
-    localStorage.setItem(localStorageKey, JSON.stringify(currentVal))
-})
-
 function useButtonFeedback() {
     const [feedback, setFeedback] = useState({text: ''})
     useEffect(() => {
@@ -81,6 +64,7 @@ function RecipesSourceFormModal(props: { onCancel: () => void }) {
     const [pasteFeedback, setPasteFeedback] = useButtonFeedback()
     const [resetFeedback, setResetFeedback] = useButtonFeedback()
     const [isPasting, setIsPasting] = useState(false)
+    const pasteControlsRef = useRef<HTMLDivElement>(null)
     const sourceDescription = getGitHubSourceDescription(recipesSource)
     const setRecipesSource = useCallback((value: string) => {
         recipesStore.setState((state) => {
@@ -91,7 +75,7 @@ function RecipesSourceFormModal(props: { onCancel: () => void }) {
         setIsPasting(true)
         setPasteFeedback('')
         try {
-            const value = (await readClipboardText()).trim()
+            const value = (await readClipboardText(pasteControlsRef.current ?? undefined)).trim()
             if (!value) {
                 setPasteFeedback('❌ Clipboard is empty')
                 return
@@ -139,7 +123,7 @@ function RecipesSourceFormModal(props: { onCancel: () => void }) {
                     )}
                 />
 
-                <div style={{display: 'flex', flexDirection: 'column', gap: '10px'}}>
+                <div ref={pasteControlsRef} style={{display: 'flex', flexDirection: 'column', gap: '10px'}}>
                     <DialogButton
                         disabled={isPasting}
                         onClick={pasteRecipesSource}
@@ -259,8 +243,5 @@ export default definePlugin(() => {
                 <Content/>
             </QueryClientProvider>,
         icon: <FaList/>,
-        onDismount() {
-            localStorage.removeItem(localStorageKey)
-        },
     };
 });
