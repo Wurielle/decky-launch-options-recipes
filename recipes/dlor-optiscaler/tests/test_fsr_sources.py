@@ -111,14 +111,81 @@ class FsrSourceTests(unittest.TestCase):
         self.packages[asset["sha256"]] = directory
         return asset
 
+    def test_deprecated_compatibility_commands_emit_canonical_profile_provenance(self):
+        # The shortened prefix is a deprecated compatibility token from saved imports.
+        for family in ("rx6000", "rx7000", "igpu-rdna2", "igpu-rdna3"):
+            for variant in ("exact", "lossy"):
+                with self.subTest(family=family, variant=variant):
+                    self.add_optimized(family, variant)
+                    old = f"zgauthier-{family}-{variant}"
+                    canonical = f"zgauthier2000-{family}-{variant}"
+                    self.assertEqual(self.run_action("install", old), 0)
+                    self.assertEqual({entry["fsr_profile"] for entry in self.state()["components"] if "fsr_profile" in entry}, {canonical})
+                    self.assertEqual((self.target / "OptiScaler" / DLL).read_bytes(), ("synthetic optimized " + variant).encode())
+                    self.assertTrue((self.target / "OptiScaler/licenses/fsr-profile/zgauthier2000-LICENSE").is_file())
+                    self.assertEqual(self.run_action("uninstall"), 0)
+
+    def test_deprecated_compatibility_journal_upgrade_retains_pins_offline(self):
+        import artifacts
+        descriptor_keys = {"repository", "tag", "name", "url", "sha256", "size"}
+        for family in ("rx6000", "rx7000", "igpu-rdna2", "igpu-rdna3"):
+            for variant in ("exact", "lossy"):
+                canonical = f"zgauthier2000-{family}-{variant}"
+                # Deprecated compatibility token persisted by earlier imports.
+                old = f"zgauthier-{family}-{variant}"
+                self.add_optimized(family, variant)
+                for requested, mixed in ((None, False), (old, False), (canonical, False), (canonical, True)):
+                    with self.subTest(profile=canonical, requested=requested, mixed=mixed):
+                        self.assertEqual(self.run_action("install", canonical), 0)
+                        journal = next((self.home / ".dlor/state/dlor-optiscaler").glob("*/state.json"))
+                        state = self.state()
+                        expected = []
+                        cache = self.home / ".dlor/cache/dlor-optiscaler/artifacts"
+                        for entry in state["components"]:
+                            if "fsr_profile" in entry:
+                                # Exact installed coordinates may differ from today's manifest.
+                                entry["tag"] = "previous-reviewed-pin"
+                                entry["url"] = entry["url"].replace("/fixture/", "/previous-reviewed-pin/")
+                                expected.append({**entry, "fsr_profile": canonical})
+                                entry["fsr_profile"] = canonical if mixed and entry["name"] != "LICENSE" else old
+                            asset = {key: entry[key] for key in descriptor_keys}
+                            path = artifacts._asset_path(asset, cache)
+                            path.parent.mkdir(parents=True, exist_ok=True)
+                            path.write_bytes(self.payloads[asset["sha256"]].read_bytes())
+                        # Old marked journals also owned the former notice filename.
+                        notice = self.target / "OptiScaler/licenses/fsr-profile/zgauthier2000-LICENSE"
+                        old_notice = notice.with_name("zgauthier-LICENSE")  # Deprecated compatibility filename.
+                        notice.rename(old_notice)
+                        key = notice.relative_to(self.game).as_posix()
+                        state["files"][old_notice.relative_to(self.game).as_posix()] = state["files"].pop(key)
+                        journal.write_text(json.dumps(state))
+                        self.requests.clear()
+
+                        def resolve_core_only(repository, *args, **kwargs):
+                            self.assertIn(repository, ("optiscaler/OptiScaler-nightly", "optiscaler/OptiPatcher"), "Retained source must not resolve current optional metadata")
+                            return self.resolve(repository, *args, **kwargs)
+
+                        def package_from_descriptor(asset, cache):
+                            self.assertEqual(set(asset), descriptor_keys, "Journal metadata must not change download cache keys")
+                            return self.core if asset["repository"] == "optiscaler/OptiScaler-nightly" else self.packages[asset["sha256"]]
+
+                        with patch.object(artifacts, "resolve_asset", side_effect=resolve_core_only), patch.object(artifacts, "download_asset", side_effect=self.real_download), patch.object(artifacts, "_open", side_effect=AssertionError("Retained profile must not access network")), patch.object(self.installer, "cached_package", side_effect=package_from_descriptor):
+                            self.assertEqual(self.run_action("upgrade", requested), 0)
+                        self.assertEqual([entry for entry in self.state()["components"] if "fsr_profile" in entry], expected)
+                        self.assertEqual(len(self.requests), 2)
+                        self.assertEqual((self.target / "OptiScaler" / DLL).read_bytes(), ("synthetic optimized " + variant).encode())
+                        self.assertTrue(notice.is_file())
+                        self.assertFalse(old_notice.exists())
+                        self.assertEqual(self.run_action("uninstall"), 0)
+
     def test_optimized_exact_selects_one_member_and_restores_bundled_files(self):
         asset = self.add_optimized()
         self.assertEqual(self.run_action("install", "bundled"), 0)
-        self.assertEqual(self.run_action("install", "zgauthier-igpu-rdna2-exact"), 0)
+        self.assertEqual(self.run_action("install", "zgauthier2000-igpu-rdna2-exact"), 0)
         self.assertEqual((self.target / "OptiScaler" / DLL).read_bytes(), b"synthetic optimized exact")
         provenance = self.state()["components"][-1]
         self.assertEqual(provenance["sha256"], asset["sha256"])
-        self.assertEqual(provenance["fsr_profile"], "zgauthier-igpu-rdna2-exact")
+        self.assertEqual(provenance["fsr_profile"], "zgauthier2000-igpu-rdna2-exact")
         self.assertEqual(provenance["fsr_members"][DLL], {"path": "exact/" + DLL, "sha256": hashlib.sha256(b"synthetic optimized exact").hexdigest()})
         notice = self.target / "OptiScaler/licenses/fsr-profile/NOTICE.md"
         self.assertEqual(notice.read_bytes(), b"synthetic AMD and shader notices")
@@ -136,8 +203,15 @@ class FsrSourceTests(unittest.TestCase):
             for variant in ("exact", "lossy"):
                 with self.subTest(family=family, variant=variant):
                     asset = self.add_optimized(family, variant)
-                    profile = f"zgauthier-{family}-{variant}"
+                    profile = f"zgauthier2000-{family}-{variant}"
                     self.assertEqual(self.run_action("install", profile), 0)
+                    license_path = self.target / "OptiScaler/licenses/fsr-profile/zgauthier2000-LICENSE"
+                    self.assertEqual(license_path.read_bytes(), b"synthetic GPL license")
+                    manifest = json.loads((HERE / "scripts/downloads.json").read_bytes())["downloads"]
+                    self.assertIn("fsr-zgauthier2000-" + family, manifest)
+                    self.assertIn("fsr-zgauthier2000-license", manifest)
+                    # Deprecated compatibility prefix must not be a current manifest key.
+                    self.assertFalse(any(key.startswith("fsr-zgauthier-") for key in manifest))
                     self.assertEqual((self.target / "OptiScaler" / DLL).read_bytes(), ("synthetic optimized " + variant).encode())
                     before = self.state()["components"][-1]
                     self.assertEqual(before["fsr_profile"], profile)
@@ -186,7 +260,7 @@ class FsrSourceTests(unittest.TestCase):
                 destination.parent.mkdir(parents=True, exist_ok=True)
                 destination.write_bytes(b"foreign library original")
                 with patch.object(os, "getcwd", return_value=str(self.game)):
-                    self.assertEqual(self.run_action("install", "zgauthier-igpu-rdna2-exact"), 0)
+                    self.assertEqual(self.run_action("install", "zgauthier2000-igpu-rdna2-exact"), 0)
                     self.assertEqual(destination.read_bytes(), b"synthetic optimized exact")
                     self.assertEqual(ini.read_bytes(), original.replace(b"LoadAsiPlugins=false", b"LoadAsiPlugins=true"))
                     self.assertFalse((self.target / "OptiScaler" / DLL).exists())
@@ -214,9 +288,9 @@ class FsrSourceTests(unittest.TestCase):
 
     def test_changed_owned_fsr_library_is_overwritten_on_reinstall_and_switch(self):
         self.add_optimized()
-        self.run_action("install", "zgauthier-igpu-rdna2-exact")
+        self.run_action("install", "zgauthier2000-igpu-rdna2-exact")
         library = self.target / "OptiScaler" / DLL
-        for profile, expected in (("zgauthier-igpu-rdna2-exact", b"synthetic optimized exact"),
+        for profile, expected in (("zgauthier2000-igpu-rdna2-exact", b"synthetic optimized exact"),
                                   ("bundled", b"synthetic bundled SDK")):
             library.write_bytes(b"user edited FSR library")
             self.assertEqual(self.run_action("install", profile), 0)
@@ -228,7 +302,7 @@ class FsrSourceTests(unittest.TestCase):
 
     def test_switch_preserves_changed_obsolete_profile_notice(self):
         self.add_optimized(variant="lossy")
-        self.run_action("install", "zgauthier-igpu-rdna2-lossy")
+        self.run_action("install", "zgauthier2000-igpu-rdna2-lossy")
         warning = self.target / "OptiScaler/licenses/fsr-profile/WARNING.txt"
         warning.write_bytes(b"user annotated warning")
         self.run_action("install", "bundled")
@@ -243,7 +317,7 @@ class FsrSourceTests(unittest.TestCase):
         (self.target / "dxgi.dll").write_bytes(b"foreign injection mod")
         before = self.snapshot()
         with self.assertRaisesRegex(self.installer.InstallerError, "occupied"):
-            self.run_action("install", "zgauthier-igpu-rdna2-exact")
+            self.run_action("install", "zgauthier2000-igpu-rdna2-exact")
         self.assertEqual(self.requests, [])
         self.assertEqual(self.snapshot(), before)
 
@@ -253,22 +327,22 @@ class FsrSourceTests(unittest.TestCase):
         (self.packages[asset["sha256"]] / "exact" / DLL).unlink()
         before = self.snapshot()
         with self.assertRaisesRegex(self.installer.InstallerError, "member is missing"):
-            self.run_action("install", "zgauthier-igpu-rdna2-exact")
+            self.run_action("install", "zgauthier2000-igpu-rdna2-exact")
         self.assertEqual(self.snapshot(), before)
 
     def test_off_with_profile_never_resolves_downloads_or_extracts_payloads(self):
         self.add_optimized(variant="lossy")
-        self.run_action("install", "zgauthier-igpu-rdna2-lossy")
+        self.run_action("install", "zgauthier2000-igpu-rdna2-lossy")
         import artifacts
         with patch.object(artifacts, "resolve_asset", side_effect=AssertionError("OFF resolved payload")), patch.object(artifacts, "download_asset", side_effect=AssertionError("OFF downloaded payload")), patch.object(self.installer, "cached_package", side_effect=AssertionError("OFF extracted payload")):
-            self.assertEqual(self.run_action("uninstall", "zgauthier-igpu-rdna2-lossy"), 0)
+            self.assertEqual(self.run_action("uninstall", "zgauthier2000-igpu-rdna2-lossy"), 0)
         self.assertEqual([p for p in self.game.rglob("*") if p.is_file()], [])
         self.assertEqual(self.state()["files"], {})
 
     def test_optimized_installs_gpl_license_and_removes_it_on_return_to_bundled(self):
         self.add_optimized()
-        self.run_action("install", "zgauthier-igpu-rdna2-exact")
-        license_path = self.target / "OptiScaler/licenses/fsr-profile/zgauthier-LICENSE"
+        self.run_action("install", "zgauthier2000-igpu-rdna2-exact")
+        license_path = self.target / "OptiScaler/licenses/fsr-profile/zgauthier2000-LICENSE"
         self.assertTrue(license_path.is_file(), "Optimized source must include its GPL license")
         self.assertEqual(license_path.read_bytes(), b"synthetic GPL license")
         self.assertEqual([c["name"] for c in self.state()["components"]][-2:],
@@ -298,7 +372,7 @@ class FsrSourceTests(unittest.TestCase):
         self.assertEqual(self.state()["components"][-2:], installed)
         self.assertEqual(len(self.requests), 2)
         self.assertEqual((self.target / "OptiScaler" / DLL).read_bytes(), b"synthetic SDK 2.4.0")
-        self.run_action("install", "zgauthier-igpu-rdna2-lossy")
+        self.run_action("install", "zgauthier2000-igpu-rdna2-lossy")
         self.assertFalse(license_path.exists())
         self.assertEqual((self.target / "OptiScaler" / DLL).read_bytes(), b"synthetic optimized lossy")
         self.run_action("install", "bundled")
@@ -330,7 +404,7 @@ class FsrSourceTests(unittest.TestCase):
         before = {p.relative_to(self.game).as_posix(): p.read_bytes() for p in self.game.rglob("*") if p.is_file()}
         state = self.state()
         write = self.installer.atomic_write
-        license_path = self.target / "OptiScaler/licenses/fsr-profile/zgauthier-LICENSE"
+        license_path = self.target / "OptiScaler/licenses/fsr-profile/zgauthier2000-LICENSE"
 
         def interrupted(path, data, mode=0o600):
             if path == license_path:
@@ -339,16 +413,16 @@ class FsrSourceTests(unittest.TestCase):
 
         with patch.object(self.installer, "atomic_write", side_effect=interrupted):
             with self.assertRaisesRegex(OSError, "controlled interruption"):
-                self.run_action("install", "zgauthier-igpu-rdna2-exact")
+                self.run_action("install", "zgauthier2000-igpu-rdna2-exact")
         self.assertEqual({p.relative_to(self.game).as_posix(): p.read_bytes() for p in self.game.rglob("*") if p.is_file()}, before)
         self.assertEqual(self.state(), state)
-        self.run_action("install", "zgauthier-igpu-rdna2-exact")
+        self.run_action("install", "zgauthier2000-igpu-rdna2-exact")
         self.run_action("uninstall")
         self.assertEqual([p for p in self.game.rglob("*") if p.is_file()], [])
 
     def test_corrupt_profile_provenance_refuses_upgrade_without_writes(self):
         self.add_optimized()
-        self.run_action("install", "zgauthier-igpu-rdna2-exact")
+        self.run_action("install", "zgauthier2000-igpu-rdna2-exact")
         journal = next((self.home / ".dlor/state/dlor-optiscaler").glob("*/state.json"))
         original = journal.read_bytes()
         for corruption in ("missing-license", "member-digest", "mixed-profiles"):

@@ -28,7 +28,7 @@ const optimizedProfiles = [
     ['rx6000', 'RDNA 2'], ['rx7000', 'RDNA 3'],
     ['igpu-rdna2', 'RDNA 2 iGPU'], ['igpu-rdna3', 'RDNA 3 iGPU'],
 ].flatMap(([family, label]) => ['Exact', 'Lossy'].map(variant => ({
-    value: `zgauthier-${family}-${variant.toLowerCase()}`,
+    value: `zgauthier2000-${family}-${variant.toLowerCase()}`,
     label: `${label} - ${variant}`,
 })))
 

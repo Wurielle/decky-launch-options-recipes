@@ -91,7 +91,7 @@
       "size": 57664272,
       "channel": "tag:v2.4.0"
     },
-    "fsr-zgauthier-rx6000": {
+    "fsr-zgauthier2000-rx6000": {
       "repository": "zgauthier2000/fsr4-shader-performance-overrides",
       "tag": "dll-2026-11-05",
       "name": "fsr4.1.2-cyboman-rx6000-2026-11-05.7z",
@@ -100,7 +100,7 @@
       "size": 9612224,
       "channel": "tag:dll-2026-11-05"
     },
-    "fsr-zgauthier-rx7000": {
+    "fsr-zgauthier2000-rx7000": {
       "repository": "zgauthier2000/fsr4-shader-performance-overrides",
       "tag": "dll-2026-11-05",
       "name": "fsr4.1.2-cyboman-rx7000-2026-11-05.7z",
@@ -109,7 +109,7 @@
       "size": 9422171,
       "channel": "tag:dll-2026-11-05"
     },
-    "fsr-zgauthier-igpu-rdna2": {
+    "fsr-zgauthier2000-igpu-rdna2": {
       "repository": "zgauthier2000/fsr4-shader-performance-overrides",
       "tag": "dll-2026-11-05",
       "name": "fsr4.1.2-igpu-cyboman-rdna2-2026-11-05.7z",
@@ -118,7 +118,7 @@
       "size": 9567439,
       "channel": "tag:dll-2026-11-05"
     },
-    "fsr-zgauthier-igpu-rdna3": {
+    "fsr-zgauthier2000-igpu-rdna3": {
       "repository": "zgauthier2000/fsr4-shader-performance-overrides",
       "tag": "dll-2026-11-05",
       "name": "fsr4.1.2-igpu-cyboman-rdna3-2026-11-05.7z",
@@ -136,7 +136,7 @@
       "name": "license.md",
       "channel": "tag:v2.4.0"
     },
-    "fsr-zgauthier-license": {
+    "fsr-zgauthier2000-license": {
       "repository": "zgauthier2000/fsr4-shader-performance-overrides",
       "url": "https://raw.githubusercontent.com/zgauthier2000/fsr4-shader-performance-overrides/d1c3b30db656bf6a38634642542ee7736127d211/LICENSE",
       "sha256": "edaef632cbb643e4e7a221717a6c441a4c1a7c918e6e4d56debc3d8739b233f6",
@@ -148,7 +148,7 @@
   },
   "runtime": {
     "loader.py": "989ccccd9c3590ddf25f7df5480a969b0143c2e1ad7861cd9748f95b993a7193",
-    "installer.py": "c88ef92cb062aa6a79bab70e78b5a7e9c77304660cfea23eef614492e34cbc1e",
+    "installer.py": "e9b2c4feb27d400bd2fe10194aab29a353e62fcfd8499b7447c87a24435760b7",
     "artifacts.py": "296c599f8b3f36d12713e753cb44adea86bc24b699ad15661ca9555196c36946",
     "game_discovery.py": "bacaa7f9f133250ddc8b9818387ba9dcde061865527a5308253ef61907b915e5",
     "update_optiscaler_config.py": "a3e77b1d47bd0a458c3cdf87e360e21f96f4c821ec2d921e31443d2704513006",

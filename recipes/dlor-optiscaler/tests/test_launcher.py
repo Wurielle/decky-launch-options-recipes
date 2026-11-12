@@ -423,7 +423,7 @@ os.execv('/usr/bin/{tool}', ['{tool}', *sys.argv[1:]])
             self.assertEqual(entry['off'], '')
         for family, label in (('rx6000', 'RDNA 2'), ('rx7000', 'RDNA 3'), ('igpu-rdna2', 'RDNA 2 iGPU'), ('igpu-rdna3', 'RDNA 3 iGPU')):
             for variant in ('exact', 'lossy'):
-                value = f'zgauthier-{family}-{variant}'
+                value = f'zgauthier2000-{family}-{variant}'
                 self.assertIn('dlor-optiscaler-fsr-override-' + value, by_id)
                 entry = by_id['dlor-optiscaler-fsr-override-' + value]
                 self.assertEqual(entry['valueName'], f'{label} - {variant.capitalize()}')
@@ -465,10 +465,14 @@ os.execv('/usr/bin/{tool}', ['{tool}', *sys.argv[1:]])
         for entry in entries:
             entry['enableGlobally'] = entry['id'] == 'dlor-optiscaler-fsr-override-bundled'
         launch('bundled')
-        selected = 'dlor-optiscaler-fsr-override-zgauthier-igpu-rdna2-lossy'
-        state[selected] = True
-        launch('zgauthier-igpu-rdna2-lossy')
-        state.pop(selected)
+        for family in ('rx6000', 'rx7000', 'igpu-rdna2', 'igpu-rdna3'):
+            for variant in ('exact', 'lossy'):
+                value = f'zgauthier2000-{family}-{variant}'
+                with self.subTest(profile=value):
+                    selected = 'dlor-optiscaler-fsr-override-' + value
+                    state[selected] = True
+                    launch(value)
+                    state.pop(selected)
         state['dlor-optiscaler-fsr-override-none'] = True
         launch(None)
 
@@ -826,7 +830,7 @@ os.execv('/usr/bin/sha256sum', ['sha256sum', *sys.argv[1:]])
         self.assertFalse(any('DLOR_OPTISCALER_CHANNEL' in o['on'] or 'DLOR_OPTISCALER_PROXY' in o['on'] for o in options))
         fsr = groups['dlor-optiscaler-fsr-override']
         values = ['bundled', 'sdk-amd',
-                  *[f'zgauthier-{family}-{variant}' for family in ('rx6000', 'rx7000', 'igpu-rdna2', 'igpu-rdna3')
+                  *[f'zgauthier2000-{family}-{variant}' for family in ('rx6000', 'rx7000', 'igpu-rdna2', 'igpu-rdna3')
                     for variant in ('exact', 'lossy')]]
         self.assertEqual([v['on'] for v in fsr], ['', *[f'DLOR_OPTISCALER_FSR_PROFILE="{value}"' for value in values]])
         self.assertTrue(all(v['name'] == 'FSR Override' for v in fsr))
