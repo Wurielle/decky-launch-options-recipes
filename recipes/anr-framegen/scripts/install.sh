@@ -68,9 +68,9 @@ finish_log() {
     [[ -z $logger_pid ]] || wait "$logger_pid" || :
     exec {console_out}>&- {console_err}>&-
 }
-BUNDLE_REVISION=bc6ff08c35d2286560a777b6be8342d5531fbdd8
+BUNDLE_REVISION=42c3bc9b31bfc10d8aab67b8b782ce63a8595bd6
 BUNDLE_REPOSITORY=Wurielle/decky-launch-options-recipes
-MANIFEST_SHA256=cf9b7a40167afdcfd3068e72369f13f27957469df29679f5d39f827738b5eb34
+MANIFEST_SHA256=50044ca8a901045d7d40d4fb28e318fa4706e11e373a0e9b600ddd08cdfcb1ac
 run_loader() (
     inherited_umask=$(umask)
     umask 077
