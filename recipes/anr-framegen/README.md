@@ -7,13 +7,24 @@ Wine overrides, ASI settings, upscaler settings, or game environment.
 
 ## Use in Decky Launch Options
 
-Import **OptiScaler FrameGen ANR** in the **OptiScaler** group, enable it for the
-game, and launch normally. Preparation runs unattended before the game, using the
-stock `remoteScript` / `~/.dlor/run` helper contract. No executable picker, desktop
-dialog, running process, manual addon build, or separately enabled dependency is
-required. Disable the option and launch again to remove its unchanged owned
-files and restore its still-owned settings. Close an already running game before
-changing this toggle.
+Import **OptiScaler FrameGen ANR** in the **OptiScaler** group. Its dropdown has
+**None / Install / Uninstall**, with **None** as the inert default. Select **Install**
+for the game and launch normally. Preparation runs unattended before the game,
+using the stock `remoteScript` / `~/.dlor/run` helper contract. No executable picker,
+desktop dialog, running process, manual addon build, or separately enabled
+dependency is required. Select **Uninstall** and launch again to remove unchanged
+owned files and restore still-owned settings. Selecting **None**, deselecting an
+action, or disabling the dropdown does nothing; it does **not** uninstall ANR.
+Close an already running game before changing installation actions.
+
+The shared dropdown ID is `optiscaler-framegen-anr`; its choice IDs are
+`optiscaler-framegen-anr-none`, `optiscaler-framegen-anr-install`, and
+`optiscaler-framegen-anr-uninstall`.
+
+If you imported the earlier Boolean option (`anr-framegen`), remove that saved
+option before importing this dropdown: recipe re-import does not delete retired
+saved IDs. Removal of the saved option is not the uninstall action; select the new
+**Uninstall** choice if you want to remove an existing managed ANR installation.
 
 **Turn on DLSS/NVIDIA frame generation in the game's own settings.** This selects
 ANR as that provider; it does not add native DLSSG input support to games without

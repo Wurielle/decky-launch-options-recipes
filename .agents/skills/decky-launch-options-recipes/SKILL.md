@@ -146,13 +146,16 @@ subshell keeps the locale, glob settings, and temporary variables local to clean
 
 ## ID Convention
 
-Use predictable, hyphen-case IDs.
+Use predictable, hyphen-case IDs derived from the full host → feature → component hierarchy. Do not shorten an option ID to the recipe directory or component name when it belongs under a host feature.
 
-- Regular launch option: include the feature/tool name only, for example `tool-name`.
-- Dropdown option: include the feature/tool name, the modified option/config name, and the value.
-  - Pattern: `<tool>-<option-or-config-name>-<value>`
-  - Examples: `tool-config-preset-none`, `tool-config-preset-fast`, `tool-fps-limit-60`.
-- Keep all options in a dropdown on the same `valueId`.
+- Regular launch option: include its full feature/tool hierarchy.
+- Dropdown option: append the explicit value/action to that hierarchy.
+  - Pattern: `<host>-<feature>-<component>-<value>` when all three levels apply.
+  - Example: OptiScaler ANR FrameGen has `valueId: 'optiscaler-framegen-anr'` and IDs `optiscaler-framegen-anr-none`, `optiscaler-framegen-anr-install`, `optiscaler-framegen-anr-uninstall`.
+  - Other examples: `tool-config-preset-none`, `tool-config-preset-fast`, `tool-fps-limit-60`.
+- Keep all choices in a dropdown on the same `valueId` and shared display name.
+- Model installation/removal as an ordered **None / Install / Uninstall** dropdown, not a Boolean toggle with uninstall in `off`. None is inert and the only fallback; all choices have empty `off` and `enableGlobally: false`. Put each action's runner call only in its own `on` field. Deselecting an action must not uninstall anything.
+- Verify exact IDs, ordering, defaults, and selected/deselected behavior through the real consumer. Re-importing does not delete retired saved IDs; document removal of an old Boolean option when replacing one.
 
 ## Dropdown Defaults
 
