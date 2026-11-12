@@ -13,7 +13,7 @@
         "id": "optiscaler-nightly-upgrade",
         "group": "OptiScaler",
         "name": "OptiScaler Nightly Upgrade",
-        "on": "~/.dlor/run optiscaler update-nightly c2b7707b1482d19bfde15b725178638187c694d6 -- %command%",
+        "on": "~/.dlor/run optiscaler update-nightly b01f460357d17101616fbb3d3132ce8d82ab709b -- %command%",
         "off": "",
         "enableGlobally": false,
         "priority": -1
@@ -2848,7 +2848,7 @@
         "id": "reframework-install-update",
         "group": "REFramework",
         "name": "REFramework",
-        "on": "WINEDLLOVERRIDES=\"dinput8.dll=n,b\" ~/.dlor/run reframework update c2b7707b1482d19bfde15b725178638187c694d6 -- %command%",
+        "on": "WINEDLLOVERRIDES=\"dinput8.dll=n,b\" ~/.dlor/run reframework update b01f460357d17101616fbb3d3132ce8d82ab709b -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "reframework",
@@ -2858,7 +2858,7 @@
         "id": "reframework-uninstall",
         "group": "REFramework",
         "name": "REFramework",
-        "on": "~/.dlor/run reframework uninstall c2b7707b1482d19bfde15b725178638187c694d6 -- %command%",
+        "on": "~/.dlor/run reframework uninstall b01f460357d17101616fbb3d3132ce8d82ab709b -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "reframework",
@@ -2873,8 +2873,8 @@
         "id": "anr-framegen",
         "group": "OptiScaler",
         "name": "OptiScaler FrameGen ANR",
-        "on": "~/.dlor/run anr-framegen install c2b7707b1482d19bfde15b725178638187c694d6 -- %command%",
-        "off": "~/.dlor/run anr-framegen uninstall c2b7707b1482d19bfde15b725178638187c694d6 -- %command%",
+        "on": "~/.dlor/run anr-framegen install b01f460357d17101616fbb3d3132ce8d82ab709b -- %command%",
+        "off": "~/.dlor/run anr-framegen uninstall b01f460357d17101616fbb3d3132ce8d82ab709b -- %command%",
         "enableGlobally": false
       }
     ]
