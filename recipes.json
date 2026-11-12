@@ -13,7 +13,7 @@
         "id": "optiscaler-nightly-upgrade",
         "group": "OptiScaler",
         "name": "OptiScaler Nightly Upgrade",
-        "on": "~/.dlor/run optiscaler update-nightly 91ce50ac1231b56085529175152dc8a0f19461ca -- %command%",
+        "on": "~/.dlor/run optiscaler update-nightly 7c0a6217a6ff9adf84b141ece9f3a3bc753aca8c -- %command%",
         "off": "",
         "enableGlobally": false,
         "priority": -1
@@ -2848,7 +2848,7 @@
         "id": "reframework-install-update",
         "group": "REFramework",
         "name": "REFramework",
-        "on": "WINEDLLOVERRIDES=\"dinput8.dll=n,b\" ~/.dlor/run reframework update 91ce50ac1231b56085529175152dc8a0f19461ca -- %command%",
+        "on": "WINEDLLOVERRIDES=\"dinput8.dll=n,b\" ~/.dlor/run reframework update 7c0a6217a6ff9adf84b141ece9f3a3bc753aca8c -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "reframework",
@@ -2858,10 +2858,46 @@
         "id": "reframework-uninstall",
         "group": "REFramework",
         "name": "REFramework",
-        "on": "~/.dlor/run reframework uninstall 91ce50ac1231b56085529175152dc8a0f19461ca -- %command%",
+        "on": "~/.dlor/run reframework uninstall 7c0a6217a6ff9adf84b141ece9f3a3bc753aca8c -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "reframework",
+        "valueName": "Uninstall"
+      }
+    ]
+  },
+  {
+    "name": "OptiScaler FrameGen ANR",
+    "launchOptions": [
+      {
+        "id": "optiscaler-framegen-anr-none",
+        "group": "OptiScaler",
+        "name": "OptiScaler FrameGen ANR",
+        "on": "",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler-framegen-anr",
+        "valueName": "None",
+        "fallbackValue": true
+      },
+      {
+        "id": "optiscaler-framegen-anr-install",
+        "group": "OptiScaler",
+        "name": "OptiScaler FrameGen ANR",
+        "on": "~/.dlor/run anr-framegen install 7c0a6217a6ff9adf84b141ece9f3a3bc753aca8c -- %command%",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler-framegen-anr",
+        "valueName": "Install"
+      },
+      {
+        "id": "optiscaler-framegen-anr-uninstall",
+        "group": "OptiScaler",
+        "name": "OptiScaler FrameGen ANR",
+        "on": "~/.dlor/run anr-framegen uninstall 7c0a6217a6ff9adf84b141ece9f3a3bc753aca8c -- %command%",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "optiscaler-framegen-anr",
         "valueName": "Uninstall"
       }
     ]
