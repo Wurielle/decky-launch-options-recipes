@@ -827,21 +827,10 @@ for family, flavor in (("rx6000", "cyboman-rx6000"), ("rx7000", "cyboman-rx7000"
         ]
 
 
-# Deprecated compatibility tokens from previously imported commands/journals only.
-# This finite map does not accept arbitrary shortened account/source names.
-FSR_PROFILE_ALIASES = {profile.replace("zgauthier2000-", "zgauthier-", 1): profile
-                       for profile in FSR_PROFILES if profile.startswith("zgauthier2000-")}
-
-
-def canonical_fsr_profile(profile):
-    return FSR_PROFILE_ALIASES.get(profile, profile)
-
-
 def optional_components(cache, *, profile=None, retained_components=None):
     from artifacts import resolve_asset, download_asset
     if profile is None:
         profile = os.environ.get("DLOR_OPTISCALER_FSR_PROFILE", "bundled")
-    profile = canonical_fsr_profile(profile)
     if profile not in FSR_PROFILES:
         raise InstallerError("Unsupported FSR compatibility profile")
     plugins, libraries, settings, components = {}, {}, {}, []
@@ -854,7 +843,7 @@ def optional_components(cache, *, profile=None, retained_components=None):
         if retained_components is None:
             asset = resolve_asset(repository, "tag:" + tag, re.escape(name), cache)
         else:
-            matches = [entry for entry in retained_components if entry.get("name") == name and entry.get("repository") == repository and canonical_fsr_profile(entry.get("fsr_profile")) == profile]
+            matches = [entry for entry in retained_components if entry.get("name") == name and entry.get("repository") == repository and entry.get("fsr_profile") == profile]
             if len(matches) != 1:
                 raise InstallerError("Incomplete installed FSR profile provenance")
             retained = matches[0]
@@ -896,7 +885,7 @@ def main(argv=None):
     home = Path.home().resolve(strict=True)
     state_home = home / ".dlor/state/dlor-optiscaler"
     retained_components = None
-    profile = canonical_fsr_profile(os.environ.get("DLOR_OPTISCALER_FSR_PROFILE"))
+    profile = os.environ.get("DLOR_OPTISCALER_FSR_PROFILE")
     if args.action == "uninstall":
         result = uninstall(root, state_home, asi_only=True)
         print("OptiScaler uninstall completed; changed external files preserved:", len(result["preserved"]))
@@ -919,7 +908,7 @@ def main(argv=None):
             if not record or not path.is_file() or digest(path) != record["installed"]:
                 raise InstallerError("Nightly upgrade requires an unchanged DLOR-owned proxy")
             marked = [component for component in state.get("components", []) if component.get("fsr_profile")]
-            selected_profiles = {canonical_fsr_profile(component["fsr_profile"]) for component in marked}
+            selected_profiles = {component["fsr_profile"] for component in marked}
             # Old journals recorded only mirror release coordinates. Migrate
             # that identity without replacing its exact installed descriptor.
             legacy = [component for component in state.get("components", [])

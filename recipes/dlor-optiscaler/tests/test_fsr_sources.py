@@ -111,72 +111,11 @@ class FsrSourceTests(unittest.TestCase):
         self.packages[asset["sha256"]] = directory
         return asset
 
-    def test_deprecated_compatibility_commands_emit_canonical_profile_provenance(self):
-        # The shortened prefix is a deprecated compatibility token from saved imports.
-        for family in ("rx6000", "rx7000", "igpu-rdna2", "igpu-rdna3"):
-            for variant in ("exact", "lossy"):
-                with self.subTest(family=family, variant=variant):
-                    self.add_optimized(family, variant)
-                    old = f"zgauthier-{family}-{variant}"
-                    canonical = f"zgauthier2000-{family}-{variant}"
-                    self.assertEqual(self.run_action("install", old), 0)
-                    self.assertEqual({entry["fsr_profile"] for entry in self.state()["components"] if "fsr_profile" in entry}, {canonical})
-                    self.assertEqual((self.target / "OptiScaler" / DLL).read_bytes(), ("synthetic optimized " + variant).encode())
-                    self.assertTrue((self.target / "OptiScaler/licenses/fsr-profile/zgauthier2000-LICENSE").is_file())
-                    self.assertEqual(self.run_action("uninstall"), 0)
-
-    def test_deprecated_compatibility_journal_upgrade_retains_pins_offline(self):
-        import artifacts
-        descriptor_keys = {"repository", "tag", "name", "url", "sha256", "size"}
-        for family in ("rx6000", "rx7000", "igpu-rdna2", "igpu-rdna3"):
-            for variant in ("exact", "lossy"):
-                canonical = f"zgauthier2000-{family}-{variant}"
-                # Deprecated compatibility token persisted by earlier imports.
-                old = f"zgauthier-{family}-{variant}"
-                self.add_optimized(family, variant)
-                for requested, mixed in ((None, False), (old, False), (canonical, False), (canonical, True)):
-                    with self.subTest(profile=canonical, requested=requested, mixed=mixed):
-                        self.assertEqual(self.run_action("install", canonical), 0)
-                        journal = next((self.home / ".dlor/state/dlor-optiscaler").glob("*/state.json"))
-                        state = self.state()
-                        expected = []
-                        cache = self.home / ".dlor/cache/dlor-optiscaler/artifacts"
-                        for entry in state["components"]:
-                            if "fsr_profile" in entry:
-                                # Exact installed coordinates may differ from today's manifest.
-                                entry["tag"] = "previous-reviewed-pin"
-                                entry["url"] = entry["url"].replace("/fixture/", "/previous-reviewed-pin/")
-                                expected.append({**entry, "fsr_profile": canonical})
-                                entry["fsr_profile"] = canonical if mixed and entry["name"] != "LICENSE" else old
-                            asset = {key: entry[key] for key in descriptor_keys}
-                            path = artifacts._asset_path(asset, cache)
-                            path.parent.mkdir(parents=True, exist_ok=True)
-                            path.write_bytes(self.payloads[asset["sha256"]].read_bytes())
-                        # Old marked journals also owned the former notice filename.
-                        notice = self.target / "OptiScaler/licenses/fsr-profile/zgauthier2000-LICENSE"
-                        old_notice = notice.with_name("zgauthier-LICENSE")  # Deprecated compatibility filename.
-                        notice.rename(old_notice)
-                        key = notice.relative_to(self.game).as_posix()
-                        state["files"][old_notice.relative_to(self.game).as_posix()] = state["files"].pop(key)
-                        journal.write_text(json.dumps(state))
-                        self.requests.clear()
-
-                        def resolve_core_only(repository, *args, **kwargs):
-                            self.assertIn(repository, ("optiscaler/OptiScaler-nightly", "optiscaler/OptiPatcher"), "Retained source must not resolve current optional metadata")
-                            return self.resolve(repository, *args, **kwargs)
-
-                        def package_from_descriptor(asset, cache):
-                            self.assertEqual(set(asset), descriptor_keys, "Journal metadata must not change download cache keys")
-                            return self.core if asset["repository"] == "optiscaler/OptiScaler-nightly" else self.packages[asset["sha256"]]
-
-                        with patch.object(artifacts, "resolve_asset", side_effect=resolve_core_only), patch.object(artifacts, "download_asset", side_effect=self.real_download), patch.object(artifacts, "_open", side_effect=AssertionError("Retained profile must not access network")), patch.object(self.installer, "cached_package", side_effect=package_from_descriptor):
-                            self.assertEqual(self.run_action("upgrade", requested), 0)
-                        self.assertEqual([entry for entry in self.state()["components"] if "fsr_profile" in entry], expected)
-                        self.assertEqual(len(self.requests), 2)
-                        self.assertEqual((self.target / "OptiScaler" / DLL).read_bytes(), ("synthetic optimized " + variant).encode())
-                        self.assertTrue(notice.is_file())
-                        self.assertFalse(old_notice.exists())
-                        self.assertEqual(self.run_action("uninstall"), 0)
+    def test_source_names_are_exact(self):
+        self.add_optimized()
+        with self.assertRaisesRegex(self.installer.InstallerError, "Unsupported FSR"):
+            self.installer.optional_components(self.root / "cache", profile="zgauthier-igpu-rdna2-exact")
+        self.assertEqual(self.requests, [])
 
     def test_optimized_exact_selects_one_member_and_restores_bundled_files(self):
         asset = self.add_optimized()
@@ -210,7 +149,7 @@ class FsrSourceTests(unittest.TestCase):
                     manifest = json.loads((HERE / "scripts/downloads.json").read_bytes())["downloads"]
                     self.assertIn("fsr-zgauthier2000-" + family, manifest)
                     self.assertIn("fsr-zgauthier2000-license", manifest)
-                    # Deprecated compatibility prefix must not be a current manifest key.
+                    # Manifest keys use the complete upstream account name.
                     self.assertFalse(any(key.startswith("fsr-zgauthier-") for key in manifest))
                     self.assertEqual((self.target / "OptiScaler" / DLL).read_bytes(), ("synthetic optimized " + variant).encode())
                     before = self.state()["components"][-1]
