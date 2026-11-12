@@ -20,6 +20,32 @@ class Contracts(fixtures.Fixture):
         engine.run('uninstall', self.game)
         self.assertEqual(self.ini.read_bytes(), self.original)
 
+    def test_steam_library_aliases_share_canonical_installation(self):
+        ancestor_alias = self.base / 'steam-library-alias'
+        ancestor_alias.symlink_to(self.base, target_is_directory=True)
+        game_alias = self.base / 'selected-game-alias'
+        game_alias.symlink_to(self.game, target_is_directory=True)
+        core = self.game / 'dxgi.dll'
+        core.write_bytes(b'unchanged preinstalled core fixture')
+        engine = self.engine()
+        engine.run('install', ancestor_alias / self.game.name)
+        journals = list(engine.cache.glob('*.json'))
+        self.assertEqual(len(journals), 1)
+        state = json.loads(journals[0].read_bytes())
+        self.assertEqual(state['root'], str(self.game.resolve(strict=True)))
+        engine.run('install', self.game)
+        engine.run('install', game_alias)
+        self.assertEqual(list(engine.cache.glob('*.json')), journals)
+        engine.fetch = lambda _: self.fail('uninstall through another alias must not download')
+        engine.run('uninstall', game_alias)
+        self.assertEqual(self.ini.read_bytes(), self.original)
+        self.assertEqual(self.ini.stat().st_mode & 0o777, 0o640)
+        self.assertEqual(core.read_bytes(), b'unchanged preinstalled core fixture')
+        self.assertFalse((self.game / 'custom').exists())
+        self.assertTrue(ancestor_alias.is_symlink())
+        self.assertTrue(game_alias.is_symlink())
+        self.assertEqual(len(self.fetches), 1)
+
     def test_auto_uses_case_varied_optiscaler_subdirectory(self):
         main = self.game / 'oPtIsCaLeR'
         main.mkdir()

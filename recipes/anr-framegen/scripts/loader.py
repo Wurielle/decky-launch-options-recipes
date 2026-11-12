@@ -388,7 +388,10 @@ class Engine:
     def run(self, action, root):
         if action not in ('install', 'uninstall'):
             raise Refusal('invalid action')
-        root = Path(os.path.abspath(root))
+        # Steam's selected installation may be reached through library aliases.
+        # Canonicalize only this trusted root, before discovery/lock/journal keys;
+        # paths discovered beneath it still use symlink-rejecting validation.
+        root = Path(root).resolve(strict=True)
         ini = scan(root)
         key = digest(os.fsencode(root))
         state_path = safe_path(self.cache, key + '.json')

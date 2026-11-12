@@ -48,14 +48,17 @@ to upgrade it.
 
 ## Discovery, placement and configuration
 
-The selected Steam installation directory is searched recursively, matching
-`OptiScaler.ini` case-insensitively. Exactly one anchor must exist. Its containing
-directory is treated as the existing OptiScaler proxy/config directory **P**.
-No game EXE or running process is needed. Multiple anchors, case collisions,
-symlinked game paths/tree entries, duplicate relevant INI sections/keys,
-unsupported encoding, unsafe destinations, or a foreign addon directory are
-refused without changing the game. This intentionally conservative policy may
-refuse a game containing unrelated symlinks/case collisions too.
+The selected Steam installation directory is canonicalized once, accepting a
+symlinked game root or Steam-library ancestor. Its physical directory supplies the
+ownership/lock identity, so alternate library aliases share one installation.
+Discovery then searches that tree recursively, matching `OptiScaler.ini`
+case-insensitively. Exactly one anchor must exist. Its containing directory is
+treated as the existing OptiScaler proxy/config directory **P**. No game EXE or
+running process is needed. Multiple anchors, case collisions, symlinks **inside**
+the selected physical game tree, duplicate relevant INI sections/keys, unsupported
+encoding, unsafe destinations, or a foreign addon directory are refused without
+changing the game. This conservative policy may still refuse a game containing
+unrelated internal symlinks/case collisions; only the selected root is resolved.
 
 The effective library root **M** follows the inspected native loader:
 

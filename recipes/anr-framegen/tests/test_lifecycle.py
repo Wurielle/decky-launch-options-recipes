@@ -90,7 +90,7 @@ class Lifecycle(Fixture):
 
     def test_unsafe_paths_refused_before_acquisition(self):
         # Each row starts with an independent game and cache.
-        for kind in ('ini-link', 'parent-link', 'root-link', 'cache-link', 'case-parent', 'case-ini', 'ambiguous'):
+        for kind in ('ini-link', 'parent-link', 'cache-link', 'case-parent', 'case-ini', 'ambiguous'):
             with self.subTest(kind=kind), tempfile.TemporaryDirectory(dir=os.environ['TMPDIR']) as temp:
                 base = Path(temp)
                 game = base / 'game'
@@ -105,10 +105,6 @@ class Lifecycle(Fixture):
                 elif kind == 'parent-link':
                     ini.unlink()
                     (game / 'nested').symlink_to(self.game, target_is_directory=True)
-                elif kind == 'root-link':
-                    game.rmdir() if not list(game.iterdir()) else ini.unlink()
-                    game.rmdir()
-                    game.symlink_to(self.game, target_is_directory=True)
                 elif kind == 'cache-link':
                     (home / '.dlor').symlink_to(self.home, target_is_directory=True)
                 elif kind == 'case-parent':
