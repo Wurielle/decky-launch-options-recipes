@@ -1,6 +1,6 @@
 {
   "name": "decky-launch-options-recipes",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Recipes for the Decky Launch Options plugin.",
   "packageManager": "pnpm@10.28.2",
   "type": "module",
