@@ -37,7 +37,7 @@
         "id": "optiscaler-nightly-upgrade",
         "group": "OptiScaler",
         "name": "OptiScaler Nightly Upgrade",
-        "on": "~/.dlor/run optiscaler update-nightly 5565cee49f67501345776e40883844557cc7c3a6 -- %command%",
+        "on": "~/.dlor/run optiscaler update-nightly 49ec056d20aec04d1fef659ab675930ba3d453d1 -- %command%",
         "off": "",
         "enableGlobally": false,
         "priority": -1
@@ -3560,7 +3560,7 @@
         "id": "reframework-install-update",
         "group": "REFramework",
         "name": "REFramework",
-        "on": "WINEDLLOVERRIDES=\"dinput8.dll=n,b\" ~/.dlor/run reframework update 5565cee49f67501345776e40883844557cc7c3a6 -- %command%",
+        "on": "WINEDLLOVERRIDES=\"dinput8.dll=n,b\" ~/.dlor/run reframework update 49ec056d20aec04d1fef659ab675930ba3d453d1 -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "reframework",
@@ -3570,7 +3570,7 @@
         "id": "reframework-uninstall",
         "group": "REFramework",
         "name": "REFramework",
-        "on": "~/.dlor/run reframework uninstall 5565cee49f67501345776e40883844557cc7c3a6 -- %command%",
+        "on": "~/.dlor/run reframework uninstall 49ec056d20aec04d1fef659ab675930ba3d453d1 -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "reframework",
@@ -3594,7 +3594,7 @@
       {
         "id": "dlor-optiscaler-install",
         "name": "DLOR OptiScaler",
-        "on": "WINEDLLOVERRIDES=\"dxgi=n,b\" SteamDeck=0 ~/.dlor/run dlor-optiscaler install 5565cee49f67501345776e40883844557cc7c3a6 -- %command%",
+        "on": "WINEDLLOVERRIDES=\"dxgi=n,b\" SteamDeck=0 ~/.dlor/run dlor-optiscaler install 49ec056d20aec04d1fef659ab675930ba3d453d1 -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "dlor-optiscaler",
@@ -3603,7 +3603,7 @@
       {
         "id": "dlor-optiscaler-uninstall",
         "name": "DLOR OptiScaler",
-        "on": "~/.dlor/run dlor-optiscaler uninstall 5565cee49f67501345776e40883844557cc7c3a6 -- %command%",
+        "on": "~/.dlor/run dlor-optiscaler uninstall 49ec056d20aec04d1fef659ab675930ba3d453d1 -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "dlor-optiscaler",
@@ -3724,7 +3724,7 @@
         "id": "optiscaler-nightly-upgrade",
         "group": "OptiScaler",
         "name": "OptiScaler Nightly Upgrade",
-        "on": "~/.dlor/run optiscaler update-nightly 5565cee49f67501345776e40883844557cc7c3a6 -- %command%",
+        "on": "~/.dlor/run optiscaler update-nightly 49ec056d20aec04d1fef659ab675930ba3d453d1 -- %command%",
         "off": "",
         "enableGlobally": false,
         "priority": -1
