@@ -99,9 +99,29 @@ hosted in the same repository as `recipes.json`. Use it in launch options:
 ```
 
 The script lives at `recipes/<recipe-name>/scripts/<script-name>.sh`; omit `.sh`
-from the command. It is downloaded on every launch, then the game starts, even if
-the script fails. A full commit SHA is recommended to pin the version;
-leaving it out uses the `dev` branch.
+from the command. A full commit SHA pins the version and enables command caching
+under `~/.dlor/cache/commands/`. Cache keys include the exact repository, full SHA,
+recipe, and script. Warm pinned commands run without a network request, including
+offline. Before execution the runner checks SHA-256 on a private copy; missing or
+corrupt entries are downloaded again. Failed, empty, or invalid-shell downloads
+are never executed or published. Per-key locks serialize acquisition, and complete
+script/checksum pairs are published by an atomic directory rename.
+
+The checksum is recorded from the first successful HTTPS download. It detects
+later cache corruption, but is **not independent authentication** of that first
+download and does not protect against someone able to replace both the script and
+its checksum. Cache directories must belong to the current user; cache-internal
+symlinks are not followed. The runner uses Bash, curl, GNU coreutils, and `flock`.
+
+Omitting the SHA always downloads from the mutable `dev` branch, without cache
+reuse or stale/offline fallback. In both modes the game starts even if acquisition
+or the helper fails, with its original arguments and Steam environment.
+
+This behavior requires updating the plugin that installs `~/.dlor/run`; merely
+refetching/importing recipes does not update an already installed runner. Existing
+pinned launch options work unchanged once the updated runner is installed. Cached
+commands have no expiry; removing `~/.dlor/cache/commands/` between launches clears
+them without changing recipe payload caches.
 
 In recipe sources, use `remoteScript(recipe, script)` from
 `recipes/shared/remote-script.ts` to generate a pinned command.
@@ -109,6 +129,31 @@ For forks, prefix the command with `DLOR_REPOSITORY="owner/repository"`;
 the generator does this automatically for builds from another repository.
 
 Runner logs are saved to `~/.dlor/logs/run/`.
+
+### Remote Steam UI testing
+
+With SSH access to the test device and Steam's CEF debugging endpoint available
+on its loopback port 8080, install dependencies and use Playwright to control the
+running Steam UI:
+
+```sh
+CONSOLE_SSH_HOST=<ssh-alias> pnpm console:ui pages
+CONSOLE_SSH_HOST=<ssh-alias> pnpm console:ui snapshot
+CONSOLE_SSH_HOST=<ssh-alias> pnpm console:ui screenshot
+CONSOLE_SSH_HOST=<ssh-alias> pnpm console:ui click-text "Manage recipes source"
+```
+
+The helper opens a temporary SSH tunnel and disconnects after each command without
+closing Steam. Screenshots default to `.generated/console-ui/latest.png`.
+Set `CONSOLE_UI_PAGE` to another title from `pages`, or `CONSOLE_CDP_PORT` if needed.
+Run `pnpm console:ui help` for mouse, keyboard, text entry, and diagnostic commands.
+Keep screenshots and device credentials out of commits. Run offline frontend
+regression checks with `pnpm test:frontend`.
+
+For a real paste regression check, open **Manage recipes source** and copy a recipe
+URL on the test device, then run `pnpm test:console-clipboard` with the same SSH
+host setting. It clears the field, clicks the installed plugin's Paste button,
+checks non-empty saved text, captures the result, and restores the original source.
 
 ### Build-time environment variables
 

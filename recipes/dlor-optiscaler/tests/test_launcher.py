@@ -658,7 +658,6 @@ os.execv('/usr/bin/{tool}', ['{tool}', *sys.argv[1:]])
             self.assertEqual(game['env'][key], self.env[key])
 
     def test_actual_consumer_chains_helpers_with_install_uninstall_and_failure(self):
-        import hashlib
         import runpy
         repo = SCRIPTS.parents[2]
         recipe = self.fixture_recipe()
@@ -668,8 +667,6 @@ os.execv('/usr/bin/{tool}', ['{tool}', *sys.argv[1:]])
         self.env['HOME'] = str(spaced_home)
         runpy.run_path(str(repo / 'scripts/runner_test_support.py'))['install_runner'](self.home)
         self.assertEqual((self.home / '.dlor/run').read_bytes(), (repo / 'defaults/dlor-run.sh').read_bytes())
-        self.assertEqual(hashlib.sha256((self.home / '.dlor/run').read_bytes()).hexdigest(),
-                         'cff808048a9786f149b8a5d359e362477b9f50e90fb3308d50d1ea1d98996f1a')
         helpers = []
         helper_trace = self.root / 'helper-trace'
         self.env['FIXTURE_HELPER_TRACE'] = str(helper_trace)
