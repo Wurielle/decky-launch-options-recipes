@@ -49,7 +49,7 @@ export default recipe
    - Import `LaunchOption` along with `Recipe` when building `launchOptions` from arrays or helper functions.
    - Keep source arrays compact and ordered the same way the UI should display values, then use `map` or `flatMap` to produce `LaunchOption[]`.
    - Use small helper functions for repeated command fragments, such as quoted environment-variable assignments.
-   - Do not generate IDs from user-facing labels when values need stable compatibility; define explicit `id` values for non-trivial choices.
+   - Choose explicit, stable IDs using the full display-name hierarchy described below. Do not recompute IDs from labels at runtime; later wording changes must not silently change saved identities.
    - Keep recipe-specific instructions beside the relevant code as comments, not in this skill. Add or update comments when an implementation depends on non-obvious command ordering, overwrite rules, archive layout, or variant selection. Explain the constraint and its reason; point to supporting script comments from the recipe source when needed instead of duplicating them.
 
 3. Build or check recipes using the repo script, usually `pnpm recipes:build` or `pnpm recipes:check`.
@@ -146,13 +146,14 @@ subshell keeps the locale, glob settings, and temporary variables local to clean
 
 ## ID Convention
 
-Use predictable, hyphen-case IDs.
+Use explicit, predictable, hyphen-case IDs that preserve the **full display-name hierarchy**, including the tool, feature, subsystem/backend, and setting wherever present. Use the displayed hierarchy rather than only the underlying INI section/key or an abbreviated feature name.
 
-- Regular launch option: include the feature/tool name only, for example `tool-name`.
-- Dropdown option: include the feature/tool name, the modified option/config name, and the value.
-  - Pattern: `<tool>-<option-or-config-name>-<value>`
-  - Examples: `tool-config-preset-none`, `tool-config-preset-fast`, `tool-fps-limit-60`.
-- Keep all options in a dropdown on the same `valueId`.
+- Form a control base from the full `name`: lowercase words, replace spaces and punctuation with hyphens, and omit surrounding punctuation. Keep acronyms such as FrameGen and MFG as `framegen` and `mfg`; spell out displayed names such as Vulkan instead of shortening them to `vk`.
+- A regular option uses that control base as its `id`. A main tool toggle can use just the tool name; a nested setting must retain its hierarchy. For example, **Tool Name FrameGen Backend HUDFix** uses `tool-name-framegen-backend-hudfix`.
+- A dropdown uses the control base as its shared `valueId`, and `<control-base>-<value-id>` for each choice's `id`, including `none`. For **Tool Name FrameGen Backend Dynamic MFG Target FPS**, use `tool-name-framegen-backend-dynamic-mfg-target-fps` and choices such as `tool-name-framegen-backend-dynamic-mfg-target-fps-60`. Define stable value suffixes explicitly; a cosmetic choice-label change must not rename them.
+- Include the same hierarchy in both `id` and `valueId`; adding it to one field alone is incomplete. Do not drop components such as FrameGen, the backend, Dynamic MFG, or the setting's final qualifier.
+- When importing options into another recipe as independent controls, copy them with the destination `group` and a recipe-specific namespace on **both** `id` and any existing `valueId`. For a DLOR recipe, prepend `dlor-` to both. Changing only `group` leaves IDs shared and can overwrite existing controls or link their dropdowns. Preserve the original recipe's objects and leave `valueId` absent on regular options.
+- Preserve existing IDs during unrelated edits. When deliberately correcting IDs, regenerate the catalog and explain that previously imported controls with old IDs need replacement; re-importing a new ID does not update or delete the old one.
 
 ## Dropdown Defaults
 
@@ -185,7 +186,7 @@ const toolModeValues = [
 const toolModeOptions: LaunchOption[] = toolModeValues.map((mode): LaunchOption => ({
     id: `tool-config-mode-${mode.id}`,
     group: 'Tool',
-    name: 'Tool Mode',
+    name: 'Tool Config Mode',
     on: mode.value === null ? '' : `TOOL_MODE="${mode.value}"`,
     off: '',
     enableGlobally: false,
@@ -203,7 +204,8 @@ Before finishing:
 
 - Confirm the recipe compiles against `Recipe`.
 - Confirm every launch option has a stable `id`.
-- Confirm dropdown IDs include tool, option/config name, and value.
+- Confirm control IDs include the full display-name hierarchy, and dropdown IDs append a stable value suffix to the shared `valueId`.
+- For independently imported controls, confirm the destination group and namespace are applied to both ID fields, and that source/destination IDs and dropdown `valueId`s do not overlap.
 - Confirm every dropdown includes `None` with empty `on` and `off` as its only fallback/default choice.
 - Confirm `%command%` is present for wrappers and absent for pure environment-variable options.
 - Confirm every `curl` command used by a Steam launch option is prefixed with the shared `hostRuntime` value.
