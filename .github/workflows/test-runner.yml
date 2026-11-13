@@ -9,6 +9,8 @@ on:
       - 'scripts/runner_test_support.py'
       - 'scripts/test-log-retention.py'
       - 'scripts/test-script-logging.py'
+      - 'scripts/test-non-steam.py'
+      - 'recipes/non-steam/**'
       - '.github/workflows/test-runner.yml'
   push:
     branches: [dev]
@@ -19,6 +21,8 @@ on:
       - 'scripts/runner_test_support.py'
       - 'scripts/test-log-retention.py'
       - 'scripts/test-script-logging.py'
+      - 'scripts/test-non-steam.py'
+      - 'recipes/non-steam/**'
       - '.github/workflows/test-runner.yml'
 
 permissions:
@@ -38,3 +42,7 @@ jobs:
         run: python3 scripts/test-log-retention.py -v
       - name: Test script logging and launch continuation
         run: python3 scripts/test-script-logging.py -v
+      - name: Test Non-Steam window helper
+        run: |
+          bash -n recipes/non-steam/scripts/resize-window.sh
+          python3 scripts/test-non-steam.py -v
