@@ -57,7 +57,9 @@ const recipe = {
             { value: 'sdk-amd', label: 'AMD SDK' },
             ...optimizedProfiles,
         ]),
-        ...optiscaler.launchOptions.filter(option => option.valueId !== 'optiscaler'),
+        ...optiscaler.launchOptions
+            .filter(option => option.valueId !== 'optiscaler')
+            .map(option => ({ ...option, group })),
     ],
 } satisfies Recipe
 
