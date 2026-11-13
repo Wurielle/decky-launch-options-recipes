@@ -30,11 +30,25 @@ window size. Fullscreen preserves browser controls; it does not activate F11 or
 kiosk mode. The helper does not start a nested compositor, change the Steam
 session's resolution, or modify the performance overlay.
 
-Requires the installed `~/.dlor/run` launcher, Bash, Python 3, `wmctrl`, `xprop`,
+Requires the installed `~/.dlor/run` launcher, Bash, Python 3, `xprop`,
 `xwininfo`, and the host X11/XRes libraries. GTK, Qt, and Firefox-derived apps
 receive X11 backend overrides for this launch. A native Wayland-only app or an
 application explicitly forcing Wayland is not covered. GTK/Qt applications need
 their X11 backend installed.
+
+App Size uses an installed `wmctrl` when available. Otherwise, on x86-64 or
+ARM64 Linux it downloads the pinned Debian `1.07-7+b1` package, verifies its
+SHA-256 and the extracted executable, and keeps the binary and copyright in
+`~/.dlor/cache/non-steam/wmctrl/1.07-7+b1/<architecture>/`. No root access or
+system package installation is needed. Override the cache root with
+`DLOR_NON_STEAM_CACHE_DIR`. Valid cached binaries work offline; a missing or
+damaged binary is restored from the verified cached package before downloading
+again. The binary uses the host's X11, Xmu, GLib, and C libraries.
+
+Dependency setup runs in the background monitor, so downloading does not delay
+the application launch. A download or compatibility failure is logged and
+leaves the app window unchanged. Other architectures need an installed
+`wmctrl`. App Scaling never downloads or uses it.
 
 The helper waits up to 30 seconds for a main window belonging to the launched
 Steam app ID. It uses XRes host process IDs so Flatpak sandbox PIDs do not select
@@ -54,6 +68,7 @@ when aspect ratios differ. Use Desktop Mode for a freely positioned window.
 Flatpak apps must allow X11. Apps may still save their own window dimensions on
 exit, as they normally do; this recipe does not edit their settings directly.
 
-References: [GTK scaling](https://docs.gtk.org/gtk3/x11.html),
+References: [wmctrl Debian package](https://packages.debian.org/bookworm/wmctrl),
+[GTK scaling](https://docs.gtk.org/gtk3/x11.html),
 [Qt scaling](https://doc.qt.io/qt-6/highdpi.html),
 [Chromium device scale switch](https://source.chromium.org/chromium/chromium/src/+/main:ui/display/display_switches.cc).

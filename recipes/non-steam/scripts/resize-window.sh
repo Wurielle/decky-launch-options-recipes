@@ -60,7 +60,7 @@ if [[ "${1:-}" == --help || "${1:-}" == -h ]]; then
     printf 'Usage: DLOR_NON_STEAM_APP_SIZE=fullscreen|WIDTHxHEIGHT ~/.dlor/run non-steam resize-window [commit] -- <app command...>\n'
     exit 0
 fi
-for tool in python3 xwininfo xprop wmctrl; do
+for tool in python3 xwininfo xprop; do
     if ! command -v "$tool" >/dev/null 2>&1; then
         printf 'Error: required host command not found: %s\n' "$tool" >&2
         exit 1
@@ -73,12 +73,106 @@ done
 python3 - "$log_file" <<'PY'
 import ctypes
 import ctypes.util
+import fcntl
+import hashlib
+import io
 import os
 from pathlib import Path
+import platform
 import re
+import shutil
 import subprocess
 import sys
+import tarfile
+import tempfile
 import time
+import urllib.request
+
+
+# Debian's small, older-glibc builds run on SteamOS and other Linux hosts without
+# installing a system package. Pin both package and binary; never extract paths
+# from the archive wholesale. Keep copyright alongside the downloaded binary.
+WMCTRL_VERSION = '1.07-7+b1'
+WMCTRL_PACKAGES = {
+    'x86_64': ('amd64', '72188c2d0bca19ecfa98382685163c8176a0390a229f8584672b32229114c54f',
+               '568efc486349f64ddf2e2bbced9a2d79090c009edf602a0d6cdc78a7bf93f028'),
+    'aarch64': ('arm64', '281b4ac63f623d62039d7001ddefe0e8681284918d7d665e0fe5b8aa0d90c047',
+                '78fc2cc154518a9b615b14baee7b9ed525c74891b5046899f38b1937c220ad43'),
+}
+
+
+def valid_file(path, digest):
+    return (path.is_file() and not path.is_symlink()
+            and hashlib.sha256(path.read_bytes()).hexdigest() == digest)
+
+
+def wmctrl_payload(package):
+    if package[:8] != b'!<arch>\n':
+        raise ValueError('Invalid wmctrl Debian archive.')
+    offset = 8
+    while offset + 60 <= len(package):
+        header = package[offset:offset + 60]
+        size = int(header[48:58])
+        start = offset + 60
+        if header[58:60] != b'`\n' or size < 0 or start + size > len(package):
+            raise ValueError('Invalid wmctrl archive member.')
+        name = header[:16].decode('ascii').strip().rstrip('/')
+        if name == 'data.tar.xz':
+            with tarfile.open(fileobj=io.BytesIO(package[start:start + size]), mode='r:xz') as archive:
+                result = []
+                for name in ['./usr/bin/wmctrl', './usr/share/doc/wmctrl/copyright']:
+                    member = archive.getmember(name)
+                    if not member.isfile() or member.size > 1024 * 1024:
+                        raise ValueError('Invalid wmctrl payload file.')
+                    result.append(archive.extractfile(member).read())
+                return result
+        offset = start + size + size % 2
+    raise ValueError('wmctrl archive has no supported data payload.')
+
+
+def ensure_wmctrl():
+    installed = shutil.which('wmctrl')
+    if installed:
+        return installed
+    machine = platform.machine()
+    if machine not in WMCTRL_PACKAGES:
+        raise RuntimeError(f'Install wmctrl manually on unsupported architecture {machine}.')
+    arch, package_hash, binary_hash = WMCTRL_PACKAGES[machine]
+    asset = f'wmctrl_{WMCTRL_VERSION}_{arch}.deb'
+    root = Path(os.environ.get('DLOR_NON_STEAM_CACHE_DIR', Path.home() / '.dlor/cache/non-steam'))
+    cache = root / 'wmctrl' / WMCTRL_VERSION / arch
+    cache.mkdir(parents=True, exist_ok=True)
+    binary, package = cache / 'wmctrl', cache / asset
+    # Concurrent launches share one download/extraction; atomic replacements keep
+    # an interrupted installation from becoming a usable cache entry.
+    with (cache / '.lock').open('a') as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        if valid_file(binary, binary_hash) and (cache / 'copyright').is_file():
+            binary.chmod(0o755)
+            print(f'Using cached wmctrl: {binary}', flush=True)
+            return str(binary)
+        with tempfile.TemporaryDirectory(prefix='.install-', dir=cache) as staging:
+            staging = Path(staging)
+            if not valid_file(package, package_hash):
+                print(f'Downloading {asset} from deb.debian.org.', flush=True)
+                url = f'https://deb.debian.org/debian/pool/main/w/wmctrl/{asset}'
+                with urllib.request.urlopen(url, timeout=15) as response:
+                    content = response.read(1024 * 1024 + 1)
+                if len(content) > 1024 * 1024 or hashlib.sha256(content).hexdigest() != package_hash:
+                    raise ValueError('wmctrl package SHA-256 verification failed.')
+                download = staging / asset
+                download.write_bytes(content)
+                download.replace(package)
+            executable, copyright = wmctrl_payload(package.read_bytes())
+            if hashlib.sha256(executable).hexdigest() != binary_hash:
+                raise ValueError('wmctrl binary SHA-256 verification failed.')
+            for name, content, mode in [('copyright', copyright, 0o644), ('wmctrl', executable, 0o755)]:
+                target = staging / name
+                target.write_bytes(content)
+                target.chmod(mode)
+                target.replace(cache / name)
+        print(f'Cached wmctrl: {binary}', flush=True)
+        return str(binary)
 
 
 def dimensions(value, screen):
@@ -190,7 +284,7 @@ def main_window(window):
     return not any(kind in result.stdout for kind in excluded) and 'window id #' not in result.stdout
 
 
-def monitor(x11, appid, size, deadline):
+def monitor(x11, appid, size, deadline, wmctrl='wmctrl'):
     while time.monotonic() < deadline:
         for window in windows():
             if not belongs_to_app(x11.window_pid(window), appid) or not main_window(window):
@@ -202,10 +296,10 @@ def monitor(x11, appid, size, deadline):
                             '-set', 'STEAM_GAME', appid], check=True, timeout=3)
             # Retry during startup because a restored session can resize its main
             # window after it appears. Stop afterward so manual resizing works.
-            subprocess.run(['wmctrl', '-ir', window, '-b', 'remove,fullscreen,maximized_vert'], check=True, timeout=3)
-            subprocess.run(['wmctrl', '-ir', window, '-b', 'remove,maximized_horz'], check=True, timeout=3)
+            subprocess.run([wmctrl, '-ir', window, '-b', 'remove,fullscreen,maximized_vert'], check=True, timeout=3)
+            subprocess.run([wmctrl, '-ir', window, '-b', 'remove,maximized_horz'], check=True, timeout=3)
             for _ in range(6):
-                subprocess.run(['wmctrl', '-ir', window, '-e', f'0,0,0,{width},{height}'], check=True, timeout=3)
+                subprocess.run([wmctrl, '-ir', window, '-e', f'0,0,0,{width},{height}'], check=True, timeout=3)
                 time.sleep(.5)
             print(f'Resized app {appid} window {window} to {width}x{height}.', flush=True)
             return
@@ -242,9 +336,10 @@ def main():
         os.dup2(output, 2)
         os.close(source)
         os.close(output)
+        wmctrl = ensure_wmctrl()
         x11 = X11()
         try:
-            monitor(x11, appid, size, time.monotonic() + 30)
+            monitor(x11, appid, size, time.monotonic() + 30, wmctrl)
         finally:
             x11.close()
     except Exception as error:

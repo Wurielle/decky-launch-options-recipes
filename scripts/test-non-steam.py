@@ -1,9 +1,12 @@
 """Offline window ownership, sizing, logging, and runner-continuation checks."""
+import hashlib
+import io
 import json
 import os
 from pathlib import Path
 import subprocess
 import sys
+import tarfile
 import tempfile
 import types
 import unittest
@@ -71,6 +74,94 @@ class WindowTests(unittest.TestCase):
                 self.assertFalse(window.main_window('0x1'))
         with patch.object(window.subprocess, 'run', return_value=types.SimpleNamespace(stdout='_NET_WM_WINDOW_TYPE_NORMAL')):
             self.assertTrue(window.main_window('0x1'))
+
+
+class DownloadTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix='non-steam tools ')
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        self.binary = b'#!/bin/sh\necho fixture wmctrl\n'
+        payload = io.BytesIO()
+        with tarfile.open(fileobj=payload, mode='w:xz') as archive:
+            for name, content in [('./usr/bin/wmctrl', self.binary),
+                                  ('./usr/share/doc/wmctrl/copyright', b'fixture license')]:
+                member = tarfile.TarInfo(name)
+                member.size = len(content)
+                archive.addfile(member, io.BytesIO(content))
+        data = payload.getvalue()
+        header = f'{"data.tar.xz/":<16}{0:<12}{0:<6}{0:<6}{100644:<8}{len(data):<10}`\n'.encode()
+        self.package = b'!<arch>\n' + header + data + (b'\n' if len(data) % 2 else b'')
+        for context in [patch.dict(window.os.environ, DLOR_NON_STEAM_CACHE_DIR=str(self.root)),
+                        patch.object(window.shutil, 'which', return_value=None),
+                        patch.object(window.platform, 'machine', return_value='x86_64'),
+                        patch.dict(window.WMCTRL_PACKAGES, {'x86_64': ('amd64',
+                            hashlib.sha256(self.package).hexdigest(), hashlib.sha256(self.binary).hexdigest())})]:
+            context.start()
+            self.addCleanup(context.stop)
+        self.cache = self.root / 'wmctrl' / window.WMCTRL_VERSION / 'amd64'
+        self.asset = self.cache / f'wmctrl_{window.WMCTRL_VERSION}_amd64.deb'
+
+    def download(self, data=None):
+        return patch.object(window.urllib.request, 'urlopen', return_value=io.BytesIO(
+            self.package if data is None else data))
+
+    def test_system_command_avoids_download_or_cache(self):
+        with patch.object(window.shutil, 'which', return_value='/usr/bin/wmctrl'), \
+             patch.object(window.urllib.request, 'urlopen') as fetch:
+            self.assertEqual(window.ensure_wmctrl(), '/usr/bin/wmctrl')
+        fetch.assert_not_called()
+        self.assertFalse(self.cache.exists())
+
+    def test_cold_download_and_offline_binary_reuse(self):
+        with self.download() as fetch:
+            binary = Path(window.ensure_wmctrl())
+        self.assertEqual(binary.read_bytes(), self.binary)
+        self.assertEqual(binary.stat().st_mode & 0o777, 0o755)
+        self.assertEqual((self.cache / 'copyright').read_bytes(), b'fixture license')
+        self.assertEqual(self.asset.read_bytes(), self.package)
+        self.assertTrue(fetch.call_args.args[0].startswith('https://deb.debian.org/'))
+        self.asset.unlink()
+        with patch.object(window.urllib.request, 'urlopen', side_effect=OSError('offline')) as fetch:
+            self.assertEqual(window.ensure_wmctrl(), str(binary))
+        fetch.assert_not_called()
+
+    def test_corrupt_binary_recovers_from_verified_archive_without_download(self):
+        with self.download():
+            binary = Path(window.ensure_wmctrl())
+        binary.write_text('corrupt')
+        with patch.object(window.urllib.request, 'urlopen', side_effect=OSError('offline')) as fetch:
+            window.ensure_wmctrl()
+        fetch.assert_not_called()
+        self.assertEqual(binary.read_bytes(), self.binary)
+
+    def test_corrupt_archive_is_redownloaded(self):
+        self.cache.mkdir(parents=True)
+        self.asset.write_text('bad archive')
+        with self.download() as fetch:
+            self.assertEqual(Path(window.ensure_wmctrl()).read_bytes(), self.binary)
+        fetch.assert_called_once()
+
+    def test_bad_download_is_not_promoted_and_staging_is_cleaned(self):
+        with self.download(b'bad checksum'), self.assertRaisesRegex(ValueError, 'SHA-256'):
+            window.ensure_wmctrl()
+        self.assertFalse(self.asset.exists())
+        self.assertFalse((self.cache / 'wmctrl').exists())
+        self.assertEqual(list(self.cache.glob('.install-*')), [])
+
+    def test_network_error_cleans_staging(self):
+        with patch.object(window.urllib.request, 'urlopen', side_effect=OSError('offline')), \
+             self.assertRaisesRegex(OSError, 'offline'):
+            window.ensure_wmctrl()
+        self.assertEqual(list(self.cache.glob('.install-*')), [])
+        self.assertFalse((self.cache / 'wmctrl').exists())
+
+    def test_unsupported_architecture_leaves_download_untouched(self):
+        with patch.object(window.platform, 'machine', return_value='unknown'), \
+             patch.object(window.urllib.request, 'urlopen') as fetch, \
+             self.assertRaisesRegex(RuntimeError, 'unsupported architecture'):
+            window.ensure_wmctrl()
+        fetch.assert_not_called()
 
 
 class RunnerTests(unittest.TestCase):
