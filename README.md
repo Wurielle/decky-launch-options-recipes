@@ -19,6 +19,9 @@ recipe. The directory form can keep supporting files beside the recipe. `recipes
 automatically, so there is no registry file to maintain. Shared recipe code and types live in `recipes/shared/`, which
 the generator never treats as a recipe source.
 
+The [Non-Steam recipe](recipes/non-steam/README.md) provides app scaling and
+app-size dropdowns using native toolkit settings and a window sizing helper.
+
 Here's what the generated recipes look like:
 
 ```json
