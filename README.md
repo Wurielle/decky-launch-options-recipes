@@ -99,9 +99,29 @@ hosted in the same repository as `recipes.json`. Use it in launch options:
 ```
 
 The script lives at `recipes/<recipe-name>/scripts/<script-name>.sh`; omit `.sh`
-from the command. It is downloaded on every launch, then the game starts, even if
-the script fails. A full commit SHA is recommended to pin the version;
-leaving it out uses the `dev` branch.
+from the command. A full commit SHA pins the version and enables command caching
+under `~/.dlor/cache/commands/`. Cache keys include the exact repository, full SHA,
+recipe, and script. Warm pinned commands run without a network request, including
+offline. Before execution the runner checks SHA-256 on a private copy; missing or
+corrupt entries are downloaded again. Failed, empty, or invalid-shell downloads
+are never executed or published. Per-key locks serialize acquisition, and complete
+script/checksum pairs are published by an atomic directory rename.
+
+The checksum is recorded from the first successful HTTPS download. It detects
+later cache corruption, but is **not independent authentication** of that first
+download and does not protect against someone able to replace both the script and
+its checksum. Cache directories must belong to the current user; cache-internal
+symlinks are not followed. The runner uses Bash, curl, GNU coreutils, and `flock`.
+
+Omitting the SHA always downloads from the mutable `dev` branch, without cache
+reuse or stale/offline fallback. In both modes the game starts even if acquisition
+or the helper fails, with its original arguments and Steam environment.
+
+This behavior requires updating the plugin that installs `~/.dlor/run`; merely
+refetching/importing recipes does not update an already installed runner. Existing
+pinned launch options work unchanged once the updated runner is installed. Cached
+commands have no expiry; removing `~/.dlor/cache/commands/` between launches clears
+them without changing recipe payload caches.
 
 In recipe sources, use `remoteScript(recipe, script)` from
 `recipes/shared/remote-script.ts` to generate a pinned command.
