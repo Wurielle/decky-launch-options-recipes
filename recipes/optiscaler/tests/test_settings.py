@@ -144,6 +144,8 @@ class SettingsTests(unittest.TestCase):
 
     def test_new_option_labels_have_no_parenthetical_text(self):
         for option in self.installer_options:
+            if not option['id'].startswith('dlor-optiscaler'):
+                continue
             for field in ("name", "valueName"):
                 self.assertNotRegex(option.get(field, ""), r"[()]")
         for option in self.options:

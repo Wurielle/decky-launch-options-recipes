@@ -1,5 +1,6 @@
 import type { LaunchOption, Recipe } from '../shared/types.js'
 import { remoteScript } from '../shared/remote-script.js'
+import optiscaler from '../optiscaler/index.js'
 
 const group = 'DLOR OptiScaler'
 const install = remoteScript('dlor-optiscaler', 'install')
@@ -56,6 +57,7 @@ const recipe = {
             { value: 'sdk-amd', label: 'AMD SDK' },
             ...optimizedProfiles,
         ]),
+        ...optiscaler.launchOptions.filter(option => option.valueId !== 'optiscaler'),
     ],
 } satisfies Recipe
 

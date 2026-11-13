@@ -397,7 +397,7 @@ os.execv('/usr/bin/{tool}', ['{tool}', *sys.argv[1:]])
         recipe = self.compiled_recipe()
         main = recipe['launchOptions'][0]
         self.assertFalse(main['enableGlobally'])
-        entries = [option for option in recipe['launchOptions'] if option['valueId'] == 'dlor-optiscaler-fsr-override']
+        entries = [option for option in recipe['launchOptions'] if option.get('valueId') == 'dlor-optiscaler-fsr-override']
         self.assertEqual({entry['name'] for entry in entries}, {'FSR Override'})
         self.assertEqual({entry['valueId'] for entry in entries}, {'dlor-optiscaler-fsr-override'})
         self.assertEqual([entry['valueName'] for entry in entries if entry['enableGlobally']], ['AMD SDK'])
@@ -443,7 +443,7 @@ os.execv('/usr/bin/{tool}', ['{tool}', *sys.argv[1:]])
         runpy.run_path(str(SCRIPTS.parents[2] / 'scripts/runner_test_support.py'))['install_runner'](self.home)
         recipe = self.compiled_recipe()
         consumer = self.actual_consumer()
-        entries = [option for option in recipe['launchOptions'] if option['valueId'] == 'dlor-optiscaler-fsr-override']
+        entries = [option for option in recipe['launchOptions'] if option.get('valueId') == 'dlor-optiscaler-fsr-override']
         settings = {'launchOptions': recipe['launchOptions'], 'profiles': {'123': {'state': {'dlor-optiscaler-install': True}}}}
         state = settings['profiles']['123']['state']
 
@@ -798,7 +798,7 @@ os.execv('/usr/bin/sha256sum', ['sha256sum', *sys.argv[1:]])
     def test_recipe_has_short_file_calls_and_none_only_dropdown_defaults(self):
         recipe = self.compiled_recipe()
         self.assertEqual(recipe['name'], 'DLOR OptiScaler')
-        actions = [option for option in recipe['launchOptions'] if option['valueId'] == 'dlor-optiscaler']
+        actions = [option for option in recipe['launchOptions'] if option.get('valueId') == 'dlor-optiscaler']
         self.assertEqual([option['valueName'] for option in actions], ['None', 'Install', 'Uninstall'])
         self.assertTrue(all(option['off'] == '' and not option['enableGlobally'] and 'group' not in option for option in actions))
         self.assertEqual([option['valueName'] for option in actions if option.get('fallbackValue')], ['None'])
@@ -821,7 +821,7 @@ os.execv('/usr/bin/sha256sum', ['sha256sum', *sys.argv[1:]])
                 self.assertNotIn('eval', option[key])
                 self.assertNotIn('coproc', option[key])
                 self.assertNotIn('\n', option[key])
-        options = [option for option in recipe['launchOptions'] if option['valueId'] == 'dlor-optiscaler-fsr-override']
+        options = [option for option in recipe['launchOptions'] if option.get('valueId') == 'dlor-optiscaler-fsr-override']
         groups = {}
         for option in options:
             if 'valueId' in option:
