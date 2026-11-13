@@ -59,7 +59,12 @@ const recipe = {
         ]),
         ...optiscaler.launchOptions
             .filter(option => option.valueId !== 'optiscaler')
-            .map(option => ({ ...option, group })),
+            .map(option => ({
+                ...option,
+                id: `dlor-${option.id}`,
+                group,
+                ...(option.valueId ? { valueId: `dlor-${option.valueId}` } : {}),
+            })),
     ],
 } satisfies Recipe
 

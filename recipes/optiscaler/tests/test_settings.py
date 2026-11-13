@@ -144,7 +144,7 @@ class SettingsTests(unittest.TestCase):
 
     def test_new_option_labels_have_no_parenthetical_text(self):
         for option in self.installer_options:
-            if not option['id'].startswith('dlor-optiscaler'):
+            if option.get('valueId') not in {'dlor-optiscaler', 'dlor-optiscaler-fsr-override'}:
                 continue
             for field in ("name", "valueName"):
                 self.assertNotRegex(option.get(field, ""), r"[()]")
@@ -159,6 +159,19 @@ class SettingsTests(unittest.TestCase):
             for field in (("name", "valueName") if new_control else ("valueName",) if new_value else ()):
                 with self.subTest(option=option["id"], field=field):
                     self.assertNotRegex(option.get(field, ""), r"[()]")
+
+    def test_dlor_imports_have_independent_option_and_dropdown_ids(self):
+        originals = [option for option in self.options if option.get('valueId') != 'optiscaler']
+        native_ids = {'dlor-optiscaler', 'dlor-optiscaler-fsr-override'}
+        imported = [option for option in self.installer_options if option.get('valueId') not in native_ids]
+        expected = [{**option, 'id': 'dlor-' + option['id'], 'group': 'DLOR OptiScaler',
+                     **({'valueId': 'dlor-' + option['valueId']} if 'valueId' in option else {})}
+                    for option in originals]
+        self.assertEqual(imported, expected)
+        self.assertTrue({option['id'] for option in self.options}.isdisjoint(
+            option['id'] for option in self.installer_options))
+        self.assertTrue({option['valueId'] for option in self.options if 'valueId' in option}.isdisjoint(
+            option['valueId'] for option in self.installer_options if 'valueId' in option))
 
     def test_fgmod_actions_are_explicit_and_never_run_when_disabled(self):
         choices = [o for o in self.options if o.get("valueId") == "optiscaler"]
