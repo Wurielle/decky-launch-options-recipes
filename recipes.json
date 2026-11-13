@@ -13,7 +13,7 @@
         "id": "optiscaler-nightly-upgrade",
         "group": "OptiScaler",
         "name": "OptiScaler Nightly Upgrade",
-        "on": "~/.dlor/run optiscaler update-nightly efcfb8dd2f87a7ad46bfa2f4f1ad81b755dcc5e7 -- %command%",
+        "on": "~/.dlor/run optiscaler update-nightly 30b148cd9518c4da8fcd2f634ab8d8f4354150c7 -- %command%",
         "off": "",
         "enableGlobally": false,
         "priority": -1
@@ -2848,7 +2848,7 @@
         "id": "reframework-install-update",
         "group": "REFramework",
         "name": "REFramework",
-        "on": "WINEDLLOVERRIDES=\"dinput8.dll=n,b\" ~/.dlor/run reframework update efcfb8dd2f87a7ad46bfa2f4f1ad81b755dcc5e7 -- %command%",
+        "on": "WINEDLLOVERRIDES=\"dinput8.dll=n,b\" ~/.dlor/run reframework update 30b148cd9518c4da8fcd2f634ab8d8f4354150c7 -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "reframework",
@@ -2858,11 +2858,258 @@
         "id": "reframework-uninstall",
         "group": "REFramework",
         "name": "REFramework",
-        "on": "~/.dlor/run reframework uninstall efcfb8dd2f87a7ad46bfa2f4f1ad81b755dcc5e7 -- %command%",
+        "on": "~/.dlor/run reframework uninstall 30b148cd9518c4da8fcd2f634ab8d8f4354150c7 -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "reframework",
         "valueName": "Uninstall"
+      }
+    ]
+  },
+  {
+    "name": "Non-Steam",
+    "launchOptions": [
+      {
+        "id": "non-steam-app-scaling-none",
+        "group": "Non-Steam",
+        "name": "App Scaling",
+        "on": "",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "non-steam-app-scaling",
+        "valueName": "None",
+        "fallbackValue": true
+      },
+      {
+        "id": "non-steam-app-scaling-gtk-qt-100",
+        "group": "Non-Steam",
+        "name": "App Scaling",
+        "on": "GDK_SCALE=\"1\" QT_SCALE_FACTOR=\"1\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "non-steam-app-scaling",
+        "valueName": "100% (GTK / Qt)"
+      },
+      {
+        "id": "non-steam-app-scaling-chromium-electron-100",
+        "group": "Non-Steam",
+        "name": "App Scaling",
+        "on": "%command% --force-device-scale-factor=1",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "non-steam-app-scaling",
+        "valueName": "100% (Chromium / Electron)"
+      },
+      {
+        "id": "non-steam-app-scaling-qt-125",
+        "group": "Non-Steam",
+        "name": "App Scaling",
+        "on": "QT_SCALE_FACTOR=\"1.25\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "non-steam-app-scaling",
+        "valueName": "125% (Qt)"
+      },
+      {
+        "id": "non-steam-app-scaling-chromium-electron-125",
+        "group": "Non-Steam",
+        "name": "App Scaling",
+        "on": "%command% --force-device-scale-factor=1.25",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "non-steam-app-scaling",
+        "valueName": "125% (Chromium / Electron)"
+      },
+      {
+        "id": "non-steam-app-scaling-qt-150",
+        "group": "Non-Steam",
+        "name": "App Scaling",
+        "on": "QT_SCALE_FACTOR=\"1.5\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "non-steam-app-scaling",
+        "valueName": "150% (Qt)"
+      },
+      {
+        "id": "non-steam-app-scaling-chromium-electron-150",
+        "group": "Non-Steam",
+        "name": "App Scaling",
+        "on": "%command% --force-device-scale-factor=1.5",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "non-steam-app-scaling",
+        "valueName": "150% (Chromium / Electron)"
+      },
+      {
+        "id": "non-steam-app-scaling-qt-175",
+        "group": "Non-Steam",
+        "name": "App Scaling",
+        "on": "QT_SCALE_FACTOR=\"1.75\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "non-steam-app-scaling",
+        "valueName": "175% (Qt)"
+      },
+      {
+        "id": "non-steam-app-scaling-chromium-electron-175",
+        "group": "Non-Steam",
+        "name": "App Scaling",
+        "on": "%command% --force-device-scale-factor=1.75",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "non-steam-app-scaling",
+        "valueName": "175% (Chromium / Electron)"
+      },
+      {
+        "id": "non-steam-app-scaling-gtk-qt-200",
+        "group": "Non-Steam",
+        "name": "App Scaling",
+        "on": "GDK_SCALE=\"2\" QT_SCALE_FACTOR=\"2\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "non-steam-app-scaling",
+        "valueName": "200% (GTK / Qt)"
+      },
+      {
+        "id": "non-steam-app-scaling-chromium-electron-200",
+        "group": "Non-Steam",
+        "name": "App Scaling",
+        "on": "%command% --force-device-scale-factor=2",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "non-steam-app-scaling",
+        "valueName": "200% (Chromium / Electron)"
+      },
+      {
+        "id": "non-steam-app-scaling-qt-250",
+        "group": "Non-Steam",
+        "name": "App Scaling",
+        "on": "QT_SCALE_FACTOR=\"2.5\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "non-steam-app-scaling",
+        "valueName": "250% (Qt)"
+      },
+      {
+        "id": "non-steam-app-scaling-chromium-electron-250",
+        "group": "Non-Steam",
+        "name": "App Scaling",
+        "on": "%command% --force-device-scale-factor=2.5",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "non-steam-app-scaling",
+        "valueName": "250% (Chromium / Electron)"
+      },
+      {
+        "id": "non-steam-app-scaling-gtk-qt-300",
+        "group": "Non-Steam",
+        "name": "App Scaling",
+        "on": "GDK_SCALE=\"3\" QT_SCALE_FACTOR=\"3\"",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "non-steam-app-scaling",
+        "valueName": "300% (GTK / Qt)"
+      },
+      {
+        "id": "non-steam-app-scaling-chromium-electron-300",
+        "group": "Non-Steam",
+        "name": "App Scaling",
+        "on": "%command% --force-device-scale-factor=3",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "non-steam-app-scaling",
+        "valueName": "300% (Chromium / Electron)"
+      },
+      {
+        "id": "non-steam-app-size-none",
+        "group": "Non-Steam",
+        "name": "App Size",
+        "on": "",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "non-steam-app-size",
+        "valueName": "None",
+        "fallbackValue": true
+      },
+      {
+        "id": "non-steam-app-size-fullscreen",
+        "group": "Non-Steam",
+        "name": "App Size",
+        "on": "DLOR_NON_STEAM_APP_SIZE=\"fullscreen\" GDK_BACKEND=\"x11\" QT_QPA_PLATFORM=\"xcb\" MOZ_ENABLE_WAYLAND=\"0\" ~/.dlor/run non-steam resize-window 30b148cd9518c4da8fcd2f634ab8d8f4354150c7 -- %command%",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "non-steam-app-size",
+        "valueName": "Fullscreen"
+      },
+      {
+        "id": "non-steam-app-size-windowed-1280x720",
+        "group": "Non-Steam",
+        "name": "App Size",
+        "on": "DLOR_NON_STEAM_APP_SIZE=\"1280x720\" GDK_BACKEND=\"x11\" QT_QPA_PLATFORM=\"xcb\" MOZ_ENABLE_WAYLAND=\"0\" ~/.dlor/run non-steam resize-window 30b148cd9518c4da8fcd2f634ab8d8f4354150c7 -- %command%",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "non-steam-app-size",
+        "valueName": "1280 × 720"
+      },
+      {
+        "id": "non-steam-app-size-windowed-1280x800",
+        "group": "Non-Steam",
+        "name": "App Size",
+        "on": "DLOR_NON_STEAM_APP_SIZE=\"1280x800\" GDK_BACKEND=\"x11\" QT_QPA_PLATFORM=\"xcb\" MOZ_ENABLE_WAYLAND=\"0\" ~/.dlor/run non-steam resize-window 30b148cd9518c4da8fcd2f634ab8d8f4354150c7 -- %command%",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "non-steam-app-size",
+        "valueName": "1280 × 800"
+      },
+      {
+        "id": "non-steam-app-size-windowed-1920x1080",
+        "group": "Non-Steam",
+        "name": "App Size",
+        "on": "DLOR_NON_STEAM_APP_SIZE=\"1920x1080\" GDK_BACKEND=\"x11\" QT_QPA_PLATFORM=\"xcb\" MOZ_ENABLE_WAYLAND=\"0\" ~/.dlor/run non-steam resize-window 30b148cd9518c4da8fcd2f634ab8d8f4354150c7 -- %command%",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "non-steam-app-size",
+        "valueName": "1920 × 1080"
+      },
+      {
+        "id": "non-steam-app-size-windowed-1920x1200",
+        "group": "Non-Steam",
+        "name": "App Size",
+        "on": "DLOR_NON_STEAM_APP_SIZE=\"1920x1200\" GDK_BACKEND=\"x11\" QT_QPA_PLATFORM=\"xcb\" MOZ_ENABLE_WAYLAND=\"0\" ~/.dlor/run non-steam resize-window 30b148cd9518c4da8fcd2f634ab8d8f4354150c7 -- %command%",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "non-steam-app-size",
+        "valueName": "1920 × 1200"
+      },
+      {
+        "id": "non-steam-app-size-windowed-2560x1440",
+        "group": "Non-Steam",
+        "name": "App Size",
+        "on": "DLOR_NON_STEAM_APP_SIZE=\"2560x1440\" GDK_BACKEND=\"x11\" QT_QPA_PLATFORM=\"xcb\" MOZ_ENABLE_WAYLAND=\"0\" ~/.dlor/run non-steam resize-window 30b148cd9518c4da8fcd2f634ab8d8f4354150c7 -- %command%",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "non-steam-app-size",
+        "valueName": "2560 × 1440"
+      },
+      {
+        "id": "non-steam-app-size-windowed-2560x1600",
+        "group": "Non-Steam",
+        "name": "App Size",
+        "on": "DLOR_NON_STEAM_APP_SIZE=\"2560x1600\" GDK_BACKEND=\"x11\" QT_QPA_PLATFORM=\"xcb\" MOZ_ENABLE_WAYLAND=\"0\" ~/.dlor/run non-steam resize-window 30b148cd9518c4da8fcd2f634ab8d8f4354150c7 -- %command%",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "non-steam-app-size",
+        "valueName": "2560 × 1600"
+      },
+      {
+        "id": "non-steam-app-size-windowed-3840x2160",
+        "group": "Non-Steam",
+        "name": "App Size",
+        "on": "DLOR_NON_STEAM_APP_SIZE=\"3840x2160\" GDK_BACKEND=\"x11\" QT_QPA_PLATFORM=\"xcb\" MOZ_ENABLE_WAYLAND=\"0\" ~/.dlor/run non-steam resize-window 30b148cd9518c4da8fcd2f634ab8d8f4354150c7 -- %command%",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "non-steam-app-size",
+        "valueName": "3840 × 2160"
       }
     ]
   }
