@@ -341,18 +341,18 @@ const booleanValues = [
 
 // Counts exclude the original frame; documented multipliers remain capability-dependent.
 const mfgOptions: LaunchOption[] = ([['xefg', 'XeFG', 3], ['dlssg', 'DLSSG', 5]] as const).flatMap(([engine, section, maximum]) => {
-    const prefix = `optiscaler-${engine}`
+    const prefix = `optiscaler-framegen-${engine}`
     const counts = Array.from({length: maximum}, (_, index) => ({
         id: `${index + 1}`, name: `${index + 2}×`, value: index + 1,
     }))
     return [
         ...optiScalerDropdown(
-            `${prefix}-mfg-count`, `OptiScaler FrameGen ${section} MFG Multiplier`, `${prefix}-mfg-count`,
+            `${prefix}-mfg-multiplier`, `OptiScaler FrameGen ${section} MFG Multiplier`, `${prefix}-mfg-multiplier`,
             `${section}_InterpolationCount`,
             [{id: 'auto', name: 'Auto', value: 'auto'}, ...counts],
         ),
         ...optiScalerDropdown(
-            `${prefix}-target-fps`, `OptiScaler FrameGen ${section} Dynamic MFG Target FPS`, `${prefix}-target-fps`,
+            `${prefix}-dynamic-mfg-target-fps`, `OptiScaler FrameGen ${section} Dynamic MFG Target FPS`, `${prefix}-dynamic-mfg-target-fps`,
             `${section}_FramerateTargetDMFG`,
             [
                 {id: 'auto', name: 'Auto', value: 'auto'},
@@ -365,10 +365,10 @@ const mfgOptions: LaunchOption[] = ([['xefg', 'XeFG', 3], ['dlssg', 'DLSSG', 5]]
 
 const dynamicMfgOptions: LaunchOption[] = ([
     ['xefg-dynamic-mfg', 'XeFG Dynamic MFG', 'XeFG_DynamicMFG'],
-    ['xefg-target-as-cap-dmfg', 'XeFG Dynamic MFG Use Target as FPS Limit', 'XeFG_TargetAsCapDMFG'],
-    ['dlssg-force-dmfg', 'DLSSG Dynamic MFG', 'DLSSG_ForceDMFG'],
+    ['xefg-dynamic-mfg-use-target-as-fps-limit', 'XeFG Dynamic MFG Use Target as FPS Limit', 'XeFG_TargetAsCapDMFG'],
+    ['dlssg-dynamic-mfg', 'DLSSG Dynamic MFG', 'DLSSG_ForceDMFG'],
 ] as const).flatMap(([id, name, setting]) => optiScalerDropdown(
-    `optiscaler-${id}`, `OptiScaler FrameGen ${name}`, `optiscaler-${id}`, setting, booleanValues,
+    `optiscaler-framegen-${id}`, `OptiScaler FrameGen ${name}`, `optiscaler-framegen-${id}`, setting, booleanValues,
 ))
 
 const launchOptions: LaunchOption[] = [
@@ -398,21 +398,21 @@ const launchOptions: LaunchOption[] = [
         priority: -1,
     },
     {
-        id: 'optiscaler-framegen-enabled',
+        id: 'optiscaler-framegen',
         group: optiScalerGroup,
         name: 'OptiScaler FrameGen',
         on: optiScalerEnv('FrameGen_Enabled', 'true'),
         off: optiScalerEnv('FrameGen_Enabled', 'false'),
     },
     ...optiScalerDropdown(
-        'optiscaler-menu-shortcut-key',
+        'optiscaler-menu-shortcut',
         'OptiScaler Menu Shortcut',
-        'optiscaler-menu-shortcut-key',
+        'optiscaler-menu-shortcut',
         'Menu_ShortcutKey',
         menuShortcutKeyValues,
     ),
     {
-        id: 'optiscaler-hudfix',
+        id: 'optiscaler-framegen-optifg-hudfix',
         group: optiScalerGroup,
         name: 'OptiScaler FrameGen OptiFG HUDFix',
         on: optiScalerEnv('OptiFG_HUDFix', 'true'),
@@ -457,23 +457,23 @@ const launchOptions: LaunchOption[] = [
         ],
     ),
     ...optiScalerDropdown(
-        'optiscaler-upscalers-dx11',
+        'optiscaler-upscaler-dx11',
         'OptiScaler Upscaler (Dx11)',
-        'optiscaler-upscalers-dx11',
+        'optiscaler-upscaler-dx11',
         'Upscalers_Dx11Upscaler',
         dx11UpscalerValues,
     ),
     ...optiScalerDropdown(
-        'optiscaler-upscalers-dx12',
+        'optiscaler-upscaler-dx12',
         'OptiScaler Upscaler (Dx12)',
-        'optiscaler-upscalers-dx12',
+        'optiscaler-upscaler-dx12',
         'Upscalers_Dx12Upscaler',
         dx12UpscalerValues,
     ),
     ...optiScalerDropdown(
-        'optiscaler-upscalers-vk',
+        'optiscaler-upscaler-vulkan',
         'OptiScaler Upscaler (Vulkan)',
-        'optiscaler-upscalers-vk',
+        'optiscaler-upscaler-vulkan',
         'Upscalers_VulkanUpscaler',
         vulkanUpscalerValues,
     ),
@@ -485,9 +485,9 @@ const launchOptions: LaunchOption[] = [
         fsr4PresetValues,
     ),
     ...optiScalerDropdown(
-        'optiscaler-fsr4-gpu-support',
+        'optiscaler-fsr4-gpu-support-override',
         'OptiScaler FSR4 GPU Support Override',
-        'optiscaler-fsr4-gpu-support',
+        'optiscaler-fsr4-gpu-support-override',
         'FSR_Fsr4GpuSupport',
         [
             {id: 'auto', name: 'Auto', value: 'auto'},
@@ -514,9 +514,9 @@ const launchOptions: LaunchOption[] = [
     ...mfgOptions,
     ...dynamicMfgOptions,
     ...optiScalerDropdown(
-        'optiscaler-xefg-rounding-dmfg',
+        'optiscaler-framegen-xefg-dynamic-mfg-target-rounding',
         'OptiScaler FrameGen XeFG Dynamic MFG Target Rounding',
-        'optiscaler-xefg-rounding-dmfg',
+        'optiscaler-framegen-xefg-dynamic-mfg-target-rounding',
         'XeFG_RoundingDMFG',
         [
             {id: 'auto', name: 'Auto', value: 'auto'},

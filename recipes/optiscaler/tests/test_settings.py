@@ -7,6 +7,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import re
 import shlex
 import subprocess
 import unittest
@@ -48,9 +49,9 @@ class SettingsTests(unittest.TestCase):
                          {"auto", "nofg", "dlssg", "nvngxfg", "fsrfg", "upscaler", "fsrfg30", "xefg"})
 
     def test_fsr_controls_use_canonical_upscalers_and_separate_gpu_model(self):
-        for renderer in ("dx11", "dx12", "vk"):
-            suffix = {"dx11": "Dx11", "dx12": "Dx12", "vk": "Vulkan"}[renderer]
-            values = self.values("optiscaler-upscalers-" + renderer,
+        for renderer in ("dx11", "dx12", "vulkan"):
+            suffix = {"dx11": "Dx11", "dx12": "Dx12", "vulkan": "Vulkan"}[renderer]
+            values = self.values("optiscaler-upscaler-" + renderer,
                                  "OptiScaler_Upscalers_" + suffix + "Upscaler")
             self.assertNotIn("fsr31_12", values)
             self.assertIn("ffx_12" if renderer == "dx11" else "ffx", values)
@@ -58,7 +59,7 @@ class SettingsTests(unittest.TestCase):
                 self.assertIn("fsr31", values)
             else:
                 self.assertNotIn("fsr31", values)
-        self.assertEqual(self.values("optiscaler-fsr4-gpu-support", "OptiScaler_FSR_Fsr4GpuSupport"),
+        self.assertEqual(self.values("optiscaler-fsr4-gpu-support-override", "OptiScaler_FSR_Fsr4GpuSupport"),
                          {"auto", "0", "1", "2", "3", "4"})
         self.assertEqual(self.values("optiscaler-fsr4-model", "OptiScaler_FSR_Fsr4Model"),
                          {"auto", "0", "1", "2", "3"})
@@ -89,23 +90,23 @@ class SettingsTests(unittest.TestCase):
         for engine, section, maximum in (("xefg", "XeFG", 3), ("dlssg", "DLSSG", 5)):
             with self.subTest(engine=engine):
                 count_values = {str(count) for count in range(1, maximum + 1)}
-                group = "optiscaler-" + engine
-                self.assertEqual(self.values(group + "-mfg-count", "OptiScaler_" + section + "_InterpolationCount"),
+                group = "optiscaler-framegen-" + engine
+                self.assertEqual(self.values(group + "-mfg-multiplier", "OptiScaler_" + section + "_InterpolationCount"),
                                  {"auto"} | count_values)
                 for count in range(1, maximum + 1):
-                    option = next(o for o in self.options if o["id"] == group + "-mfg-count-" + str(count))
+                    option = next(o for o in self.options if o["id"] == group + "-mfg-multiplier-" + str(count))
                     self.assertIn(str(count + 1) + "×", option["valueName"])
-                targets = self.values(group + "-target-fps", "OptiScaler_" + section + "_FramerateTargetDMFG")
+                targets = self.values(group + "-dynamic-mfg-target-fps", "OptiScaler_" + section + "_FramerateTargetDMFG")
                 self.assertIn("auto", targets)
                 self.assertTrue(all(float(v) >= (10 if engine == "xefg" else 0) for v in targets if v != "auto"))
         for group, setting in {
             "xefg-dynamic-mfg": "XeFG_DynamicMFG",
-            "xefg-target-as-cap-dmfg": "XeFG_TargetAsCapDMFG",
-            "dlssg-force-dmfg": "DLSSG_ForceDMFG",
+            "xefg-dynamic-mfg-use-target-as-fps-limit": "XeFG_TargetAsCapDMFG",
+            "dlssg-dynamic-mfg": "DLSSG_ForceDMFG",
         }.items():
-            self.assertEqual(self.values("optiscaler-" + group, "OptiScaler_" + setting),
+            self.assertEqual(self.values("optiscaler-framegen-" + group, "OptiScaler_" + setting),
                              {"auto", "true", "false"})
-        self.assertEqual(self.values("optiscaler-xefg-rounding-dmfg", "OptiScaler_XeFG_RoundingDMFG"),
+        self.assertEqual(self.values("optiscaler-framegen-xefg-dynamic-mfg-target-rounding", "OptiScaler_XeFG_RoundingDMFG"),
                          {"auto", "0", "1", "2"})
         self.assertFalse(any("OptiScaler_FSRFG_InterpolationCount=" in option["on"]
                              for option in self.options))
@@ -139,7 +140,7 @@ class SettingsTests(unittest.TestCase):
         nightly = next(o for o in self.options if o["id"] == "optiscaler-nightly-upgrade")
         self.assertIn("~/.dlor/run optiscaler update-nightly ", nightly["on"])
         self.assertEqual(nightly["priority"], -1)
-        self.assertEqual(self.values("optiscaler-fsr4-gpu-support", "OptiScaler_FSR_Fsr4GpuSupport"),
+        self.assertEqual(self.values("optiscaler-fsr4-gpu-support-override", "OptiScaler_FSR_Fsr4GpuSupport"),
                          {"auto", "0", "1", "2", "3", "4"})
 
     def test_new_option_labels_have_no_parenthetical_text(self):
@@ -150,10 +151,10 @@ class SettingsTests(unittest.TestCase):
                 self.assertNotRegex(option.get(field, ""), r"[()]")
         for option in self.options:
             new_control = option.get("valueId", "").startswith((
-                "optiscaler-xefg-", "optiscaler-dlssg-", "optiscaler-fsr4-gpu-support", "optiscaler-fsr4-model"))
+                "optiscaler-framegen-xefg-", "optiscaler-framegen-dlssg-", "optiscaler-fsr4-gpu-support-override", "optiscaler-fsr4-model"))
             new_value = option["id"] in {
-                "optiscaler-upscalers-dx11-ffx-12", "optiscaler-upscalers-dx12-ffx",
-                "optiscaler-upscalers-vk-ffx", "optiscaler-upscalers-vk-ffx-12",
+                "optiscaler-upscaler-dx11-ffx-12", "optiscaler-upscaler-dx12-ffx",
+                "optiscaler-upscaler-vulkan-ffx", "optiscaler-upscaler-vulkan-ffx-12",
                 "optiscaler-framegen-input-xefg", "optiscaler-framegen-output-reprojection",
             }
             for field in (("name", "valueName") if new_control else ("valueName",) if new_value else ()):
@@ -173,6 +174,21 @@ class SettingsTests(unittest.TestCase):
         self.assertTrue({option['valueId'] for option in self.options if 'valueId' in option}.isdisjoint(
             option['valueId'] for option in self.installer_options if 'valueId' in option))
 
+    def test_setting_ids_include_the_full_display_name_hierarchy(self):
+        for options in (self.options, self.installer_options):
+            for option in options:
+                if not any('OptiScaler_' in option.get(action, '') for action in ('on', 'off')):
+                    continue
+                with self.subTest(option=option['id']):
+                    control_id = re.sub(r'[^a-z0-9]+', '-', option['name'].lower()).strip('-')
+                    if option['group'] == 'DLOR OptiScaler':
+                        control_id = 'dlor-' + control_id
+                    if 'valueId' in option:
+                        self.assertEqual(option['valueId'], control_id)
+                        self.assertTrue(option['id'].startswith(control_id + '-'))
+                    else:
+                        self.assertEqual(option['id'], control_id)
+
     def test_fgmod_actions_are_explicit_and_never_run_when_disabled(self):
         choices = [o for o in self.options if o.get("valueId") == "optiscaler"]
         self.assertEqual({o["valueName"]: o["on"] for o in choices}, {
@@ -183,24 +199,24 @@ class SettingsTests(unittest.TestCase):
         self.assertTrue(all(o["off"] == "" and o["enableGlobally"] is False for o in choices))
 
     def test_existing_labels_preserve_their_parenthetical_details(self):
-        groups = {"optiscaler-upscalers-dx11": "OptiScaler Upscaler (Dx11)",
-                  "optiscaler-upscalers-dx12": "OptiScaler Upscaler (Dx12)",
-                  "optiscaler-upscalers-vk": "OptiScaler Upscaler (Vulkan)"}
+        groups = {"optiscaler-upscaler-dx11": "OptiScaler Upscaler (Dx11)",
+                  "optiscaler-upscaler-dx12": "OptiScaler Upscaler (Dx12)",
+                  "optiscaler-upscaler-vulkan": "OptiScaler Upscaler (Vulkan)"}
         for option in self.options:
             if option.get("valueId") in groups:
                 self.assertEqual(option["name"], groups[option["valueId"]])
         labels = {
             "optiscaler-framegen-input-upscaler": "OptiFG (Upscaler)",
-            "optiscaler-upscalers-dx11-fsr22": "FSR 2.2 (native)",
-            "optiscaler-upscalers-dx11-fsr31": "FSR 3.1 (native)",
-            "optiscaler-upscalers-dx11-xess": "XeSS (native, Arc only)",
-            "optiscaler-upscalers-dx11-xess12": "XeSS (DX11on12)",
-            "optiscaler-upscalers-dx11-fsr21-12": "FSR 2.1 (DX11on12)",
-            "optiscaler-upscalers-dx11-fsr22-12": "FSR 2.2 (DX11on12)",
-            "optiscaler-upscalers-vk-fsr21": "FSR 2.1 (native)",
-            "optiscaler-upscalers-vk-fsr22": "FSR 2.2 (native)",
-            "optiscaler-upscalers-vk-xess": "XeSS (native)",
-            "optiscaler-upscalers-vk-fsr21-12": "FSR 2.1 (VKon12)",
+            "optiscaler-upscaler-dx11-fsr22": "FSR 2.2 (native)",
+            "optiscaler-upscaler-dx11-fsr31": "FSR 3.1 (native)",
+            "optiscaler-upscaler-dx11-xess": "XeSS (native, Arc only)",
+            "optiscaler-upscaler-dx11-xess12": "XeSS (DX11on12)",
+            "optiscaler-upscaler-dx11-fsr21-12": "FSR 2.1 (DX11on12)",
+            "optiscaler-upscaler-dx11-fsr22-12": "FSR 2.2 (DX11on12)",
+            "optiscaler-upscaler-vulkan-fsr21": "FSR 2.1 (native)",
+            "optiscaler-upscaler-vulkan-fsr22": "FSR 2.2 (native)",
+            "optiscaler-upscaler-vulkan-xess": "XeSS (native)",
+            "optiscaler-upscaler-vulkan-fsr21-12": "FSR 2.1 (VKon12)",
         }
         options = {option["id"]: option for option in self.options}
         for id_, label in labels.items():

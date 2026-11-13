@@ -33,6 +33,8 @@ The multiplier includes the original frame: **2× writes 1**, **3× writes 2**, 
 
 ## Updating saved options
 
+Setting IDs and dropdown `valueId`s follow the full display-name hierarchy, such as `optiscaler-framegen-optifg-hudfix` and `optiscaler-framegen-xefg-mfg-multiplier`. DLOR copies add `dlor-` to both IDs. Replace previously imported controls that used shorter IDs when importing this catalog; changed IDs create separate saved controls rather than updating the old ones.
+
 Refetch/re-import this branch's catalog to obtain the updated commands. Obsolete saved aliases/output choices must be removed or replaced in existing profiles; removing catalog entries does not guarantee that the host deletes previously imported options. Select replacement routes deliberately rather than silently converting saved settings. The named Bleeding Edge profiles remain pinned to their selected artifacts; Nightly Upgrade changes only official core release selection.
 
 ## Verification
