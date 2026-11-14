@@ -1,4 +1,4 @@
-name: Comment recipes.json URL
+name: Comment recipe catalog URLs
 
 on:
   pull_request_target:
@@ -33,9 +33,16 @@ jobs:
             const branch = pullRequest.head.ref
               .split('/').map(encodeURIComponent).join('/');
             const url = `https://raw.githubusercontent.com/${repository}/refs/heads/${branch}/recipes.json`;
+            const storeUrl = `https://raw.githubusercontent.com/${repository}/refs/heads/${branch}/store.json`;
             const body = [
               marker,
               '',
+              'Store:',
+              '```text',
+              storeUrl,
+              '```',
+              '',
+              'Recipes:',
               '```text',
               url,
               '```',

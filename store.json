@@ -1,0 +1,9 @@
+{
+  "name": "Decky Launch Options Recipes",
+  "description": "A collection of launch option recipes for Decky Launch Options.",
+  "type": "github",
+  "github": {
+    "repository": "Wurielle/decky-launch-options-recipes",
+    "branch": "feat/store"
+  }
+}
