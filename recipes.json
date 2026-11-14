@@ -37,7 +37,7 @@
         "id": "optiscaler-nightly-upgrade",
         "group": "OptiScaler",
         "name": "OptiScaler Nightly Upgrade",
-        "on": "~/.dlor/run optiscaler update-nightly 60ef9a75e7852212e9013dddac84eb37b59a804d -- %command%",
+        "on": "~/.dlor/run optiscaler update-nightly e5c6a07f98b699b4e71577313b6ba632eb0d1fb2 -- %command%",
         "off": "",
         "enableGlobally": false,
         "priority": -1
@@ -1773,7 +1773,7 @@
         "valueName": "Detailed"
       },
       {
-        "id": "mangohud-fps-limit-none",
+        "id": "mangohud-config-fps-limit-none",
         "group": "MangoHud",
         "name": "MangoHud FPS Limit",
         "on": "",
@@ -1784,7 +1784,7 @@
         "fallbackValue": true
       },
       {
-        "id": "mangohud-fps-limit-30",
+        "id": "mangohud-config-fps-limit-30",
         "group": "MangoHud",
         "name": "MangoHud FPS Limit",
         "on": "MANGOHUD_CONFIG=\"fps_limit=30\"",
@@ -1794,7 +1794,7 @@
         "valueName": "30"
       },
       {
-        "id": "mangohud-fps-limit-40",
+        "id": "mangohud-config-fps-limit-40",
         "group": "MangoHud",
         "name": "MangoHud FPS Limit",
         "on": "MANGOHUD_CONFIG=\"fps_limit=40\"",
@@ -1804,7 +1804,7 @@
         "valueName": "40"
       },
       {
-        "id": "mangohud-fps-limit-45",
+        "id": "mangohud-config-fps-limit-45",
         "group": "MangoHud",
         "name": "MangoHud FPS Limit",
         "on": "MANGOHUD_CONFIG=\"fps_limit=45\"",
@@ -1814,7 +1814,7 @@
         "valueName": "45"
       },
       {
-        "id": "mangohud-fps-limit-60",
+        "id": "mangohud-config-fps-limit-60",
         "group": "MangoHud",
         "name": "MangoHud FPS Limit",
         "on": "MANGOHUD_CONFIG=\"fps_limit=60\"",
@@ -1824,7 +1824,7 @@
         "valueName": "60"
       },
       {
-        "id": "mangohud-fps-limit-72",
+        "id": "mangohud-config-fps-limit-72",
         "group": "MangoHud",
         "name": "MangoHud FPS Limit",
         "on": "MANGOHUD_CONFIG=\"fps_limit=72\"",
@@ -1834,7 +1834,7 @@
         "valueName": "72"
       },
       {
-        "id": "mangohud-fps-limit-82",
+        "id": "mangohud-config-fps-limit-82",
         "group": "MangoHud",
         "name": "MangoHud FPS Limit",
         "on": "MANGOHUD_CONFIG=\"fps_limit=82\"",
@@ -1844,7 +1844,7 @@
         "valueName": "82"
       },
       {
-        "id": "mangohud-fps-limit-90",
+        "id": "mangohud-config-fps-limit-90",
         "group": "MangoHud",
         "name": "MangoHud FPS Limit",
         "on": "MANGOHUD_CONFIG=\"fps_limit=90\"",
@@ -1854,7 +1854,7 @@
         "valueName": "90"
       },
       {
-        "id": "mangohud-fps-limit-120",
+        "id": "mangohud-config-fps-limit-120",
         "group": "MangoHud",
         "name": "MangoHud FPS Limit",
         "on": "MANGOHUD_CONFIG=\"fps_limit=120\"",
@@ -1864,7 +1864,7 @@
         "valueName": "120"
       },
       {
-        "id": "mangohud-fps-limit-144",
+        "id": "mangohud-config-fps-limit-144",
         "group": "MangoHud",
         "name": "MangoHud FPS Limit",
         "on": "MANGOHUD_CONFIG=\"fps_limit=144\"",
@@ -1874,7 +1874,7 @@
         "valueName": "144"
       },
       {
-        "id": "mangohud-fps-limit-165",
+        "id": "mangohud-config-fps-limit-165",
         "group": "MangoHud",
         "name": "MangoHud FPS Limit",
         "on": "MANGOHUD_CONFIG=\"fps_limit=165\"",
@@ -1884,7 +1884,7 @@
         "valueName": "165"
       },
       {
-        "id": "mangohud-fps-limit-180",
+        "id": "mangohud-config-fps-limit-180",
         "group": "MangoHud",
         "name": "MangoHud FPS Limit",
         "on": "MANGOHUD_CONFIG=\"fps_limit=180\"",
@@ -1894,7 +1894,7 @@
         "valueName": "180"
       },
       {
-        "id": "mangohud-fps-limit-240",
+        "id": "mangohud-config-fps-limit-240",
         "group": "MangoHud",
         "name": "MangoHud FPS Limit",
         "on": "MANGOHUD_CONFIG=\"fps_limit=240\"",
@@ -1904,7 +1904,7 @@
         "valueName": "240"
       },
       {
-        "id": "mangohud-fps-limit-360",
+        "id": "mangohud-config-fps-limit-360",
         "group": "MangoHud",
         "name": "MangoHud FPS Limit",
         "on": "MANGOHUD_CONFIG=\"fps_limit=360\"",
@@ -1914,7 +1914,7 @@
         "valueName": "360"
       },
       {
-        "id": "mangohud-fps-limit-480",
+        "id": "mangohud-config-fps-limit-480",
         "group": "MangoHud",
         "name": "MangoHud FPS Limit",
         "on": "MANGOHUD_CONFIG=\"fps_limit=480\"",
@@ -3560,7 +3560,7 @@
         "id": "reframework-install-update",
         "group": "REFramework",
         "name": "REFramework",
-        "on": "WINEDLLOVERRIDES=\"dinput8.dll=n,b\" ~/.dlor/run reframework update 60ef9a75e7852212e9013dddac84eb37b59a804d -- %command%",
+        "on": "WINEDLLOVERRIDES=\"dinput8.dll=n,b\" ~/.dlor/run reframework update e5c6a07f98b699b4e71577313b6ba632eb0d1fb2 -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "reframework",
@@ -3570,7 +3570,7 @@
         "id": "reframework-uninstall",
         "group": "REFramework",
         "name": "REFramework",
-        "on": "~/.dlor/run reframework uninstall 60ef9a75e7852212e9013dddac84eb37b59a804d -- %command%",
+        "on": "~/.dlor/run reframework uninstall e5c6a07f98b699b4e71577313b6ba632eb0d1fb2 -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "reframework",
@@ -3594,7 +3594,7 @@
       {
         "id": "dlor-optiscaler-install",
         "name": "DLOR OptiScaler",
-        "on": "WINEDLLOVERRIDES=\"dxgi=n,b\" SteamDeck=0 ~/.dlor/run dlor-optiscaler install 60ef9a75e7852212e9013dddac84eb37b59a804d -- %command%",
+        "on": "WINEDLLOVERRIDES=\"dxgi=n,b\" SteamDeck=0 ~/.dlor/run dlor-optiscaler install e5c6a07f98b699b4e71577313b6ba632eb0d1fb2 -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "dlor-optiscaler",
@@ -3603,7 +3603,7 @@
       {
         "id": "dlor-optiscaler-uninstall",
         "name": "DLOR OptiScaler",
-        "on": "~/.dlor/run dlor-optiscaler uninstall 60ef9a75e7852212e9013dddac84eb37b59a804d -- %command%",
+        "on": "~/.dlor/run dlor-optiscaler uninstall e5c6a07f98b699b4e71577313b6ba632eb0d1fb2 -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "dlor-optiscaler",
@@ -3724,7 +3724,7 @@
         "id": "dlor-optiscaler-nightly-upgrade",
         "group": "DLOR OptiScaler",
         "name": "OptiScaler Nightly Upgrade",
-        "on": "~/.dlor/run optiscaler update-nightly 60ef9a75e7852212e9013dddac84eb37b59a804d -- %command%",
+        "on": "~/.dlor/run optiscaler update-nightly e5c6a07f98b699b4e71577313b6ba632eb0d1fb2 -- %command%",
         "off": "",
         "enableGlobally": false,
         "priority": -1
@@ -5544,7 +5544,7 @@
         "id": "non-steam-app-size-fullscreen",
         "group": "Non-Steam",
         "name": "App Size",
-        "on": "DLOR_NON_STEAM_APP_SIZE=\"fullscreen\" GDK_BACKEND=\"x11\" QT_QPA_PLATFORM=\"xcb\" MOZ_ENABLE_WAYLAND=\"0\" ~/.dlor/run non-steam resize-window 60ef9a75e7852212e9013dddac84eb37b59a804d -- %command%",
+        "on": "DLOR_NON_STEAM_APP_SIZE=\"fullscreen\" GDK_BACKEND=\"x11\" QT_QPA_PLATFORM=\"xcb\" MOZ_ENABLE_WAYLAND=\"0\" ~/.dlor/run non-steam resize-window e5c6a07f98b699b4e71577313b6ba632eb0d1fb2 -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "non-steam-app-size",
@@ -5554,7 +5554,7 @@
         "id": "non-steam-app-size-windowed-1280x720",
         "group": "Non-Steam",
         "name": "App Size",
-        "on": "DLOR_NON_STEAM_APP_SIZE=\"1280x720\" GDK_BACKEND=\"x11\" QT_QPA_PLATFORM=\"xcb\" MOZ_ENABLE_WAYLAND=\"0\" ~/.dlor/run non-steam resize-window 60ef9a75e7852212e9013dddac84eb37b59a804d -- %command%",
+        "on": "DLOR_NON_STEAM_APP_SIZE=\"1280x720\" GDK_BACKEND=\"x11\" QT_QPA_PLATFORM=\"xcb\" MOZ_ENABLE_WAYLAND=\"0\" ~/.dlor/run non-steam resize-window e5c6a07f98b699b4e71577313b6ba632eb0d1fb2 -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "non-steam-app-size",
@@ -5564,7 +5564,7 @@
         "id": "non-steam-app-size-windowed-1280x800",
         "group": "Non-Steam",
         "name": "App Size",
-        "on": "DLOR_NON_STEAM_APP_SIZE=\"1280x800\" GDK_BACKEND=\"x11\" QT_QPA_PLATFORM=\"xcb\" MOZ_ENABLE_WAYLAND=\"0\" ~/.dlor/run non-steam resize-window 60ef9a75e7852212e9013dddac84eb37b59a804d -- %command%",
+        "on": "DLOR_NON_STEAM_APP_SIZE=\"1280x800\" GDK_BACKEND=\"x11\" QT_QPA_PLATFORM=\"xcb\" MOZ_ENABLE_WAYLAND=\"0\" ~/.dlor/run non-steam resize-window e5c6a07f98b699b4e71577313b6ba632eb0d1fb2 -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "non-steam-app-size",
@@ -5574,7 +5574,7 @@
         "id": "non-steam-app-size-windowed-1920x1080",
         "group": "Non-Steam",
         "name": "App Size",
-        "on": "DLOR_NON_STEAM_APP_SIZE=\"1920x1080\" GDK_BACKEND=\"x11\" QT_QPA_PLATFORM=\"xcb\" MOZ_ENABLE_WAYLAND=\"0\" ~/.dlor/run non-steam resize-window 60ef9a75e7852212e9013dddac84eb37b59a804d -- %command%",
+        "on": "DLOR_NON_STEAM_APP_SIZE=\"1920x1080\" GDK_BACKEND=\"x11\" QT_QPA_PLATFORM=\"xcb\" MOZ_ENABLE_WAYLAND=\"0\" ~/.dlor/run non-steam resize-window e5c6a07f98b699b4e71577313b6ba632eb0d1fb2 -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "non-steam-app-size",
@@ -5584,7 +5584,7 @@
         "id": "non-steam-app-size-windowed-1920x1200",
         "group": "Non-Steam",
         "name": "App Size",
-        "on": "DLOR_NON_STEAM_APP_SIZE=\"1920x1200\" GDK_BACKEND=\"x11\" QT_QPA_PLATFORM=\"xcb\" MOZ_ENABLE_WAYLAND=\"0\" ~/.dlor/run non-steam resize-window 60ef9a75e7852212e9013dddac84eb37b59a804d -- %command%",
+        "on": "DLOR_NON_STEAM_APP_SIZE=\"1920x1200\" GDK_BACKEND=\"x11\" QT_QPA_PLATFORM=\"xcb\" MOZ_ENABLE_WAYLAND=\"0\" ~/.dlor/run non-steam resize-window e5c6a07f98b699b4e71577313b6ba632eb0d1fb2 -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "non-steam-app-size",
@@ -5594,7 +5594,7 @@
         "id": "non-steam-app-size-windowed-2560x1440",
         "group": "Non-Steam",
         "name": "App Size",
-        "on": "DLOR_NON_STEAM_APP_SIZE=\"2560x1440\" GDK_BACKEND=\"x11\" QT_QPA_PLATFORM=\"xcb\" MOZ_ENABLE_WAYLAND=\"0\" ~/.dlor/run non-steam resize-window 60ef9a75e7852212e9013dddac84eb37b59a804d -- %command%",
+        "on": "DLOR_NON_STEAM_APP_SIZE=\"2560x1440\" GDK_BACKEND=\"x11\" QT_QPA_PLATFORM=\"xcb\" MOZ_ENABLE_WAYLAND=\"0\" ~/.dlor/run non-steam resize-window e5c6a07f98b699b4e71577313b6ba632eb0d1fb2 -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "non-steam-app-size",
@@ -5604,7 +5604,7 @@
         "id": "non-steam-app-size-windowed-2560x1600",
         "group": "Non-Steam",
         "name": "App Size",
-        "on": "DLOR_NON_STEAM_APP_SIZE=\"2560x1600\" GDK_BACKEND=\"x11\" QT_QPA_PLATFORM=\"xcb\" MOZ_ENABLE_WAYLAND=\"0\" ~/.dlor/run non-steam resize-window 60ef9a75e7852212e9013dddac84eb37b59a804d -- %command%",
+        "on": "DLOR_NON_STEAM_APP_SIZE=\"2560x1600\" GDK_BACKEND=\"x11\" QT_QPA_PLATFORM=\"xcb\" MOZ_ENABLE_WAYLAND=\"0\" ~/.dlor/run non-steam resize-window e5c6a07f98b699b4e71577313b6ba632eb0d1fb2 -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "non-steam-app-size",
@@ -5614,7 +5614,7 @@
         "id": "non-steam-app-size-windowed-3840x2160",
         "group": "Non-Steam",
         "name": "App Size",
-        "on": "DLOR_NON_STEAM_APP_SIZE=\"3840x2160\" GDK_BACKEND=\"x11\" QT_QPA_PLATFORM=\"xcb\" MOZ_ENABLE_WAYLAND=\"0\" ~/.dlor/run non-steam resize-window 60ef9a75e7852212e9013dddac84eb37b59a804d -- %command%",
+        "on": "DLOR_NON_STEAM_APP_SIZE=\"3840x2160\" GDK_BACKEND=\"x11\" QT_QPA_PLATFORM=\"xcb\" MOZ_ENABLE_WAYLAND=\"0\" ~/.dlor/run non-steam resize-window e5c6a07f98b699b4e71577313b6ba632eb0d1fb2 -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "non-steam-app-size",

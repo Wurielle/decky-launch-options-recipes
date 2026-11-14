@@ -22,7 +22,7 @@ This repository packages launch option recipes for the Decky Launch Options plug
 
 Use TypeScript ESM style and match nearby files. Recipe files and directories use hyphen-case names, for example `lossless-scaling.ts` or `reframework/index.ts`. Import the shared type from `./shared/types.js` in top-level files or `../shared/types.js` in directory indexes. Prefer 4-space indentation in recipe objects, trailing commas, and explicit `satisfies Recipe`.
 
-Launch option IDs should be stable and hyphen-case. A regular option usually uses the feature name only, such as `mangohud`. Dropdown values should include the tool, modified option/config, and value, for example `mangohud-config-preset-1` or `mangohud-fps-limit-60`.
+Launch option IDs should be stable and hyphen-case. A regular option usually uses the feature name only, such as `mangohud`. Dropdown values should include the tool, modified option/config, and value, for example `mangohud-config-preset-1` or `mangohud-config-fps-limit-60`.
 
 Name constants holding script commands after the corresponding script, converting hyphen-case to camelCase and omitting `.sh`: for example, `update-nightly.sh` becomes `updateNightly`, and `uninstall.sh` becomes `uninstall`.
 
