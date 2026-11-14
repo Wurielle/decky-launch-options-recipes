@@ -15,3 +15,13 @@ export interface Recipe {
     name: string;
     launchOptions: LaunchOption[];
 }
+
+export interface Store {
+    name: string;
+    description: string;
+    type: 'github';
+    github: {
+        repository: string;
+        branch: string;
+    };
+}

@@ -19,6 +19,49 @@ recipe. The directory form can keep supporting files beside the recipe. `recipes
 automatically, so there is no registry file to maintain. Shared recipe code and types live in `recipes/shared/`, which
 the generator never treats as a recipe source.
 
+## Store manifest
+
+`store.json` describes the store:
+
+```json
+{
+  "name": "My recipe store",
+  "description": "Launch options maintained by my community.",
+  "type": "github",
+  "github": {
+    "repository": "example/recipe-store",
+    "branch": "dev"
+  }
+}
+```
+
+Edit `store.config.ts` to change the store's metadata. `pnpm recipes:build`
+generates the metadata in `store.json` and the separate recipe array in
+`recipes.json`, preserving recipe order and commit-pinned commands. Read
+`recipes.json` from the repository and branch identified by the store metadata.
+Do not edit either generated JSON file by hand. The standalone Recipes plugin
+continues to use `recipes.json`.
+
+For `type: "github"`, `github.repository` uses the `owner/repository` format and
+`github.branch` identifies the source branch. The repository uses
+`RECIPE_REPOSITORY_OWNER` and `RECIPE_REPOSITORY_NAME`,
+matching the source of generated script commands. `RECIPE_BRANCH` supplies the
+store's branch; local builds default to the checked-out branch. Detached builds
+must supply it explicitly. CI uses the pull request's source branch or the push
+branch, including branch names containing `/`.
+
+For a local build, set the existing recipe environment variables and run:
+
+```sh
+RECIPE_REPOSITORY_OWNER=example \
+RECIPE_REPOSITORY_NAME=recipe-store \
+RECIPE_COMMIT_SHA="$(git rev-parse HEAD)" \
+pnpm recipes:build
+```
+
+Run `pnpm test:store` for isolated generator checks, including fork metadata,
+legacy recipe compatibility, branch handling, and reproducible output.
+
 Here's what the generated recipes look like:
 
 ```json
@@ -163,4 +206,5 @@ the matching environment variable and fails when a required variable is missing.
 The GitHub workflow provides the source repository owner, repository name, and commit as
 `RECIPE_REPOSITORY_OWNER`, `RECIPE_REPOSITORY_NAME`, and `RECIPE_COMMIT_SHA`. This allows recipes to reference files
 from the exact repository revision that generated `recipes.json`. Pull requests generate the file for validation; the
-push workflow commits the final generated file because its contents depend on the source commit SHA.
+push workflow commits both generated catalogs because their contents depend on the source commit SHA.
+`RECIPE_BRANCH` supplies the source branch recorded in `store.json`.

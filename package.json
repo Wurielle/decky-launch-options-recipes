@@ -7,7 +7,8 @@
   "scripts": {
     "build": "rollup -c",
     "recipes:build": "tsc -p tsconfig.recipes.json && node .generated/recipes-build/scripts/build-recipes.js",
-    "recipes:check": "pnpm recipes:build && git diff --exit-code -- recipes.json",
+    "recipes:check": "pnpm recipes:build && git diff --exit-code -- recipes.json store.json",
+    "test:store": "tsc -p tsconfig.recipes.json && node --test scripts/test-store.mjs",
     "watch": "rollup -c -w",
     "console:ui": "node scripts/console-ui.mjs",
     "test:frontend": "node --test scripts/test-frontend.mjs",
