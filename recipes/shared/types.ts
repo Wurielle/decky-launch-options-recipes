@@ -11,9 +11,16 @@ export interface LaunchOption {
     fallbackValue?: boolean;
 }
 
+export interface EnvironmentVariableMerge {
+    id?: string;
+    name: string;
+    delimiter: string;
+}
+
 export interface Recipe {
     name: string;
     launchOptions: LaunchOption[];
+    environmentVariableMerges?: EnvironmentVariableMerge[];
 }
 
 export interface Store {

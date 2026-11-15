@@ -106,6 +106,9 @@ const launchOptions: LaunchOption[] = [
 const recipe = {
     "name": "MangoHud",
     launchOptions,
+    environmentVariableMerges: [
+        {id: 'mangohud-config', name: 'MANGOHUD_CONFIG', delimiter: ','},
+    ],
 } satisfies Recipe
 
 export default recipe
