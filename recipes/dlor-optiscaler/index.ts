@@ -1,5 +1,6 @@
 import type { LaunchOption, Recipe } from '../shared/types.js'
 import { remoteScript } from '../shared/remote-script.js'
+import { wineDllOverridesMerge } from '../shared/env-variable-merges.js'
 import optiscaler from '../optiscaler/index.js'
 
 const group = 'DLOR OptiScaler'
@@ -35,6 +36,7 @@ const optimizedProfiles = [
 
 const recipe = {
     name: group,
+    envVariableMerges: [wineDllOverridesMerge],
     launchOptions: [
         // Reuse the old toggle ID for None so re-import clears its OFF uninstaller.
         ...[

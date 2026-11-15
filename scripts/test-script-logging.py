@@ -158,7 +158,7 @@ fi''')
         # every token before %command%, including the quoted bash -c body.
         recipes = json.loads((ROOT / "recipes.json").read_text())
         for recipe in recipes:
-            self.assertEqual(set(recipe), {"name", "launchOptions"})
+            self.assertTrue({"name", "launchOptions"} <= set(recipe))
             for option in recipe["launchOptions"]:
                 if option["id"] not in ("reframework-install-update", "reframework-uninstall",
                                         "optiscaler-nightly-upgrade"):

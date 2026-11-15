@@ -1,6 +1,6 @@
 ---
 name: decky-launch-options-recipes
-description: Create or update Decky Launch Options recipe sources for the Wurielle/decky-launch-options plugin. Use when asked to add launch options, recipe entries, dropdown launch options, or generated recipes.json output, especially in repositories with TypeScript sources under recipes/ and a Recipe type.
+description: Create or update Decky Launch Options recipe sources for the Wurielle/decky-launch-options plugin. Use when asked to add launch options, recipe entries, dropdown launch options, recipe environment variable merges, or generated recipes.json output, especially in repositories with TypeScript sources under recipes/ and a Recipe type.
 ---
 
 # Decky Launch Options Recipes
@@ -50,6 +50,7 @@ export default recipe
    - Keep source arrays compact and ordered the same way the UI should display values, then use `map` or `flatMap` to produce `LaunchOption[]`.
    - Use small helper functions for repeated command fragments, such as quoted environment-variable assignments.
    - Choose explicit, stable IDs using the semantic hierarchy rules below. Do not recompute IDs from labels at runtime; later wording changes must not silently change saved identities.
+   - Declare `envVariableMerges` for list-valued environment variables that must combine across active controls or recipes. Follow the merge rules and variable-based IDs below; launch option ID namespacing does not apply to shared merge rules.
    - Keep recipe-specific instructions beside the relevant code as comments, not in this skill. Add or update comments when an implementation depends on non-obvious command ordering, overwrite rules, archive layout, or variant selection. Explain the constraint and its reason; point to supporting script comments from the recipe source when needed instead of duplicating them.
 
 3. Build or check recipes using the repo script, usually `pnpm recipes:build` or `pnpm recipes:check`.
@@ -77,6 +78,65 @@ Use these fields according to the local `LaunchOption` type:
 - `valueId`: Shared dropdown identifier.
 - `valueName`: Dropdown choice label.
 - `fallbackValue`: Mark the default dropdown choice.
+
+## Environment Variable Merges
+
+The optional recipe-level `envVariableMerges` attribute is a list of
+`EnvVariableMerge` objects alongside `launchOptions`. Each entry has:
+
+- `id`: Stable identity of the variable's merge rule. Include an explicit ID in maintained recipes even though the type permits omission and Decky Launch Options can generate one.
+- `name`: Exact, case-sensitive environment variable name, such as `TOOL_CONFIG`.
+- `delimiter`: Literal separator expected by the program reading the variable. `''` concatenates values directly; it does not disable merging.
+
+Add a rule when independently active options contribute values to the same
+list-valued variable, including options supplied by other recipes or the user's
+launch command. A recipe with only one assignment may still need a rule for
+cross-recipe composition. For example, `WINEDLLOVERRIDES` entries join with `;`,
+and `MANGOHUD_CONFIG` settings join with `,`. Check the consumer's syntax before
+choosing a delimiter; the `,` inside a Wine value such as `dxgi=n,b` separates
+load modes, not DLL override entries.
+
+Repeated assignments alone do not imply merging. Scalar switches, scale factors,
+file paths, and alternative values of one dropdown must retain replacement
+semantics. For example, do not merge `PROTON_USE_XALIA`, `QT_SCALE_FACTOR`, or
+individual `OptiScaler_*` settings. Merge rules join whole values; they do not
+resolve conflicting settings or deduplicate entries.
+
+```ts
+import type { Recipe } from './shared/types.js'
+
+const recipe = {
+    name: 'Example Tool',
+    launchOptions: [
+        {id: 'example-tool-overlay', on: 'TOOL_CONFIG="overlay=1"'},
+        {id: 'example-tool-fps-limit', on: 'TOOL_CONFIG="fps_limit=60"'},
+    ],
+    envVariableMerges: [
+        {id: 'tool-config', name: 'TOOL_CONFIG', delimiter: ','},
+    ],
+} satisfies Recipe
+
+export default recipe
+```
+
+With both controls active in this order, the rule combines the values as
+`TOOL_CONFIG="overlay=1,fps_limit=60"`. The generator preserves the list in
+`recipes.json` and resolves `{{env:VARIABLE_NAME}}` placeholders in its string
+fields. Omit the attribute when no rule is needed. Publishing the attribute
+requires consumer support to apply it; check the importer before claiming that
+recipe rules are installed, and keep consumer changes within the requested scope.
+
+### Merge Rule IDs
+
+Merge rules identify environment variables globally, unlike launch option IDs,
+which identify controls within a recipe's namespace.
+
+- First reuse the ID already used for that exact variable by Decky Launch Options or another recipe. Its defaults include `winedlloverrides` for `WINEDLLOVERRIDES` and `mangohud-config` for `MANGOHUD_CONFIG`.
+- For a new variable, choose an explicit lowercase hyphen-case ID from its technical name: lowercase it and replace underscores with hyphens. For example, `TOOL_CONFIG` becomes `tool-config` and `TOOL_SEARCH_PATH` becomes `tool-search-path`. Keep conventional tokens intact; `WINEDLLOVERRIDES` remains `winedlloverrides`.
+- Do not add the recipe name, option/feature name, dropdown value, delimiter, version, or an `env-merge` prefix. `reframework-winedlloverrides`, `wine-dll-override-dxgi`, and `tool-config-comma` identify incidental context rather than the shared variable rule.
+- Keep IDs stable when labels or recipe contents change. Write the ID explicitly instead of generating it from display text. Do not reuse an existing ID for a different case-sensitive variable name; check for collisions after normalization and choose a distinct explicit technical qualifier if necessary.
+- All recipes declaring the same variable must use the same ID and delimiter. Declare the variable only once per recipe, and check that unrelated variables do not share an ID. Reuse a shared typed constant under `recipes/shared/` when several recipes need the same rule, as with `wineDllOverridesMerge`.
+- When copying controls into another recipe, namespace the launch option's `id` and `valueId` as described below, but preserve a shared merge rule's identity. Include the rules required by the copied controls; do not create a new merge ID per destination recipe.
 
 ## Command Rules
 
@@ -207,6 +267,8 @@ Before finishing:
 
 - Confirm the recipe compiles against `Recipe`.
 - Confirm every launch option has a stable `id`.
+- Confirm list-valued variables that combine across independent controls or recipes have merge declarations with the consumer's delimiter, and scalar or mutually exclusive values remain unmerged.
+- Confirm merge IDs identify variables, reuse existing identities, and have consistent names and delimiters across recipes, with no duplicate variable rules within a recipe or ID collisions between different variables.
 - Confirm control IDs follow a complete, consistent namespace-to-setting hierarchy, with no missing or redundant scope. Check their meaning against labels and configuration behavior rather than requiring literal label-slug equality.
 - Confirm dropdown IDs append explicit, stable value suffixes to their exact shared `valueId`, with unique IDs and no unrelated dropdowns sharing a base.
 - For independently imported controls, confirm the destination group and namespace are applied to both ID fields, and that source/destination IDs and dropdown `valueId`s do not overlap.

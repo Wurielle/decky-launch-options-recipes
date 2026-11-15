@@ -9,7 +9,7 @@ import {test} from 'node:test'
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const revision = '1234567890abcdef1234567890abcdef12345678'
 
-function fixture(t) {
+function fixture(t, {envVariableMerges} = {}) {
     const directory = mkdtempSync(path.join(tmpdir(), 'recipe-store-'))
     t.after(() => rmSync(directory, {recursive: true, force: true}))
     const compiled = path.join(directory, '.generated/recipes-build')
@@ -27,6 +27,7 @@ function fixture(t) {
             export default {
                 name: '${name}',
                 launchOptions: [{id: '${name.toLowerCase()}', on: remoteScript('example', 'install')}],
+                ${name === 'Alpha' && envVariableMerges !== undefined ? `envVariableMerges: ${JSON.stringify(envVariableMerges)},` : ''}
             }
         `)
     }
@@ -78,6 +79,59 @@ test('store contains only metadata while recipes retain their order and commit p
     const original = project.read('store.json')
     assert.equal(project.build().status, 0)
     assert.equal(project.read('store.json'), original)
+})
+
+test('recipe merge lists preserve IDs, delimiters, and build-time placeholders alongside legacy recipes', (t) => {
+    const project = fixture(t, {envVariableMerges: [
+        {id: 'example-config', name: '{{env:TEST_CONFIG_NAME}}', delimiter: ';'},
+        {name: 'EXAMPLE_FLAGS', delimiter: ''},
+    ]})
+    const result = project.build({TEST_CONFIG_NAME: 'EXAMPLE_CONFIG'})
+    assert.equal(result.status, 0, result.stderr)
+    const [legacy, recipe] = JSON.parse(project.read('recipes.json'))
+    assert.equal(Object.hasOwn(legacy, 'envVariableMerges'), false)
+    assert.deepEqual(recipe.envVariableMerges, [
+        {id: 'example-config', name: 'EXAMPLE_CONFIG', delimiter: ';'},
+        {name: 'EXAMPLE_FLAGS', delimiter: ''},
+    ])
+    assert.equal(recipe.launchOptions[0].id, 'alpha')
+})
+
+test('recipes can explicitly declare an empty merge list', (t) => {
+    const project = fixture(t, {envVariableMerges: []})
+    const result = project.build()
+    assert.equal(result.status, 0, result.stderr)
+    assert.deepEqual(JSON.parse(project.read('recipes.json'))[1].envVariableMerges, [])
+})
+
+test('maintained recipes share variable identities and merge only composable settings', () => {
+    const sources = ['mangohud', 'wine', 'reframework/index', 'dlor-optiscaler/index',
+        'optiscaler/index', 'proton', 'non-steam/index', 'lossless-scaling']
+    const result = spawnSync(process.execPath, ['--input-type=module', '-e', `
+        const recipes = await Promise.all(${JSON.stringify(sources)}.map(async (source) =>
+            (await import('./.generated/recipes-build/recipes/' + source + '.js')).default))
+        console.log(JSON.stringify(recipes))
+    `], {
+        cwd: root,
+        env: {...process.env, RECIPE_REPOSITORY_OWNER: 'Wurielle',
+            RECIPE_REPOSITORY_NAME: 'decky-launch-options-recipes', RECIPE_COMMIT_SHA: revision},
+        encoding: 'utf8',
+    })
+    assert.equal(result.status, 0, result.stderr)
+    const recipes = JSON.parse(result.stdout)
+    const wineMerge = {id: 'winedlloverrides', name: 'WINEDLLOVERRIDES', delimiter: ';'}
+    const expected = new Map([
+        ['MangoHud', [{id: 'mangohud-config', name: 'MANGOHUD_CONFIG', delimiter: ','}]],
+        ['Wine', [wineMerge]], ['REFramework', [wineMerge]], ['DLOR OptiScaler', [wineMerge]],
+    ])
+    for (const recipe of recipes) {
+        assert.deepEqual(recipe.envVariableMerges, expected.get(recipe.name), recipe.name)
+        for (const rule of recipe.envVariableMerges ?? []) {
+            assert.ok(recipe.launchOptions.some(option =>
+                ['on', 'off'].some(state => option[state]?.includes(`${rule.name}=`))),
+            `${recipe.name} must use the variable it declares`)
+        }
+    }
 })
 
 test('fork metadata and runner commands use the same repository and preserve branch slashes', (t) => {
