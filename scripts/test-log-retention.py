@@ -9,6 +9,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = {
     "run": ROOT / "defaults/dlor-run.sh",
+    "decky-launch-options/auto-update": ROOT / "recipes/decky-launch-options/scripts/auto-update.sh",
     "optiscaler/update-nightly": ROOT / "recipes/optiscaler/scripts/update-nightly.sh",
     "reframework/update": ROOT / "recipes/reframework/scripts/update.sh",
     "reframework/uninstall": ROOT / "recipes/reframework/scripts/uninstall.sh",
