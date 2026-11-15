@@ -5655,11 +5655,11 @@
     "launchOptions": [
       {
         "id": "decky-launch-options-auto-update-none",
-        "group": "Decky Launch Options",
+        "group": "",
         "name": "Auto Update Decky Launch Options",
         "on": "",
         "off": "",
-        "enableGlobally": false,
+        "enableGlobally": true,
         "valueId": "decky-launch-options-auto-update",
         "valueName": "None",
         "fallbackValue": true,
@@ -5667,7 +5667,7 @@
       },
       {
         "id": "decky-launch-options-auto-update-regular",
-        "group": "Decky Launch Options",
+        "group": "",
         "name": "Auto Update Decky Launch Options",
         "on": "DLO_UPDATE_VARIANT=\"regular\" ~/.dlor/run decky-launch-options auto-update bbfca6d36f1ca57fab7b601354200ef2d74349c8 -- %command%",
         "off": "",
@@ -5678,7 +5678,7 @@
       },
       {
         "id": "decky-launch-options-auto-update-with-store",
-        "group": "Decky Launch Options",
+        "group": "",
         "name": "Auto Update Decky Launch Options",
         "on": "DLO_UPDATE_VARIANT=\"with-store\" ~/.dlor/run decky-launch-options auto-update bbfca6d36f1ca57fab7b601354200ef2d74349c8 -- %command%",
         "off": "",

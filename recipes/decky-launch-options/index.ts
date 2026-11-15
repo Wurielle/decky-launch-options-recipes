@@ -12,11 +12,12 @@ const recipe = {
     name: 'Decky Launch Options',
     launchOptions: variants.map((variant): LaunchOption => ({
         id: `decky-launch-options-auto-update-${variant.id}`,
-        group: 'Decky Launch Options',
+        group: '',
         name: 'Auto Update Decky Launch Options',
         on: variant.id === 'none' ? '' : `DLO_UPDATE_VARIANT="${variant.id}" ${autoUpdate}`,
         off: '',
-        enableGlobally: false,
+        // One globally selected sibling makes the whole dropdown global.
+        enableGlobally: variant.id === 'none',
         valueId: 'decky-launch-options-auto-update',
         valueName: variant.name,
         ...(variant.id === 'none' ? { fallbackValue: true } : {}),

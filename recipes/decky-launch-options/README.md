@@ -1,12 +1,13 @@
 # Decky Launch Options
 
-**Auto Update Decky Launch Options** is an opt-in dropdown with **None** as its
-only default. Select **Regular** or **With store** for a game (or globally in DLO)
+**Auto Update Decky Launch Options** is a global dropdown with no dedicated group
+and **None** as its only default. Select **Regular** or **With store** globally
 to check the latest stable release of `Wurielle/decky-launch-options` before each
 launch. Regular uses `decky-launch-options.zip`; With store uses
 `decky-launch-options-with-store.zip`, whose package version ends in `-with-store`.
 It updates only **Launch Options**, never Launch Options Recipes or Decky Loader.
 None emits no command or environment assignment and does not uninstall DLO.
+Games inherit the global selection unless explicitly overridden in their profile.
 
 Changing between Regular and With store replaces the installed build even when
 both belong to the same release. The store suffix is a build variant, not a

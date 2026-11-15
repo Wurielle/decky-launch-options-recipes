@@ -555,8 +555,10 @@ class LauncherTests(unittest.TestCase):
         self.assertEqual([o['valueName'] for o in options], ['None', 'Regular', 'With store'])
         self.assertEqual([o['id'] for o in options], ['decky-launch-options-auto-update-' + v for v in ['none', 'regular', 'with-store']])
         self.assertEqual([o['valueName'] for o in options if o.get('fallbackValue')], ['None'])
+        self.assertEqual([o['valueName'] for o in options if o['enableGlobally']], ['None'])
         for option, variant in zip(options, [None, 'regular', 'with-store']):
-            self.assertFalse(option['enableGlobally'])
+            self.assertEqual(option['enableGlobally'], variant is None)
+            self.assertEqual(option['group'], '')
             self.assertEqual(option['off'], '')
             self.assertEqual(option['valueId'], 'decky-launch-options-auto-update')
             expected = '' if variant is None else ('DLO_UPDATE_VARIANT="' + variant + '" ~/.dlor/run decky-launch-options auto-update ' + 'a' * 40 + ' -- %command%')
@@ -588,6 +590,20 @@ class LauncherTests(unittest.TestCase):
                     self.assertIn(str(home / '.dlor/run'), final)
                 else:
                     self.assertNotIn(str(home / '.dlor/run'), final)
+            for global_option, variant in [(options[1], 'regular'), (options[2], 'with-store')]:
+                global_options = [{**option, 'enableGlobally': option['id'] == global_option['id']} for option in options]
+                settings = {'launchOptions': global_options, 'profiles': {
+                    '123': {'state': {}}, '456': {'state': {options[0]['id']: True}},
+                }}
+                for appid in ['123', '456']:
+                    with patch.dict(os.environ, HOME=str(home)), patch.object(sys, 'argv', ['run.py', '/bin/echo', 'game']):
+                        final, variables = source.get_final_args_details(settings, appid)
+                    if appid == '123':
+                        self.assertIn(str(home / '.dlor/run'), final)
+                        self.assertEqual(variables, {'DLO_UPDATE_VARIANT': variant})
+                    else:
+                        self.assertNotIn(str(home / '.dlor/run'), final)
+                        self.assertEqual(variables, {})
 
 
 if __name__ == '__main__':
