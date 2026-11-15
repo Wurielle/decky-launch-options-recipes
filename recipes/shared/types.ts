@@ -20,7 +20,7 @@ export interface EnvVariableMerge {
 export interface Recipe {
     name: string;
     launchOptions: LaunchOption[];
-    envVariableMerges?: EnvVariableMerge[];
+    environmentVariableMerges?: EnvVariableMerge[];
 }
 
 export interface Store {

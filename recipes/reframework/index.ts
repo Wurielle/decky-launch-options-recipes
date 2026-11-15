@@ -41,7 +41,7 @@ const launchOptions: LaunchOption[] = actionValues.map((action): LaunchOption =>
 const recipe = {
     name: reframeworkGroup,
     launchOptions,
-    envVariableMerges: [wineDllOverridesMerge],
+    environmentVariableMerges: [wineDllOverridesMerge],
 } satisfies Recipe
 
 export default recipe

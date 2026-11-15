@@ -85,7 +85,7 @@ const launchOptions: LaunchOption[] = recommendedDlls.flatMap((dll) => {
 const recipe = {
     "name": "Wine",
     launchOptions,
-    envVariableMerges: [wineDllOverridesMerge],
+    environmentVariableMerges: [wineDllOverridesMerge],
 } satisfies Recipe
 
 export default recipe

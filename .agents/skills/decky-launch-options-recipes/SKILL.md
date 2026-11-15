@@ -50,7 +50,7 @@ export default recipe
    - Keep source arrays compact and ordered the same way the UI should display values, then use `map` or `flatMap` to produce `LaunchOption[]`.
    - Use small helper functions for repeated command fragments, such as quoted environment-variable assignments.
    - Choose explicit, stable IDs using the semantic hierarchy rules below. Do not recompute IDs from labels at runtime; later wording changes must not silently change saved identities.
-   - Declare `envVariableMerges` for list-valued environment variables that must combine across active controls or recipes. Follow the merge rules and variable-based IDs below; launch option ID namespacing does not apply to shared merge rules.
+   - Declare `environmentVariableMerges` for list-valued environment variables that must combine across active controls or recipes. Follow the merge rules and variable-based IDs below; launch option ID namespacing does not apply to shared merge rules.
    - Keep recipe-specific instructions beside the relevant code as comments, not in this skill. Add or update comments when an implementation depends on non-obvious command ordering, overwrite rules, archive layout, or variant selection. Explain the constraint and its reason; point to supporting script comments from the recipe source when needed instead of duplicating them.
 
 3. Build or check recipes using the repo script, usually `pnpm recipes:build` or `pnpm recipes:check`.
@@ -81,7 +81,7 @@ Use these fields according to the local `LaunchOption` type:
 
 ## Environment Variable Merges
 
-The optional recipe-level `envVariableMerges` attribute is a list of
+The optional recipe-level `environmentVariableMerges` attribute is a list of
 `EnvVariableMerge` objects alongside `launchOptions`. Each entry has:
 
 - `id`: Stable identity of the variable's merge rule. Include an explicit ID in maintained recipes even though the type permits omission and Decky Launch Options can generate one.
@@ -111,7 +111,7 @@ const recipe = {
         {id: 'example-tool-overlay', on: 'TOOL_CONFIG="overlay=1"'},
         {id: 'example-tool-fps-limit', on: 'TOOL_CONFIG="fps_limit=60"'},
     ],
-    envVariableMerges: [
+    environmentVariableMerges: [
         {id: 'tool-config', name: 'TOOL_CONFIG', delimiter: ','},
     ],
 } satisfies Recipe

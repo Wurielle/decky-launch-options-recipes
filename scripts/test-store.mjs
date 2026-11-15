@@ -9,7 +9,7 @@ import {test} from 'node:test'
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const revision = '1234567890abcdef1234567890abcdef12345678'
 
-function fixture(t, {envVariableMerges} = {}) {
+function fixture(t, {environmentVariableMerges} = {}) {
     const directory = mkdtempSync(path.join(tmpdir(), 'recipe-store-'))
     t.after(() => rmSync(directory, {recursive: true, force: true}))
     const compiled = path.join(directory, '.generated/recipes-build')
@@ -27,7 +27,7 @@ function fixture(t, {envVariableMerges} = {}) {
             export default {
                 name: '${name}',
                 launchOptions: [{id: '${name.toLowerCase()}', on: remoteScript('example', 'install')}],
-                ${name === 'Alpha' && envVariableMerges !== undefined ? `envVariableMerges: ${JSON.stringify(envVariableMerges)},` : ''}
+                ${name === 'Alpha' && environmentVariableMerges !== undefined ? `environmentVariableMerges: ${JSON.stringify(environmentVariableMerges)},` : ''}
             }
         `)
     }
@@ -82,15 +82,16 @@ test('store contains only metadata while recipes retain their order and commit p
 })
 
 test('recipe merge lists preserve IDs, delimiters, and build-time placeholders alongside legacy recipes', (t) => {
-    const project = fixture(t, {envVariableMerges: [
+    const project = fixture(t, {environmentVariableMerges: [
         {id: 'example-config', name: '{{env:TEST_CONFIG_NAME}}', delimiter: ';'},
         {name: 'EXAMPLE_FLAGS', delimiter: ''},
     ]})
     const result = project.build({TEST_CONFIG_NAME: 'EXAMPLE_CONFIG'})
     assert.equal(result.status, 0, result.stderr)
     const [legacy, recipe] = JSON.parse(project.read('recipes.json'))
-    assert.equal(Object.hasOwn(legacy, 'envVariableMerges'), false)
-    assert.deepEqual(recipe.envVariableMerges, [
+    assert.equal(Object.hasOwn(legacy, 'environmentVariableMerges'), false)
+    assert.equal(Object.hasOwn(recipe, 'envVariableMerges'), false)
+    assert.deepEqual(recipe.environmentVariableMerges, [
         {id: 'example-config', name: 'EXAMPLE_CONFIG', delimiter: ';'},
         {name: 'EXAMPLE_FLAGS', delimiter: ''},
     ])
@@ -98,10 +99,10 @@ test('recipe merge lists preserve IDs, delimiters, and build-time placeholders a
 })
 
 test('recipes can explicitly declare an empty merge list', (t) => {
-    const project = fixture(t, {envVariableMerges: []})
+    const project = fixture(t, {environmentVariableMerges: []})
     const result = project.build()
     assert.equal(result.status, 0, result.stderr)
-    assert.deepEqual(JSON.parse(project.read('recipes.json'))[1].envVariableMerges, [])
+    assert.deepEqual(JSON.parse(project.read('recipes.json'))[1].environmentVariableMerges, [])
 })
 
 test('maintained recipes share variable identities and merge only composable settings', () => {
@@ -125,8 +126,8 @@ test('maintained recipes share variable identities and merge only composable set
         ['Wine', [wineMerge]], ['REFramework', [wineMerge]], ['DLOR OptiScaler', [wineMerge]],
     ])
     for (const recipe of recipes) {
-        assert.deepEqual(recipe.envVariableMerges, expected.get(recipe.name), recipe.name)
-        for (const rule of recipe.envVariableMerges ?? []) {
+        assert.deepEqual(recipe.environmentVariableMerges, expected.get(recipe.name), recipe.name)
+        for (const rule of recipe.environmentVariableMerges ?? []) {
             assert.ok(recipe.launchOptions.some(option =>
                 ['on', 'off'].some(state => option[state]?.includes(`${rule.name}=`))),
             `${recipe.name} must use the variable it declares`)

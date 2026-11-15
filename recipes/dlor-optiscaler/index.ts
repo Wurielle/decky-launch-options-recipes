@@ -36,7 +36,7 @@ const optimizedProfiles = [
 
 const recipe = {
     name: group,
-    envVariableMerges: [wineDllOverridesMerge],
+    environmentVariableMerges: [wineDllOverridesMerge],
     launchOptions: [
         // Reuse the old toggle ID for None so re-import clears its OFF uninstaller.
         ...[
