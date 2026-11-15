@@ -82,7 +82,7 @@ Use these fields according to the local `LaunchOption` type:
 ## Environment Variable Merges
 
 The optional recipe-level `environmentVariableMerges` attribute is a list of
-`EnvVariableMerge` objects alongside `launchOptions`. Each entry has:
+`EnvironmentVariableMerge` objects alongside `launchOptions`. Each entry has:
 
 - `id`: Stable identity of the variable's merge rule. Include an explicit ID in maintained recipes even though the type permits omission and Decky Launch Options can generate one.
 - `name`: Exact, case-sensitive environment variable name, such as `TOOL_CONFIG`.
