@@ -29,8 +29,11 @@ class Actions(unittest.TestCase):
         env = dict(os.environ, RECIPE_REPOSITORY_OWNER='Wurielle',
                    RECIPE_REPOSITORY_NAME='decky-launch-options-recipes', RECIPE_COMMIT_SHA=REVISION)
         module = output / 'recipes/anr-framegen/index.js'
-        script = f'import recipe from {json.dumps(module.as_uri())}; console.log(JSON.stringify(recipe))'
-        cls.recipe = json.loads(subprocess.check_output(['node', '--input-type=module', '-e', script], env=env, text=True))
+        installer = output / 'recipes/dlor-optiscaler/index.js'
+        script = (f'import recipe from {json.dumps(module.as_uri())}; '
+                  f'import installer from {json.dumps(installer.as_uri())}; '
+                  'console.log(JSON.stringify([recipe, installer]))')
+        cls.recipe, cls.installer = json.loads(subprocess.check_output(['node', '--input-type=module', '-e', script], env=env, text=True))
         cls.options = cls.recipe['launchOptions']
 
     def test_exact_hierarchical_ids_and_ordered_dropdown_values(self):
@@ -52,7 +55,7 @@ class Actions(unittest.TestCase):
         self.assertEqual(install['on'], f'~/.dlor/run anr-framegen install {REVISION} -- %command%')
         self.assertEqual(uninstall['on'], f'~/.dlor/run anr-framegen uninstall {REVISION} -- %command%')
 
-    def test_actual_consumer_runs_only_the_selected_action(self):
+    def actual_consumer(self):
         location = os.environ.get('DLO_CONSUMER_SOURCE')
         if not location:
             self.skipTest('Set DLO_CONSUMER_SOURCE to DLO a3996e590b61f0a985a0182cb89278a4850e39f6')
@@ -68,6 +71,10 @@ class Actions(unittest.TestCase):
             assert spec is not None and spec.loader is not None
             consumer = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(consumer)
+        return consumer
+
+    def test_actual_consumer_runs_only_the_selected_action(self):
+        consumer = self.actual_consumer()
         home = Path(self.temporary.name) / 'consumer-home'
         home.mkdir()
         runpy.run_path(str(ROOT / 'scripts/runner_test_support.py'))['install_runner'](home)
@@ -82,6 +89,47 @@ class Actions(unittest.TestCase):
                     expected = [str(home / '.dlor/run'), 'anr-framegen', selected, REVISION, '--', *expected]
                 self.assertEqual(final, expected)
                 self.assertEqual(variables, {})
+
+    def test_actual_consumer_orders_dlor_actions_around_core_and_nightly(self):
+        consumer = self.actual_consumer()
+        home = Path(self.temporary.name) / 'dlor-consumer-home'
+        home.mkdir()
+        runpy.run_path(str(ROOT / 'scripts/runner_test_support.py'))['install_runner'](home)
+        runner = str(home / '.dlor/run')
+        # Reverse source order to prove priority controls the command chain.
+        options = [option for option in reversed(self.installer['launchOptions'])
+                   if option.get('valueId') in ('dlor-optiscaler', 'dlor-' + VALUE_ID)
+                   or option['id'] == 'dlor-optiscaler-nightly-upgrade']
+        for core in (None, 'install', 'uninstall'):
+            for selected in (None, 'none', 'install', 'uninstall'):
+                for nightly in (False, True):
+                    with self.subTest(core=core, anr=selected, nightly=nightly):
+                        state = {option['id']: False for option in options}
+                        if core:
+                            state['dlor-optiscaler-' + core] = True
+                        if selected:
+                            state['dlor-' + VALUE_ID + '-' + selected] = True
+                        state['dlor-optiscaler-nightly-upgrade'] = nightly
+                        settings = {'launchOptions': options, 'profiles': {'123': {
+                            'state': state, 'originalLaunchOptions': '%command%'}}}
+                        with patch.object(sys, 'argv', ['run.py', '/harmless-game', 'literal argument']), patch.dict(os.environ, HOME=str(home)):
+                            final, variables = consumer.get_final_args_details(settings, '123')
+                        helpers = []
+                        if selected == 'uninstall':
+                            helpers.append(('anr-framegen', 'uninstall'))
+                        if core:
+                            helpers.append(('dlor-optiscaler', core))
+                        if nightly:
+                            helpers.append(('optiscaler', 'update-nightly'))
+                        if selected == 'install':
+                            helpers.append(('anr-framegen', 'install'))
+                        expected = []
+                        for recipe, action in helpers:
+                            expected += [runner, recipe, action, REVISION, '--']
+                        expected += ['/harmless-game', 'literal argument']
+                        self.assertEqual(final, expected)
+                        self.assertEqual(variables, {'WINEDLLOVERRIDES': 'dxgi=n,b', 'SteamDeck': '0'}
+                                         if core == 'install' else {})
 
 
 if __name__ == '__main__':

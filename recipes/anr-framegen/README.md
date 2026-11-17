@@ -21,6 +21,12 @@ The shared dropdown ID is `optiscaler-framegen-anr`; its choice IDs are
 `optiscaler-framegen-anr-none`, `optiscaler-framegen-anr-install`, and
 `optiscaler-framegen-anr-uninstall`.
 
+The same dropdown is included in **DLOR OptiScaler**, with independent
+`dlor-optiscaler-framegen-anr-*` choice IDs and
+`valueId: dlor-optiscaler-framegen-anr`. Its Install runs after the DLOR core and
+any selected Nightly Upgrade; its Uninstall runs before core removal. Both
+dropdowns manage the same per-game add-on, so select actions through one of them.
+
 If you imported the earlier Boolean option (`anr-framegen`), remove that saved
 option before importing this dropdown: recipe re-import does not delete retired
 saved IDs. Removal of the saved option is not the uninstall action; select the new

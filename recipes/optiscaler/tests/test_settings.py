@@ -27,11 +27,13 @@ class SettingsTests(unittest.TestCase):
         result = subprocess.run(["node", "--input-type=module", "-e",
                                  "const {default: recipe} = await import(process.argv[1]); "
                                  "const {default: installer} = await import(new URL('../dlor-optiscaler/index.js', process.argv[1])); "
-                                 "console.log(JSON.stringify([recipe, installer]));", module],
+                                 "const {default: anr} = await import(new URL('../anr-framegen/index.js', process.argv[1])); "
+                                 "console.log(JSON.stringify([recipe, installer, anr]));", module],
                                 cwd=ROOT, env=environment, capture_output=True, text=True, check=True)
         recipes = json.loads(result.stdout)
         cls.options = recipes[0]["launchOptions"]
         cls.installer_options = recipes[1]["launchOptions"]
+        cls.anr_options = recipes[2]["launchOptions"]
 
     def assignments(self, value_id):
         return [dict(token.split("=", 1) for token in shlex.split(option["on"])
@@ -163,15 +165,17 @@ class SettingsTests(unittest.TestCase):
 
     def test_dlor_imports_have_independent_option_and_dropdown_ids(self):
         originals = [option for option in self.options if option.get('valueId') != 'optiscaler']
+        originals += [{**option, 'priority': 1 if option['valueName'] == 'Uninstall' else -2}
+                      for option in self.anr_options]
         native_ids = {'dlor-optiscaler', 'dlor-optiscaler-fsr-override'}
         imported = [option for option in self.installer_options if option.get('valueId') not in native_ids]
         expected = [{**option, 'id': 'dlor-' + option['id'], 'group': 'DLOR OptiScaler',
                      **({'valueId': 'dlor-' + option['valueId']} if 'valueId' in option else {})}
                     for option in originals]
         self.assertEqual(imported, expected)
-        self.assertTrue({option['id'] for option in self.options}.isdisjoint(
+        self.assertTrue({option['id'] for option in originals}.isdisjoint(
             option['id'] for option in self.installer_options))
-        self.assertTrue({option['valueId'] for option in self.options if 'valueId' in option}.isdisjoint(
+        self.assertTrue({option['valueId'] for option in originals if 'valueId' in option}.isdisjoint(
             option['valueId'] for option in self.installer_options if 'valueId' in option))
 
     def test_setting_ids_include_the_full_display_name_hierarchy(self):

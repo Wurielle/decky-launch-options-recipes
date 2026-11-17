@@ -5475,6 +5475,40 @@
         "enableGlobally": false,
         "valueId": "dlor-optiscaler-vsync",
         "valueName": "Off"
+      },
+      {
+        "id": "dlor-optiscaler-framegen-anr-none",
+        "group": "DLOR OptiScaler",
+        "name": "OptiScaler FrameGen ANR",
+        "on": "",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "dlor-optiscaler-framegen-anr",
+        "valueName": "None",
+        "fallbackValue": true,
+        "priority": -2
+      },
+      {
+        "id": "dlor-optiscaler-framegen-anr-install",
+        "group": "DLOR OptiScaler",
+        "name": "OptiScaler FrameGen ANR",
+        "on": "~/.dlor/run anr-framegen install 461ad03678b44ea48a0abe6f00753b09c6c370fc -- %command%",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "dlor-optiscaler-framegen-anr",
+        "valueName": "Install",
+        "priority": -2
+      },
+      {
+        "id": "dlor-optiscaler-framegen-anr-uninstall",
+        "group": "DLOR OptiScaler",
+        "name": "OptiScaler FrameGen ANR",
+        "on": "~/.dlor/run anr-framegen uninstall 461ad03678b44ea48a0abe6f00753b09c6c370fc -- %command%",
+        "off": "",
+        "enableGlobally": false,
+        "valueId": "dlor-optiscaler-framegen-anr",
+        "valueName": "Uninstall",
+        "priority": 1
       }
     ]
   },
