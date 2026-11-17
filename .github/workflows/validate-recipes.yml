@@ -1,4 +1,4 @@
-name: Build recipes.json
+name: Build recipe catalogs
 
 on:
   push:
@@ -7,6 +7,9 @@ on:
     paths:
       - 'recipes/**'
       - 'scripts/build-recipes.ts'
+      - 'scripts/test-store.mjs'
+      - 'scripts/test-dlo-auto-update.py'
+      - 'store.config.ts'
       - 'tsconfig.recipes.json'
       - 'package.json'
       - 'pnpm-lock.yaml'
@@ -16,6 +19,9 @@ on:
     paths:
       - 'recipes/**'
       - 'scripts/build-recipes.ts'
+      - 'scripts/test-store.mjs'
+      - 'scripts/test-dlo-auto-update.py'
+      - 'store.config.ts'
       - 'tsconfig.recipes.json'
       - 'package.json'
       - 'pnpm-lock.yaml'
@@ -49,26 +55,36 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build recipes.json
+      - name: Test store generation
+        run: pnpm test:store
+
+      - name: Test DLO auto updater offline
+        run: |
+          bash -n recipes/decky-launch-options/scripts/auto-update.sh
+          python3 scripts/test-dlo-auto-update.py
+          python3 scripts/test-log-retention.py
+
+      - name: Build recipes.json and store.json
         env:
           RECIPE_REPOSITORY_OWNER: ${{ github.event.pull_request.head.repo.owner.login || github.repository_owner }}
           RECIPE_REPOSITORY_NAME: ${{ github.event.pull_request.head.repo.name || github.event.repository.name }}
           RECIPE_COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          RECIPE_BRANCH: ${{ github.event.pull_request.head.ref || github.ref_name }}
         run: pnpm recipes:build
 
-      - name: Commit and push generated recipes.json
+      - name: Commit and push generated catalogs
         # Release preparation generates and commits these files itself.
         if: >-
           github.event_name == 'push' &&
           !contains(fromJSON('["main", "pre/rc", "beta", "alpha"]'), github.ref_name)
         run: |
-          if git diff --quiet -- recipes.json; then
-            echo "recipes.json is already up to date"
+          if git diff --quiet -- recipes.json store.json; then
+            echo "Recipe catalogs are already up to date"
             exit 0
           fi
 
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add recipes.json
-          git commit -m "chore: rebuild recipes.json"
+          git add recipes.json store.json
+          git commit -m "chore: rebuild recipe catalogs"
           git push origin "HEAD:${GITHUB_REF}"

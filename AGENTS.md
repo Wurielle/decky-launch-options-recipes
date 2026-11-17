@@ -4,13 +4,14 @@
 
 This is a general-purpose recipe repository that supports any number of third-party plugins and tools. Never describe or design the repository, shared launcher, or shared infrastructure as being dedicated to a fixed set of tools. Named tools such as OptiScaler and REFramework may appear as explicitly labeled examples or in their own recipe-specific documentation, but they do not define the repository's scope. Use generic recipe and script placeholders when documenting shared functionality.
 
-This repository packages launch option recipes for the Decky Launch Options plugin. Recipe sources live in `recipes/<name>.ts` or `recipes/<name>/index.ts`; each source exports one `Recipe` object and `recipes/shared/types.ts` defines the shared shape. Use the directory form when a recipe has supporting files. Shared recipe modules live in `recipes/shared/`, which the generator ignores. `recipes.json` is generated from recipe sources and should not be hand-edited except to inspect output. The Decky frontend is in `src/`, backend helper code is in `backend/`, static assets are in `assets/`, default data is in `defaults/`, and recipe build tooling is in `scripts/`.
+This repository packages launch option recipes for the Decky Launch Options plugin. Recipe sources live in `recipes/<name>.ts` or `recipes/<name>/index.ts`; each source exports one `Recipe` object and `recipes/shared/types.ts` defines the shared shape. Use the directory form when a recipe has supporting files. Shared recipe modules live in `recipes/shared/`, which the generator ignores. `recipes.json` and `store.json` are generated from recipe sources and should not be hand-edited except to inspect output. Store metadata lives in `store.config.ts`. The Decky frontend is in `src/`, backend helper code is in `backend/`, static assets are in `assets/`, default data is in `defaults/`, and recipe build tooling is in `scripts/`.
 
 ## Build, Test, and Development Commands
 
 - `pnpm install`: install JavaScript dependencies using the pinned package manager.
-- `pnpm recipes:build`: compile recipe TypeScript and regenerate `recipes.json`.
-- `pnpm recipes:check`: regenerate recipes and fail if `recipes.json` differs from the committed file.
+- `pnpm recipes:build`: compile recipe TypeScript and regenerate `recipes.json` and `store.json`.
+- `pnpm recipes:check`: regenerate both catalogs and fail if they differ from their tracked versions.
+- `pnpm test:store`: run isolated store and recipe generator regression checks.
 - `pnpm build`: build the Decky plugin frontend with Rollup.
 - `pnpm watch`: run Rollup in watch mode.
 - `just setup`: run repository setup helpers from `.vscode/`.
@@ -22,7 +23,7 @@ This repository packages launch option recipes for the Decky Launch Options plug
 
 Use TypeScript ESM style and match nearby files. Recipe files and directories use hyphen-case names, for example `lossless-scaling.ts` or `reframework/index.ts`. Import the shared type from `./shared/types.js` in top-level files or `../shared/types.js` in directory indexes. Prefer 4-space indentation in recipe objects, trailing commas, and explicit `satisfies Recipe`.
 
-Launch option IDs should be stable and hyphen-case. A regular option usually uses the feature name only, such as `mangohud`. Dropdown values should include the tool, modified option/config, and value, for example `mangohud-config-preset-1` or `mangohud-fps-limit-60`.
+Launch option IDs should be stable and hyphen-case. A regular option usually uses the feature name only, such as `mangohud`. Dropdown values should include the tool, modified option/config, and value, for example `mangohud-config-preset-1` or `mangohud-config-fps-limit-60`.
 
 Name constants holding script commands after the corresponding script, converting hyphen-case to camelCase and omitting `.sh`: for example, `update-nightly.sh` becomes `updateNightly`, and `uninstall.sh` becomes `uninstall`.
 

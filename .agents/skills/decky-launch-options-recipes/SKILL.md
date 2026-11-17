@@ -1,6 +1,6 @@
 ---
 name: decky-launch-options-recipes
-description: Create or update Decky Launch Options recipe sources for the Wurielle/decky-launch-options plugin. Use when asked to add launch options, recipe entries, dropdown launch options, or generated recipes.json output, especially in repositories with TypeScript sources under recipes/ and a Recipe type.
+description: Create or update Decky Launch Options recipe sources for the Wurielle/decky-launch-options plugin. Use when asked to add launch options, recipe entries, dropdown launch options, recipe environment variable merges, or generated recipes.json output, especially in repositories with TypeScript sources under recipes/ and a Recipe type.
 ---
 
 # Decky Launch Options Recipes
@@ -49,7 +49,8 @@ export default recipe
    - Import `LaunchOption` along with `Recipe` when building `launchOptions` from arrays or helper functions.
    - Keep source arrays compact and ordered the same way the UI should display values, then use `map` or `flatMap` to produce `LaunchOption[]`.
    - Use small helper functions for repeated command fragments, such as quoted environment-variable assignments.
-   - Do not generate IDs from user-facing labels when values need stable compatibility; define explicit `id` values for non-trivial choices.
+   - Choose explicit, stable IDs using the semantic hierarchy rules below. Do not recompute IDs from labels at runtime; later wording changes must not silently change saved identities.
+   - Declare `environmentVariableMerges` for list-valued environment variables that must combine across active controls or recipes. Follow the merge rules and variable-based IDs below; launch option ID namespacing does not apply to shared merge rules.
    - Keep recipe-specific instructions beside the relevant code as comments, not in this skill. Add or update comments when an implementation depends on non-obvious command ordering, overwrite rules, archive layout, or variant selection. Explain the constraint and its reason; point to supporting script comments from the recipe source when needed instead of duplicating them.
 
 3. Build or check recipes using the repo script, usually `pnpm recipes:build` or `pnpm recipes:check`.
@@ -77,6 +78,65 @@ Use these fields according to the local `LaunchOption` type:
 - `valueId`: Shared dropdown identifier.
 - `valueName`: Dropdown choice label.
 - `fallbackValue`: Mark the default dropdown choice.
+
+## Environment Variable Merges
+
+The optional recipe-level `environmentVariableMerges` attribute is a list of
+`EnvironmentVariableMerge` objects alongside `launchOptions`. Each entry has:
+
+- `id`: Stable identity of the variable's merge rule. Include an explicit ID in maintained recipes even though the type permits omission and Decky Launch Options can generate one.
+- `name`: Exact, case-sensitive environment variable name, such as `TOOL_CONFIG`.
+- `delimiter`: Literal separator expected by the program reading the variable. `''` concatenates values directly; it does not disable merging.
+
+Add a rule when independently active options contribute values to the same
+list-valued variable, including options supplied by other recipes or the user's
+launch command. A recipe with only one assignment may still need a rule for
+cross-recipe composition. For example, `WINEDLLOVERRIDES` entries join with `;`,
+and `MANGOHUD_CONFIG` settings join with `,`. Check the consumer's syntax before
+choosing a delimiter; the `,` inside a Wine value such as `dxgi=n,b` separates
+load modes, not DLL override entries.
+
+Repeated assignments alone do not imply merging. Scalar switches, scale factors,
+file paths, and alternative values of one dropdown must retain replacement
+semantics. For example, do not merge `PROTON_USE_XALIA`, `QT_SCALE_FACTOR`, or
+individual `OptiScaler_*` settings. Merge rules join whole values; they do not
+resolve conflicting settings or deduplicate entries.
+
+```ts
+import type { Recipe } from './shared/types.js'
+
+const recipe = {
+    name: 'Example Tool',
+    launchOptions: [
+        {id: 'example-tool-overlay', on: 'TOOL_CONFIG="overlay=1"'},
+        {id: 'example-tool-fps-limit', on: 'TOOL_CONFIG="fps_limit=60"'},
+    ],
+    environmentVariableMerges: [
+        {id: 'tool-config', name: 'TOOL_CONFIG', delimiter: ','},
+    ],
+} satisfies Recipe
+
+export default recipe
+```
+
+With both controls active in this order, the rule combines the values as
+`TOOL_CONFIG="overlay=1,fps_limit=60"`. The generator preserves the list in
+`recipes.json` and resolves `{{env:VARIABLE_NAME}}` placeholders in its string
+fields. Omit the attribute when no rule is needed. Publishing the attribute
+requires consumer support to apply it; check the importer before claiming that
+recipe rules are installed, and keep consumer changes within the requested scope.
+
+### Merge Rule IDs
+
+Merge rules identify environment variables globally, unlike launch option IDs,
+which identify controls within a recipe's namespace.
+
+- First reuse the ID already used for that exact variable by Decky Launch Options or another recipe. Its defaults include `winedlloverrides` for `WINEDLLOVERRIDES` and `mangohud-config` for `MANGOHUD_CONFIG`.
+- For a new variable, choose an explicit lowercase hyphen-case ID from its technical name: lowercase it and replace underscores with hyphens. For example, `TOOL_CONFIG` becomes `tool-config` and `TOOL_SEARCH_PATH` becomes `tool-search-path`. Keep conventional tokens intact; `WINEDLLOVERRIDES` remains `winedlloverrides`.
+- Do not add the recipe name, option/feature name, dropdown value, delimiter, version, or an `env-merge` prefix. `reframework-winedlloverrides`, `wine-dll-override-dxgi`, and `tool-config-comma` identify incidental context rather than the shared variable rule.
+- Keep IDs stable when labels or recipe contents change. Write the ID explicitly instead of generating it from display text. Do not reuse an existing ID for a different case-sensitive variable name; check for collisions after normalization and choose a distinct explicit technical qualifier if necessary.
+- All recipes declaring the same variable must use the same ID and delimiter. Declare the variable only once per recipe, and check that unrelated variables do not share an ID. Reuse a shared typed constant under `recipes/shared/` when several recipes need the same rule, as with `wineDllOverridesMerge`.
+- When copying controls into another recipe, namespace the launch option's `id` and `valueId` as described below, but preserve a shared merge rule's identity. Include the rules required by the copied controls; do not create a new merge ID per destination recipe.
 
 ## Command Rules
 
@@ -146,16 +206,19 @@ subshell keeps the locale, glob settings, and temporary variables local to clean
 
 ## ID Convention
 
-Use predictable, hyphen-case IDs derived from the full host → feature → component hierarchy. Do not shorten an option ID to the recipe directory or component name when it belongs under a host feature.
+Define IDs as stable paths through a control's logical scope:
 
-- Regular launch option: include its full feature/tool hierarchy.
-- Dropdown option: append the explicit value/action to that hierarchy.
-  - Pattern: `<host>-<feature>-<component>-<value>` when all three levels apply.
-  - Example: OptiScaler ANR FrameGen has `valueId: 'optiscaler-framegen-anr'` and IDs `optiscaler-framegen-anr-none`, `optiscaler-framegen-anr-install`, `optiscaler-framegen-anr-uninstall`.
-  - Other examples: `tool-config-preset-none`, `tool-config-preset-fast`, `tool-fps-limit-60`.
-- Keep all choices in a dropdown on the same `valueId` and shared display name.
+`<namespace>[-<feature-or-operation>][-<subsystem-or-target>][-<setting>]`
+
+- Start with the owning tool or recipe namespace, then order the applicable parts from broad to specific. Include the feature or operation, any backend/subsystem/target that distinguishes the control, and the setting being changed. A main tool toggle can use its namespace alone. Use the same component order throughout a related family of controls.
+- Include each meaningful concept once. An operation can be a compound such as `library-override`; its target follows it. Omit redundant context, including a file extension already identified by the operation. Examples: `tool-library-override-module` and `tool-renderer-backend-preset` are complete control bases.
+- Use lowercase hyphen-case and explicit technical tokens. Preserve conventional acronyms and version-number tokens that identify a single concept. Derive the structure from what the control does, using its label, configuration assignment, and neighboring controls as evidence. Labels can reorder words or omit context supplied by the UI; IDs do not need to reproduce label word order, punctuation, or spacing.
+- A regular option uses the control base as its `id`, with no `valueId`. A dropdown uses the control base as its shared `valueId`, and `<control-base>-<value-id>` as each choice's `id`, including `none`. For example, `tool-renderer-backend-preset` has choices `tool-renderer-backend-preset-none` and `tool-renderer-backend-preset-high`. Define stable value suffixes explicitly; they identify choices independently of cosmetic label changes.
+- Keep the complete base identical in a dropdown's `valueId` and choice IDs. Put only choice-specific information in the suffix. Check that the resulting IDs are unique and that unrelated controls do not share a `valueId`.
+- When importing options into another recipe as independent controls, copy them with the destination `group` and a destination namespace on **both** `id` and any existing `valueId`, for example `<destination>-<source-id>`. Changing only `group` leaves identities shared and can overwrite controls or link dropdowns. Preserve source objects and leave `valueId` absent on regular options.
+- Preserve existing IDs that meet these rules. Flag missing logical scope, ambiguous or colliding identities, inconsistent family structure, and mismatched dropdown bases. Label differences alone do not justify renaming. Honor explicit user-requested naming changes; when correcting existing IDs, regenerate the catalog and explain that saved controls with old IDs need replacement because re-importing a new ID does not update or delete the old one.
 - Model installation/removal as an ordered **None / Install / Uninstall** dropdown, not a Boolean toggle with uninstall in `off`. None is inert and the only fallback; all choices have empty `off` and `enableGlobally: false`. Put each action's runner call only in its own `on` field. Deselecting an action must not uninstall anything.
-- Verify exact IDs, ordering, defaults, and selected/deselected behavior through the real consumer. Re-importing does not delete retired saved IDs; document removal of an old Boolean option when replacing one.
+- OptiScaler ANR FrameGen uses `valueId: 'optiscaler-framegen-anr'` and exactly `optiscaler-framegen-anr-none`, `optiscaler-framegen-anr-install`, and `optiscaler-framegen-anr-uninstall`. Verify exact IDs, ordering, defaults and selected/deselected behavior through the real consumer; retain this user-defined hierarchy when refreshing shared guidance.
 
 ## Dropdown Defaults
 
@@ -188,7 +251,7 @@ const toolModeValues = [
 const toolModeOptions: LaunchOption[] = toolModeValues.map((mode): LaunchOption => ({
     id: `tool-config-mode-${mode.id}`,
     group: 'Tool',
-    name: 'Tool Mode',
+    name: 'Tool Config Mode',
     on: mode.value === null ? '' : `TOOL_MODE="${mode.value}"`,
     off: '',
     enableGlobally: false,
@@ -206,7 +269,11 @@ Before finishing:
 
 - Confirm the recipe compiles against `Recipe`.
 - Confirm every launch option has a stable `id`.
-- Confirm dropdown IDs include tool, option/config name, and value.
+- Confirm list-valued variables that combine across independent controls or recipes have merge declarations with the consumer's delimiter, and scalar or mutually exclusive values remain unmerged.
+- Confirm merge IDs identify variables, reuse existing identities, and have consistent names and delimiters across recipes, with no duplicate variable rules within a recipe or ID collisions between different variables.
+- Confirm control IDs follow a complete, consistent namespace-to-setting hierarchy, with no missing or redundant scope. Check their meaning against labels and configuration behavior rather than requiring literal label-slug equality.
+- Confirm dropdown IDs append explicit, stable value suffixes to their exact shared `valueId`, with unique IDs and no unrelated dropdowns sharing a base.
+- For independently imported controls, confirm the destination group and namespace are applied to both ID fields, and that source/destination IDs and dropdown `valueId`s do not overlap.
 - Confirm every dropdown includes `None` with empty `on` and `off` as its only fallback/default choice.
 - Confirm `%command%` is present for wrappers and absent for pure environment-variable options.
 - Confirm every `curl` command used by a Steam launch option is prefixed with the shared `hostRuntime` value.

@@ -54,12 +54,18 @@ exit "${DOWNLOAD_STATUS:-0}"
         self.assertEqual(list(self.downloads.iterdir()), [])
         return result
 
-    def test_downloads_every_time_without_metadata(self):
-        for _ in range(2):
-            self.assertEqual(self.run_game().returncode, 0)
-        self.assertEqual((self.home / "downloads").read_text().splitlines(), [self.source["url"]] * 2)
+    def test_pinned_command_is_reused_offline_with_integrity_metadata(self):
+        self.assertEqual(self.run_game().returncode, 0)
+        (self.home / "helper-ran").unlink()
+        self.env["DOWNLOAD_STATUS"] = "22"
+        self.assertEqual(self.run_game().returncode, 0)
+        self.assertEqual((self.home / "downloads").read_text().splitlines(), [self.source["url"]])
         self.assertEqual((self.home / "helper-ran").read_text(), "game with spaces")
-        self.assertFalse((self.home / ".dlor/scripts").exists())
+        cached = list((self.home / ".dlor/cache/commands").glob("*/command.sh"))
+        self.assertEqual(len(cached), 1)
+        import hashlib
+        self.assertEqual((cached[0].parent / "sha256").read_text().strip(),
+                         hashlib.sha256(cached[0].read_bytes()).hexdigest())
 
     def test_omitted_sha_downloads_dev_each_time_without_import(self):
         self.assertEqual(self.run_game(pinned=False).returncode, 0)
@@ -132,15 +138,155 @@ exit "${DOWNLOAD_STATUS:-0}"
         self.tool("tee", 'exec /usr/bin/tee "$@" /dev/full\n')
         self.assertEqual(self.run_game().returncode, 0)
 
-    def test_concurrent_launches_use_separate_downloads(self):
-        self.payload.write_text('sleep 0.1\n')
+    def test_concurrent_launches_publish_one_complete_download(self):
+        self.tool("curl", '''
+printf '%s\\n' "${@: -1}" >> "$HOME/downloads"
+while [[ "$1" != --output ]]; do shift; done
+printf 'printf complete >> "$HOME/helpers"\\n' > "$2"
+sleep 0.2
+printf 'printf end >> "$HOME/helpers"\\n' >> "$2"
+''')
         processes = [subprocess.Popen(self.command(), env=self.env, stdout=subprocess.PIPE,
-                                      stderr=subprocess.PIPE, text=True) for _ in range(2)]
+                                      stderr=subprocess.PIPE, text=True) for _ in range(4)]
         for process in processes:
-            process.communicate(timeout=15)
-            self.assertEqual(process.returncode, 0)
+            stdout, stderr = process.communicate(timeout=15)
+            self.assertEqual(process.returncode, 0, stdout + stderr)
         self.assertEqual(list(self.downloads.iterdir()), [])
+        self.assertEqual(len((self.home / "downloads").read_text().splitlines()), 1)
+        self.assertEqual((self.home / "helpers").read_text().count("complete"), 4)
+        self.assertEqual((self.home / "helpers").read_text().count("end"), 4)
+        self.assertEqual(list((self.home / ".dlor/cache/commands").glob(".download.*")), [])
+
+    def cached_command(self):
+        entries = list((self.home / ".dlor/cache/commands").glob("*/command.sh"))
+        self.assertEqual(len(entries), 1)
+        return entries[0]
+
+    def test_corrupt_command_is_repaired_before_execution(self):
+        self.run_game()
+        self.cached_command().write_text('touch "$HOME/corrupt-ran"\n')
+        self.run_game()
+        self.assertFalse((self.home / "corrupt-ran").exists())
+        self.assertEqual(self.cached_command().read_bytes(), self.payload.read_bytes())
         self.assertEqual(len((self.home / "downloads").read_text().splitlines()), 2)
+
+    def test_corrupt_command_offline_is_never_executed(self):
+        self.run_game()
+        (self.home / "helper-ran").unlink()
+        self.cached_command().write_text('touch "$HOME/corrupt-ran"\n')
+        self.env["DOWNLOAD_STATUS"] = "22"
+        self.run_game()
+        self.assertFalse((self.home / "helper-ran").exists())
+        self.assertFalse((self.home / "corrupt-ran").exists())
+
+    def test_missing_or_invalid_digest_is_repaired(self):
+        self.run_game()
+        digest = self.cached_command().parent / "sha256"
+        for value in (None, "not a digest", "0" * 64):
+            if value is None:
+                digest.unlink()
+            else:
+                digest.write_text(value)
+            self.run_game()
+        self.assertEqual(len((self.home / "downloads").read_text().splitlines()), 4)
+
+    def test_repository_revision_recipe_and_script_keys_are_isolated(self):
+        self.run_game()
+        for key, value in (("sha", "2" * 40), ("recipe", "another"), ("script", "install")):
+            self.run_game({**self.source, key: value})
+        self.env["DLOR_REPOSITORY"] = "fork/recipes"
+        self.run_game()
+        self.assertEqual(len(list((self.home / ".dlor/cache/commands").glob("*/command.sh"))), 5)
+        self.env.pop("DLOR_REPOSITORY")
+        self.env["DOWNLOAD_STATUS"] = "22"
+        self.run_game()
+        self.assertEqual(len((self.home / "downloads").read_text().splitlines()), 5)
+
+    def test_failed_transfer_is_not_published_and_next_launch_retries(self):
+        self.env["DOWNLOAD_STATUS"] = "22"
+        self.run_game()
+        self.assertEqual(list((self.home / ".dlor/cache/commands").glob("*/command.sh")), [])
+        self.env.pop("DOWNLOAD_STATUS")
+        self.run_game()
+        self.assertTrue((self.home / "helper-ran").exists())
+        self.cached_command()
+
+    def test_invalid_shell_is_not_published_or_executed(self):
+        self.payload.write_text('touch "$HOME/invalid-ran"\nif then\n')
+        self.run_game()
+        self.assertFalse((self.home / "invalid-ran").exists())
+        self.assertEqual(list((self.home / ".dlor/cache/commands").glob("*/command.sh")), [])
+
+    def test_failed_publication_cleans_staging_and_retries(self):
+        self.tool("mv", "exit 19\n")
+        self.run_game()
+        self.assertEqual(list((self.home / ".dlor/cache/commands").glob(".download.*")), [])
+        self.assertFalse((self.home / "helper-ran").exists())
+        (self.bin / "mv").unlink()
+        self.run_game()
+        self.cached_command()
+
+    def test_mutable_dev_does_not_use_stale_or_pinned_cache_offline(self):
+        self.run_game()
+        self.run_game(pinned=False)
+        (self.home / "helper-ran").unlink()
+        self.env["DOWNLOAD_STATUS"] = "22"
+        self.run_game(pinned=False)
+        self.assertFalse((self.home / "helper-ran").exists())
+        self.run_game()
+        self.assertTrue((self.home / "helper-ran").exists())
+        self.assertEqual(len((self.home / "downloads").read_text().splitlines()), 3)
+
+    def test_symlinked_home_ancestor_is_supported(self):
+        alias = self.home / "alias"
+        alias.symlink_to(self.home, target_is_directory=True)
+        self.env["HOME"] = str(alias / ".")
+        self.run_game()
+        self.run_game()
+        self.assertEqual(len((self.home / "downloads").read_text().splitlines()), 1)
+
+    def test_cache_internal_symlink_is_rejected(self):
+        outside = self.home / "outside"
+        outside.mkdir()
+        (self.home / ".dlor/cache").symlink_to(outside, target_is_directory=True)
+        self.run_game()
+        self.assertFalse((self.home / "downloads").exists())
+        self.assertEqual(list(outside.iterdir()), [])
+
+    def test_cached_command_symlink_is_not_followed(self):
+        self.run_game()
+        command = self.cached_command()
+        command.unlink()
+        command.symlink_to(self.payload)
+        original = self.payload.read_bytes()
+        self.run_game()
+        self.assertFalse(command.is_symlink())
+        self.assertEqual(self.payload.read_bytes(), original)
+
+    def test_warm_cache_preserves_game_argv_environment_stdin_and_exit(self):
+        self.run_game()
+        self.payload.write_text('exit 99\n')
+        self.env.update(DOWNLOAD_STATUS="22", STEAM_RUNTIME="/steam/runtime",
+                        LD_LIBRARY_PATH="game-libraries", TEST_VALUE="literal value")
+        command = self.command()
+        command[command.index("--") + 1:] = ["/usr/bin/python3", "-c",
+            'import os,sys,json; print(json.dumps([sys.argv[1:], sys.stdin.read(), '
+            '[os.environ[k] for k in ("STEAM_RUNTIME", "LD_LIBRARY_PATH", "TEST_VALUE")]])); sys.exit(42)',
+            "space 雪", 'a"b', "$literal", "--"]
+        result = subprocess.run(command, env=self.env, input="game input", text=True,
+                                capture_output=True, timeout=15)
+        self.assertEqual(result.returncode, 42)
+        import json
+        self.assertIn(json.dumps([["space 雪", 'a"b', "$literal", "--"], "game input",
+                                   ["/steam/runtime", "game-libraries", "literal value"]]), result.stdout)
+        self.assertEqual(len((self.home / "downloads").read_text().splitlines()), 1)
+
+    def test_helper_inherits_original_umask(self):
+        self.payload.write_text('umask > "$HOME/helper-umask"\n')
+        command = ["/bin/bash", "-c", 'umask 022; exec "$@"', "--", *self.command()]
+        result = subprocess.run(command, env=self.env, capture_output=True, text=True, timeout=15)
+        self.assertEqual(result.returncode, 0)
+        self.assertEqual((self.home / "helper-umask").read_text().strip(), "0022")
 
     def test_plugin_startup_repairs_launcher(self):
         with patch.object(plugin.decky, "DECKY_USER_HOME", str(self.home)):

@@ -1,5 +1,6 @@
 import type { LaunchOption, Recipe } from '../shared/types.js'
 import { remoteScript } from '../shared/remote-script.js'
+import { wineDllOverridesMerge } from '../shared/env-variable-merges.js'
 
 const reframeworkGroup = 'REFramework'
 const update = remoteScript('reframework', 'update')
@@ -40,6 +41,7 @@ const launchOptions: LaunchOption[] = actionValues.map((action): LaunchOption =>
 const recipe = {
     name: reframeworkGroup,
     launchOptions,
+    environmentVariableMerges: [wineDllOverridesMerge],
 } satisfies Recipe
 
 export default recipe

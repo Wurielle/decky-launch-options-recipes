@@ -1,4 +1,4 @@
-// Generate a self-contained command. The runner downloads the script on every launch.
+// Generate a self-contained, commit-pinned command for the shared runner.
 export function remoteScript(recipe: string, script: string) {
     const required = (name: string, pattern: RegExp) => {
         const value = process.env[name]

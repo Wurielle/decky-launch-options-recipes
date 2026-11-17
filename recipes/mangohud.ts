@@ -68,7 +68,7 @@ const presetOptions: LaunchOption[] = presetValues.map((preset): LaunchOption =>
 
 const fpsLimitOptions: LaunchOption[] = [
     {
-        id: 'mangohud-fps-limit-none',
+        id: 'mangohud-config-fps-limit-none',
         group: mangoHudGroup,
         name: 'MangoHud FPS Limit',
         on: '',
@@ -79,7 +79,7 @@ const fpsLimitOptions: LaunchOption[] = [
         fallbackValue: true,
     },
     ...fpsLimitValues.map((fpsLimit): LaunchOption => ({
-        id: `mangohud-fps-limit-${fpsLimit}`,
+        id: `mangohud-config-fps-limit-${fpsLimit}`,
         group: mangoHudGroup,
         name: 'MangoHud FPS Limit',
         on: mangoHudConfig(`fps_limit=${fpsLimit}`),
@@ -106,6 +106,9 @@ const launchOptions: LaunchOption[] = [
 const recipe = {
     "name": "MangoHud",
     launchOptions,
+    environmentVariableMerges: [
+        {id: 'mangohud-config', name: 'MANGOHUD_CONFIG', delimiter: ','},
+    ],
 } satisfies Recipe
 
 export default recipe

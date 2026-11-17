@@ -3,13 +3,15 @@ import {execFileSync} from 'node:child_process';
 import path from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 
-import type {Recipe} from '../recipes/shared/types.js';
+import type {Recipe, Store} from '../recipes/shared/types.js';
+import storeMetadata from '../store.config.js';
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(currentDir, '..', '..', '..');
 const recipesDir = path.join(repoRoot, 'recipes');
 const compiledRecipesDir = path.join(repoRoot, '.generated', 'recipes-build', 'recipes');
 const outputPath = path.join(repoRoot, 'recipes.json');
+const storeOutputPath = path.join(repoRoot, 'store.json');
 const environmentPlaceholderPattern = /\{\{env:([A-Z_][A-Z0-9_]*)\}\}/g;
 const ignoredRecipeDirectories = new Set(['shared']);
 
@@ -117,6 +119,15 @@ async function loadRecipes(): Promise<Recipe[]> {
 }
 
 async function main() {
+  // CI supplies the source branch explicitly, including for detached PR checkouts.
+  process.env.RECIPE_BRANCH ??= execFileSync('git', ['branch', '--show-current'], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+  }).trim();
+  if (!process.env.RECIPE_BRANCH) {
+    throw new Error('Set RECIPE_BRANCH when building from a detached checkout.');
+  }
+  const store = resolveEnvironmentPlaceholders(storeMetadata, 'store.config.ts') as Store;
   const recipes = await loadRecipes();
   const existingOrder = await getExistingRecipeOrder();
   recipes.sort((a, b) => {
@@ -130,8 +141,8 @@ async function main() {
     return a.name.localeCompare(b.name);
   });
   const json = `${JSON.stringify(recipes, null, 2)}\n`;
-
   await fs.writeFile(outputPath, json, 'utf8');
+  await fs.writeFile(storeOutputPath, `${JSON.stringify(store, null, 2)}\n`, 'utf8');
 }
 
 main().catch((error) => {

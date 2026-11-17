@@ -1,4 +1,5 @@
 import type { LaunchOption, Recipe } from './shared/types.js'
+import { wineDllOverridesMerge } from './shared/env-variable-merges.js'
 
 const recommendedDlls = [
     'winhttp.dll',
@@ -84,6 +85,7 @@ const launchOptions: LaunchOption[] = recommendedDlls.flatMap((dll) => {
 const recipe = {
     "name": "Wine",
     launchOptions,
+    environmentVariableMerges: [wineDllOverridesMerge],
 } satisfies Recipe
 
 export default recipe

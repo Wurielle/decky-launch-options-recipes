@@ -104,7 +104,7 @@ const frameGenInputValues = [
     },
     {
         id: 'nvngxfg',
-        name: "Nukem's/Artur's DLSSG",
+        name: 'Nvngx DLSSG',
         value: 'nvngxfg',
     },
     {
@@ -121,6 +121,11 @@ const frameGenInputValues = [
         id: 'fsrfg30',
         name: 'FSR 3.0 FG',
         value: 'fsrfg30',
+    },
+    {
+        id: 'xefg',
+        name: 'XeFG',
+        value: 'xefg',
     },
 ] as const
 
@@ -146,19 +151,14 @@ const frameGenOutputValues = [
         value: 'xefg',
     },
     {
-        id: 'nvngxfg',
-        name: 'FSR3-FG Nukem/Enabler',
-        value: 'nvngxfg',
-    },
-    {
         id: 'dlssg',
         name: 'DLSSG',
         value: 'dlssg',
     },
     {
-        id: 'dlssgwithnvngx',
-        name: 'DLSSG with Nvngx FG',
-        value: 'dlssgwithnvngx',
+        id: 'reprojection',
+        name: 'Reprojection',
+        value: 'reprojection',
     },
 ] as const
 
@@ -216,9 +216,9 @@ const dx11UpscalerValues = [
         value: 'fsr22_12',
     },
     {
-        id: 'fsr31-12',
-        name: 'FSR 3.1 / FSR4 (DX11on12)',
-        value: 'fsr31_12',
+        id: 'ffx-12',
+        name: 'FidelityFX / FSR4',
+        value: 'ffx_12',
     },
     {
         id: 'dlss',
@@ -249,9 +249,9 @@ const dx12UpscalerValues = [
         value: 'fsr22',
     },
     {
-        id: 'fsr31',
-        name: 'FSR 3.1 / FSR4',
-        value: 'fsr31',
+        id: 'ffx',
+        name: 'FidelityFX / FSR4',
+        value: 'ffx',
     },
     {
         id: 'dlss',
@@ -277,9 +277,9 @@ const vulkanUpscalerValues = [
         value: 'fsr22',
     },
     {
-        id: 'fsr31',
-        name: 'FSR 3.1 (native)',
-        value: 'fsr31',
+        id: 'ffx',
+        name: 'FidelityFX',
+        value: 'ffx',
     },
     {
         id: 'xess',
@@ -292,9 +292,9 @@ const vulkanUpscalerValues = [
         value: 'fsr21_12',
     },
     {
-        id: 'fsr31-12',
-        name: 'FSR 3.1 / FSR4 (VKon12)',
-        value: 'fsr31_12',
+        id: 'ffx-12',
+        name: 'FidelityFX / FSR4',
+        value: 'ffx_12',
     },
     {
         id: 'dlss',
@@ -313,8 +313,7 @@ const fsr4PresetValues = [
     {id: '5', name: 'Ultra Performance', value: 5},
 ] as const
 
-// The V-Sync section contains a hyphen, so its environment variables must be
-// passed through env rather than used as shell variable assignments.
+// The updater accepts normalized section names, keeping V-Sync shell-safe.
 const vsyncValues = [
     {id: 'none', name: 'None', value: null, override: null},
     {id: 'auto', name: 'Auto', value: 'auto', override: 'auto'},
@@ -326,7 +325,7 @@ const vsyncOptions: LaunchOption[] = vsyncValues.map((value): LaunchOption => ({
     id: `optiscaler-vsync-${value.id}`,
     group: optiScalerGroup,
     name: 'OptiScaler VSync',
-    on: value.value === null ? '' : `env ${optiScalerEnv('V-Sync_OverrideVsync', value.override)} ${optiScalerEnv('V-Sync_ForceVsync', value.value)} %command%`,
+    on: value.value === null ? '' : `${optiScalerEnv('VSync_OverrideVsync', value.override)} ${optiScalerEnv('VSync_ForceVsync', value.value)}`,
     off: '',
     enableGlobally: false,
     valueId: 'optiscaler-vsync',
@@ -334,25 +333,61 @@ const vsyncOptions: LaunchOption[] = vsyncValues.map((value): LaunchOption => ({
     ...(value.value === null ? {fallbackValue: true} : {}),
 }))
 
-const syncIntervalOptions: LaunchOption[] = optiScalerDropdown(
-    'optiscaler-vsync-sync-interval',
-    'OptiScaler VSync Sync Interval',
-    'optiscaler-vsync-sync-interval',
-    'V-Sync_SyncInterval',
-    [
-        {id: 'auto', name: 'Auto', value: 'auto'},
-        ...[0, 1, 2, 3].map((value) => ({id: `${value}`, name: `${value}`, value})),
-    ],
-).map((option) => ({...option, on: option.on === '' ? '' : `env ${option.on} %command%`}))
+const booleanValues = [
+    {id: 'auto', name: 'Auto', value: 'auto'},
+    {id: 'on', name: 'On', value: true},
+    {id: 'off', name: 'Off', value: false},
+] as const
+
+// Counts exclude the original frame; documented multipliers remain capability-dependent.
+const mfgOptions: LaunchOption[] = ([['xefg', 'XeFG', 3], ['dlssg', 'DLSSG', 5]] as const).flatMap(([engine, section, maximum]) => {
+    const prefix = `optiscaler-framegen-${engine}`
+    const counts = Array.from({length: maximum}, (_, index) => ({
+        id: `${index + 1}`, name: `${index + 2}×`, value: index + 1,
+    }))
+    return [
+        ...optiScalerDropdown(
+            `${prefix}-mfg-multiplier`, `OptiScaler FrameGen ${section} MFG Multiplier`, `${prefix}-mfg-multiplier`,
+            `${section}_InterpolationCount`,
+            [{id: 'auto', name: 'Auto', value: 'auto'}, ...counts],
+        ),
+        ...optiScalerDropdown(
+            `${prefix}-dynamic-mfg-target-fps`, `OptiScaler FrameGen ${section} Dynamic MFG Target FPS`, `${prefix}-dynamic-mfg-target-fps`,
+            `${section}_FramerateTargetDMFG`,
+            [
+                {id: 'auto', name: 'Auto', value: 'auto'},
+                ...(engine === 'dlssg' ? [{id: '0', name: 'Display refresh rate', value: 0}] : []),
+                ...[10, 20, ...framerateLimitValues].map((value) => ({id: `${value}`, name: `${value} FPS`, value})),
+            ],
+        ),
+    ]
+})
+
+const dynamicMfgOptions: LaunchOption[] = ([
+    ['xefg-dynamic-mfg', 'XeFG Dynamic MFG', 'XeFG_DynamicMFG'],
+    ['xefg-dynamic-mfg-use-target-as-fps-limit', 'XeFG Dynamic MFG Use Target as FPS Limit', 'XeFG_TargetAsCapDMFG'],
+    ['dlssg-dynamic-mfg', 'DLSSG Dynamic MFG', 'DLSSG_ForceDMFG'],
+] as const).flatMap(([id, name, setting]) => optiScalerDropdown(
+    `optiscaler-framegen-${id}`, `OptiScaler FrameGen ${name}`, `optiscaler-framegen-${id}`, setting, booleanValues,
+))
 
 const launchOptions: LaunchOption[] = [
-    {
-        id: 'optiscaler',
+    // Keep the legacy ID on None so re-importing clears the old OFF uninstaller.
+    ...[
+        {id: 'optiscaler', name: 'None', command: ''},
+        {id: 'optiscaler-install', name: 'Install', command: '~/fgmod/fgmod %command%'},
+        {id: 'optiscaler-uninstall', name: 'Uninstall', command: '~/fgmod/fgmod-uninstaller.sh %command%'},
+    ].map((action): LaunchOption => ({
+        id: action.id,
         group: '',
         name: 'OptiScaler',
-        on: '~/fgmod/fgmod %command%',
-        off: '~/fgmod/fgmod-uninstaller.sh %command%',
-    },
+        on: action.command,
+        off: '',
+        enableGlobally: false,
+        valueId: 'optiscaler',
+        valueName: action.name,
+        ...(action.id === 'optiscaler' ? {fallbackValue: true} : {}),
+    })),
     {
         id: 'optiscaler-nightly-upgrade',
         group: optiScalerGroup,
@@ -363,21 +398,21 @@ const launchOptions: LaunchOption[] = [
         priority: -1,
     },
     {
-        id: 'optiscaler-framegen-enabled',
+        id: 'optiscaler-framegen',
         group: optiScalerGroup,
         name: 'OptiScaler FrameGen',
         on: optiScalerEnv('FrameGen_Enabled', 'true'),
         off: optiScalerEnv('FrameGen_Enabled', 'false'),
     },
     ...optiScalerDropdown(
-        'optiscaler-menu-shortcut-key',
+        'optiscaler-menu-shortcut',
         'OptiScaler Menu Shortcut',
-        'optiscaler-menu-shortcut-key',
+        'optiscaler-menu-shortcut',
         'Menu_ShortcutKey',
         menuShortcutKeyValues,
     ),
     {
-        id: 'optiscaler-hudfix',
+        id: 'optiscaler-framegen-optifg-hudfix',
         group: optiScalerGroup,
         name: 'OptiScaler FrameGen OptiFG HUDFix',
         on: optiScalerEnv('OptiFG_HUDFix', 'true'),
@@ -422,63 +457,75 @@ const launchOptions: LaunchOption[] = [
         ],
     ),
     ...optiScalerDropdown(
-        'optiscaler-upscalers-dx11',
+        'optiscaler-upscaler-dx11',
         'OptiScaler Upscaler (Dx11)',
-        'optiscaler-upscalers-dx11',
+        'optiscaler-upscaler-dx11',
         'Upscalers_Dx11Upscaler',
         dx11UpscalerValues,
     ),
     ...optiScalerDropdown(
-        'optiscaler-upscalers-dx12',
+        'optiscaler-upscaler-dx12',
         'OptiScaler Upscaler (Dx12)',
-        'optiscaler-upscalers-dx12',
+        'optiscaler-upscaler-dx12',
         'Upscalers_Dx12Upscaler',
         dx12UpscalerValues,
     ),
     ...optiScalerDropdown(
-        'optiscaler-upscalers-vk',
+        'optiscaler-upscaler-vulkan',
         'OptiScaler Upscaler (Vulkan)',
-        'optiscaler-upscalers-vk',
+        'optiscaler-upscaler-vulkan',
         'Upscalers_VulkanUpscaler',
         vulkanUpscalerValues,
     ),
     ...optiScalerDropdown(
-        'optiscaler-fsr-upscaler-index',
-        'OptiScaler FSR Upscaler Backend',
-        'optiscaler-fsr-upscaler-index',
-        'FSR_UpscalerIndex',
-        [
-            {
-                id: 'auto',
-                name: 'Auto',
-                value: 'auto',
-            },
-            {
-                id: '0',
-                name: 'FSR 4.0.2',
-                value: 0,
-            },
-            {
-                id: '1',
-                name: 'FSR 3.1.5',
-                value: 1,
-            },
-            {
-                id: '2',
-                name: 'FSR 2.3.4',
-                value: 2,
-            },
-        ],
-    ),
-    ...optiScalerDropdown(
         'optiscaler-fsr4-preset',
-        'OptiScaler FSR 4 Preset',
+        'OptiScaler FSR4 Preset',
         'optiscaler-fsr4-preset',
         'FSR_Fsr4Preset',
         fsr4PresetValues,
     ),
+    ...optiScalerDropdown(
+        'optiscaler-fsr4-gpu-support-override',
+        'OptiScaler FSR4 GPU Support Override',
+        'optiscaler-fsr4-gpu-support-override',
+        'FSR_Fsr4GpuSupport',
+        [
+            {id: 'auto', name: 'Auto', value: 'auto'},
+            {id: '0', name: 'No override', value: 0},
+            {id: '1', name: 'FP8', value: 1},
+            {id: '2', name: 'INT8', value: 2},
+            {id: '3', name: 'INT8-2', value: 3},
+            {id: '4', name: 'INT8 Lite', value: 4},
+        ],
+    ),
+    ...optiScalerDropdown(
+        'optiscaler-fsr4-model',
+        'OptiScaler FSR4 Model',
+        'optiscaler-fsr4-model',
+        'FSR_Fsr4Model',
+        [
+            {id: 'auto', name: 'Auto', value: 'auto'},
+            {id: '0', name: 'FP8', value: 0},
+            {id: '1', name: 'INT8', value: 1},
+            {id: '2', name: 'INT8 RDNA2', value: 2},
+            {id: '3', name: 'INT8 Lite', value: 3},
+        ],
+    ),
+    ...mfgOptions,
+    ...dynamicMfgOptions,
+    ...optiScalerDropdown(
+        'optiscaler-framegen-xefg-dynamic-mfg-target-rounding',
+        'OptiScaler FrameGen XeFG Dynamic MFG Target Rounding',
+        'optiscaler-framegen-xefg-dynamic-mfg-target-rounding',
+        'XeFG_RoundingDMFG',
+        [
+            {id: 'auto', name: 'Auto', value: 'auto'},
+            {id: '0', name: 'At most target', value: 0},
+            {id: '1', name: 'Around target', value: 1},
+            {id: '2', name: 'At least target', value: 2},
+        ],
+    ),
     ...vsyncOptions,
-    ...syncIntervalOptions,
 ]
 
 const recipe = {

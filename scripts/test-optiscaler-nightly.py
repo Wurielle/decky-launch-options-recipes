@@ -1,10 +1,18 @@
 """Offline integration checks: python3 scripts/test-optiscaler-nightly.py.
 
-Requires Bash and Python 3. Fake curl/7z isolate network and archive tooling;
-the real updater handles discovery, cache recovery, and installation.
+Requires Bash and Python 3. Synthetic ZIP bytes and an HTTP boundary fixture
+exercise the physical updater; no live networking or DLL execution occurs.
 """
 
 import json
+import contextlib
+import hashlib
+import fcntl
+import importlib.util
+import io
+import sys
+import zipfile
+from unittest.mock import patch
 import os
 from pathlib import Path
 import shutil
@@ -40,36 +48,19 @@ class NightlyUpgradeTests(unittest.TestCase):
         self.env = dict(os.environ, PATH=f"{self.bin}:{os.environ['PATH']}",
                         OPTISCALER_CACHE_DIR=str(self.cache), TEST_ROOT=str(self.root),
                         HOME=str(self.root / "home"))
-        self.tool("curl", '''
-import json, os, pathlib, sys
-root = pathlib.Path(os.environ["TEST_ROOT"])
-args = sys.argv[1:]
-with (root / "calls").open("a") as log:
-    log.write("download\\n" if "-o" in args else "check\\n")
-if (root / "network-failure").exists():
-    sys.exit(22)
-if "-o" in args:
-    pathlib.Path(args[args.index("-o") + 1]).write_text(
-        "invalid" if (root / "bad-download").exists() else "valid archive")
-else:
-    print(json.dumps([{"draft": False, "tag_name": "nightly-test", "assets": [
-        {"name": "OptiScaler_test.7z"}]}]))
-''')
-        self.tool("7z", '''
-import os, pathlib, sys
-root = pathlib.Path(os.environ["TEST_ROOT"])
-with (root / "calls").open("a") as log:
-    log.write("extract\\n")
-if pathlib.Path(sys.argv[-1]).read_text() != "valid archive":
-    sys.exit(2)
-dest = pathlib.Path(next(a[2:] for a in sys.argv if a.startswith("-o")))
-(dest / "OptiScaler.dll").write_text("nightly version")
-(dest / "OptiScaler.ini").write_text("default settings")
-(dest / "amd_fidelityfx_dx12.dll").write_text("nightly dependency")
-(dest / "OptiScaler").mkdir()
-(dest / "OptiScaler/amd_fidelityfx_upscaler_dx12.dll").write_text("stock nightly upscaler")
-(dest / "OptiScaler/amd_fidelityfx_loader_dx12.dll").write_text("nightly loader")
-''')
+        self.package_files = {
+            "OptiScaler.dll": b"nightly version", "OptiScaler.ini": b"default settings",
+            "amd_fidelityfx_dx12.dll": b"nightly dependency",
+            "OptiScaler/amd_fidelityfx_upscaler_dx12.dll": b"stock nightly upscaler",
+            "OptiScaler/amd_fidelityfx_loader_dx12.dll": b"nightly loader",
+        }
+
+    def archive_bytes(self):
+        output = io.BytesIO()
+        with zipfile.ZipFile(output, "w") as archive:
+            for name, data in self.package_files.items():
+                archive.writestr(name, data)
+        return output.getvalue()
 
     def tool(self, name, code):
         path = self.bin / name
@@ -77,9 +68,42 @@ dest = pathlib.Path(next(a[2:] for a in sys.argv if a.startswith("-o")))
         path.chmod(0o755)
 
     def run_update(self, success=True):
-        result = subprocess.run(["bash", str(self.script), str(self.game)], env=self.env,
-                                capture_output=True, text=True)
-        self.assertEqual(result.returncode == 0, success, result.stdout + result.stderr)
+        runtime = SCRIPT.parents[2] / "dlor-optiscaler/scripts"
+        self.assertTrue((runtime / "nightly.py").is_file(), "physical verified nightly module is missing")
+        with patch.object(sys, "path", [str(runtime), *sys.path]):
+            import artifacts, nightly
+        output = io.StringIO()
+        def transport(url):
+            download = "/releases/download/" in url
+            with self.calls.open("a") as log:
+                log.write("download\n" if download else "check\n")
+            if (self.root / "network-failure").exists():
+                raise OSError("Could not download the latest nightly release metadata")
+            payload = self.archive_bytes()
+            if download:
+                data = b"invalid" if (self.root / "bad-download").exists() else payload
+            else:
+                data = json.dumps([{"draft": False, "tag_name": "nightly-test", "assets": [{
+                    "name": "OptiScaler_test.7z", "size": len(payload),
+                    "browser_download_url": "https://github.com/optiscaler/OptiScaler-nightly/releases/download/nightly-test/OptiScaler_test.7z",
+                    "digest": "sha256:" + hashlib.sha256(payload).hexdigest()}]}]).encode()
+            response = io.BytesIO(data)
+            response.headers = {"Content-Length": str(len(data))}
+            return response
+        real_extract = artifacts.extract_archive
+        def extract(*args, **kwargs):
+            self.assertNotEqual(kwargs.get("cache"), self.cache, "tool bootstrap must not deadlock on the held legacy cache lock")
+            with self.calls.open("a") as log: log.write("extract\n")
+            return real_extract(*args, **kwargs)
+        status = 0
+        with patch.dict(os.environ, self.env, clear=True), patch.object(artifacts, "_open", transport), patch.object(artifacts, "extract_archive", extract), contextlib.redirect_stdout(output), contextlib.redirect_stderr(output):
+            try:
+                status = nightly.legacy_upgrade(self.game)
+            except Exception as error:
+                print(str(error))
+                status = 1
+        result = subprocess.CompletedProcess([], status, output.getvalue(), "")
+        self.assertEqual(status == 0, success, result.stdout)
         return result
 
     def assert_updated(self):
@@ -97,9 +121,71 @@ dest = pathlib.Path(next(a[2:] for a in sys.argv if a.startswith("-o")))
         self.assertEqual(self.calls.read_text().splitlines(),
                          ["check", "download", "extract", "check"])
 
+    def test_overlay_holds_game_lock_without_creating_a_journal(self):
+        runtime = SCRIPT.parents[2] / "dlor-optiscaler/scripts"
+        with patch.object(sys, "path", [str(runtime), *sys.path]):
+            import nightly
+        state = Path(self.env["HOME"]) / ".dlor/state/dlor-optiscaler" / hashlib.sha256(os.fsencode(self.game.resolve())).hexdigest()
+        writes = []
+        real_write = nightly.atomic_write
+        def checked_write(path, *args, **kwargs):
+            if path.is_relative_to(self.game):
+                # A distinct descriptor must fail to acquire the actual main
+                # installer's lock while any legacy game write is in progress.
+                with (state / "lock").open("r+b") as lock:
+                    with self.assertRaises(BlockingIOError):
+                        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                writes.append(path)
+            return real_write(path, *args, **kwargs)
+        with patch.object(nightly, "atomic_write", checked_write):
+            for _ in range(2):
+                self.run_update()
+                self.assertFalse((state / "state.json").exists(), "legacy updates must not create a disabling empty journal")
+                self.assert_updated()
+        self.assertGreater(len(writes), 2)
+
+    def test_legacy_refusal_does_not_recover_an_interrupted_dlor_transaction(self):
+        runtime = SCRIPT.parents[2] / "dlor-optiscaler/scripts"
+        with patch.object(sys, "path", [str(runtime), *sys.path]):
+            import installer
+        payload = self.root / "managed-core"
+        payload.write_bytes(b"pending DLOR core")
+        proxy = self.install / "dxgi.dll"
+        real_save = installer.save_state
+        def interrupted(path, state):
+            if state.get("transaction") and proxy.read_bytes() == payload.read_bytes():
+                raise SystemExit("interrupted after actual game write")
+            return real_save(path, state)
+        state_home = Path(self.env["HOME"]) / ".dlor/state/dlor-optiscaler"
+        with patch.object(installer, "save_state", interrupted), patch.object(installer, "recover_transaction", side_effect=SystemExit("power loss")):
+            with self.assertRaises(SystemExit):
+                installer.apply_install(self.game, self.install, {"dxgi.dll": payload}, state_home)
+        journal = next(state_home.glob("*/state.json"))
+        self.assertIn("transaction", json.loads(journal.read_bytes()))
+        before = proxy.read_bytes(), journal.read_bytes(), (self.install / "OptiScaler.ini").read_bytes()
+        result = self.run_update(success=False)
+        self.assertIn("DLOR", result.stdout)
+        self.assertEqual((proxy.read_bytes(), journal.read_bytes(), (self.install / "OptiScaler.ini").read_bytes()), before)
+        self.assertFalse((self.install / "OptiScaler").exists())
+
+    def test_corrupt_extracted_cache_is_rebuilt_from_verified_archive(self):
+        self.run_update()
+        (self.version / "files/OptiScaler.dll").write_bytes(b"poisoned cached DLL")
+        self.run_update()
+        self.assert_updated()
+        self.assertEqual(self.calls.read_text().splitlines(), ["check", "download", "extract", "check", "extract"])
+
+    def test_case_varied_proxy_and_config_preserve_disk_spelling(self):
+        (self.install / "dxgi.dll").rename(self.install / "DXGI.DLL")
+        (self.install / "OptiScaler.ini").rename(self.install / "OPTISCALER.INI")
+        self.run_update()
+        self.assertEqual((self.install / "DXGI.DLL").read_text(), "nightly version")
+        self.assertEqual((self.install / "OPTISCALER.INI").read_text(), "user settings")
+        self.assertFalse((self.install / "dxgi.dll").exists())
+
     def test_cached_archive_reuse(self):
         self.version.mkdir(parents=True)
-        (self.version / "OptiScaler_test.7z").write_text("valid archive")
+        (self.version / "OptiScaler_test.7z").write_bytes(self.archive_bytes())
         self.run_update()
         self.assert_updated()
         self.assertNotIn("download", self.calls.read_text())
@@ -132,6 +218,7 @@ dest = pathlib.Path(next(a[2:] for a in sys.argv if a.startswith("-o")))
         (files / "OptiScaler/D3D12_OptiScaler/D3D12Core.dll").write_text("stock core")
         (self.fgmod / "D3D12_Optiscaler").mkdir()
         (self.fgmod / "D3D12_Optiscaler/D3D12Core.dll").write_text("fgmod core")
+        self.package_files["OptiScaler/D3D12_OptiScaler/D3D12Core.dll"] = b"stock core"
         self.run_update()
         self.assertEqual((self.install / "OptiScaler/D3D12_OptiScaler/D3D12Core.dll").read_text(), "fgmod core")
         self.assertFalse((self.install / "OptiScaler/D3D12_Optiscaler").exists())
@@ -183,6 +270,7 @@ dest = pathlib.Path(next(a[2:] for a in sys.argv if a.startswith("-o")))
         (files / "future-support.dll").write_text("stock archive file")
         (self.fgmod / "future-support.dll").write_text("fgmod version")
         (self.fgmod / "OptiScaler.dll").write_text("old injector")
+        self.package_files = {"OptiScaler.dll": b"nightly version", "future-support.dll": b"stock archive file"}
         self.run_update()
         self.assertEqual((self.install / "dxgi.dll").read_text(), "nightly version")
         self.assertEqual((self.install / "future-support.dll").read_text(), "fgmod version")
@@ -193,7 +281,7 @@ dest = pathlib.Path(next(a[2:] for a in sys.argv if a.startswith("-o")))
         self.run_update()
         self.assert_updated()
         self.assertEqual(self.calls.read_text().splitlines(),
-                         ["check", "extract", "download", "extract"])
+                         ["check", "download", "extract"])
 
     def test_bad_download_leaves_installation_unchanged(self):
         (self.root / "bad-download").touch()
