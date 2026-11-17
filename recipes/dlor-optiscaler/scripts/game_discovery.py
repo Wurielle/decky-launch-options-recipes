@@ -55,10 +55,11 @@ def _pe_imports(path: Path) -> set[str] | None:
                 if raw_size and (address + raw_size > 2 ** 32 or raw_offset + raw_size > size
                                  or raw_offset < pe + 24 + optional_size + len(table)):
                     return None
-                for old_address, old_size, old_offset in mappings:
-                    if raw_size and old_size and (
-                            max(address, old_address) < min(address + raw_size, old_address + old_size)
-                            or max(raw_offset, old_offset) < min(raw_offset + raw_size, old_offset + old_size)):
+                # Sections may share bytes on disk (for example, debug data).
+                # Only overlapping RVA ranges make our address mapping ambiguous.
+                for old_address, old_size, _ in mappings:
+                    if (raw_size and old_size
+                            and max(address, old_address) < min(address + raw_size, old_address + old_size)):
                         return None
                 mappings.append((address, raw_size, raw_offset))
 
