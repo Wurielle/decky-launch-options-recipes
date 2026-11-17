@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """ANR FG addon preparation only. Never execute upstream installers or DLLs."""
 import hashlib
+import copy
 import io
 import fcntl
 import stat
@@ -41,17 +42,23 @@ def setting_lines(data):
         key = re.match(rb'^\s*([^;#=\s]+)\s*=(.*?)[\r\n]*$', line)
         if key:
             pair = (section, key[1].lower())
-            if pair in found and pair in ((b'framegen', b'fginput'), (b'framegen', b'fgnvngxreplacement'), (b'libraries', b'optidllpath')):
+            if pair in found and pair in ((b'framegen', b'fginput'), (b'framegen', b'fgnvngxreplacement'), (b'framegen', b'disablehudless'), (b'libraries', b'optidllpath')):
                 raise Refusal('duplicate configuration key')
             found[pair] = (index, key[2].strip())
     return lines, found
 
 
-def configure(data):
+PROVIDER_KEYS = ((b'FGInput', b'nvngxfg'), (b'FGNvngxReplacement', b'Apex Neural Rendering FG'))
+HUDLESS_KEY = ((b'DisableHudless', b'false'),)
+LEGACY_POLICY = 'anr-fg-two-keys-v1'
+HUD_POLICY = 'anr-fg-three-keys-v1'
+
+
+def configure(data, keys=PROVIDER_KEYS):
     bom = b'\xef\xbb\xbf' if data.startswith(b'\xef\xbb\xbf') else b''
     body = data[len(bom):]
     newline = b'\r\n' if b'\r\n' in body else b'\n'
-    for key, value in ((b'FGInput', b'nvngxfg'), (b'FGNvngxReplacement', b'Apex Neural Rendering FG')):
+    for key, value in keys:
         lines, found = setting_lines(body)
         pair = (b'framegen', key.lower())
         if pair in found:
@@ -80,14 +87,15 @@ def configure(data):
     return bom + body
 
 
-def restore_config(current, original):
-    installed = configure(original)
+def restore_config(current, original, keys=PROVIDER_KEYS):
+    installed = configure(original, keys)
     if current == installed:
         return original
     lines, found = setting_lines(current)
     old_lines, old_found = setting_lines(original)
     managed_lines, managed_found = setting_lines(installed)
-    for key in (b'fginput', b'fgnvngxreplacement'):
+    for key, _ in keys:
+        key = key.lower()
         pair = (b'framegen', key)
         if pair in found and lines[found[pair][0]] == managed_lines[managed_found[pair][0]]:
             lines[found[pair][0]] = old_lines[old_found[pair][0]] if pair in old_found else b''
@@ -108,6 +116,12 @@ def restore_config(current, original):
         if restored.splitlines()[-1:] == old_last:
             restored = restored.removesuffix(b'\r\n') if restored.endswith(b'\r\n') else restored[:-1]
     return restored
+
+
+def restore_owned_config(current, state):
+    if 'owned_hudless' in state:
+        current = restore_config(current, decoded(state['owned_hudless']), HUDLESS_KEY)
+    return restore_config(current, decoded(state['original']))
 
 
 def safe_path(root, relative=''):
@@ -229,6 +243,49 @@ def file_bytes(path):
     return path.read_bytes() if path.exists() else None
 
 
+def recorded_files(descriptor):
+    """Validate private journal provenance, not today's download pin.
+
+    Acquisition still authenticates the current manifest/archive. Removal trusts
+    the local ownership record but confines every member to the addon subtree;
+    pin changes must not require a growing release allowlist or network access.
+    """
+    if not isinstance(descriptor, dict):
+        raise Refusal('ownership policy provenance mismatch')
+    tag = descriptor.get('tag', '')
+    if (descriptor.get('repository') != 'apex-compute/ANR' or
+            not isinstance(tag, str) or not re.fullmatch(r'FG-V\.[A-Za-z0-9][A-Za-z0-9._-]{0,40}', tag)):
+        raise Refusal('ownership policy provenance mismatch')
+    asset = 'anr-fg-' + tag.removeprefix('FG-') + '-addon.zip'
+    if (descriptor.get('asset') != asset or
+            descriptor.get('url') != 'https://github.com/apex-compute/ANR/releases/download/' + tag + '/' + asset or
+            type(descriptor.get('size')) is not int or not 0 < descriptor['size'] <= 32 * 1024 * 1024 or
+            not re.fullmatch(r'[a-f0-9]{64}', str(descriptor.get('sha256', ''))) or
+            not re.fullmatch(r'[a-f0-9]{40}', str(descriptor.get('code_revision', '')))):
+        raise Refusal('ownership policy provenance mismatch')
+    members = descriptor.get('members')
+    if not isinstance(members, dict) or not 1 <= len(members) <= 128:
+        raise Refusal('ownership policy member provenance mismatch')
+    result, seen, total = {}, set(), 0
+    for name, item in members.items():
+        if not isinstance(item, dict) or not isinstance(item.get('path'), str):
+            raise Refusal('ownership policy member provenance mismatch')
+        path = item['path']
+        parts = path.split('/')
+        if (any(not part or part in ('.', '..') or ':' in part or '\\' in part or part.endswith((' ', '.')) for part in parts) or
+                path.casefold() in seen or (path not in ('README.txt', 'nr_fg_package.json') and not path.startswith('dlssg/')) or
+                name != (path if path in ('README.txt', 'nr_fg_package.json') else 'Apex Neural Rendering FG/' + path) or
+                type(item.get('size')) is not int or not 0 < item['size'] <= 32 * 1024 * 1024 or
+                not re.fullmatch(r'[a-f0-9]{64}', str(item.get('sha256', '')))):
+            raise Refusal('ownership policy member provenance mismatch')
+        seen.add(path.casefold())
+        total += item['size']
+        result[path] = item['sha256']
+    if total > 32 * 1024 * 1024:
+        raise Refusal('ownership policy member size mismatch')
+    return result
+
+
 class Engine:
     def __init__(self, home, manifest, fetch=None):
         self.home = Path(home).resolve(strict=True)
@@ -300,11 +357,18 @@ class Engine:
         dest = safe_path(root, state['dest'])
         if ini != scan(root) or dest.name.casefold() != 'apex neural rendering fg' or dest.parent.name.casefold() != 'custom':
             raise Refusal('ownership policy anchor mismatch')
-        descriptor = self.manifest['downloads']['addon']
-        expected = {item['path']: item['sha256'] for item in descriptor['members'].values()}
-        if state['files'] != expected or state['provenance'] != descriptor:
+        retained = state.get('previous_provenance', [])
+        if not isinstance(retained, list) or len(retained) > 128:
+            raise Refusal('ownership policy retained provenance mismatch')
+        sources = [recorded_files(item) for item in [state['provenance'], *retained]]
+        expected = set().union(*(set(source) for source in sources))
+        if set(state['files']) != expected or any(
+                not any(source.get(name) == value and name in source for source in sources)
+                for name, value in state['files'].items()):
             raise Refusal('ownership policy provenance mismatch')
         configure(decoded(state['original']))
+        if 'owned_hudless' in state:
+            configure(decoded(state['owned_hudless']), HUDLESS_KEY)
         for relative in state['directories']:
             path = safe_path(root, relative)
             if path != dest.parent and path != dest and dest not in path.parents:
@@ -312,15 +376,30 @@ class Engine:
         return ini, dest
 
     def replay(self, root, state_path, pending_path, plan):
-        if plan.get('schema') != 1 or plan.get('root') != str(root) or plan.get('policy') != 'anr-fg-two-keys-v1':
+        if plan.get('schema') != 1 or plan.get('root') != str(root) or plan.get('policy') not in (LEGACY_POLICY, HUD_POLICY):
             raise Refusal('invalid pending transaction policy')
         ini, dest = self.validate_state(root, plan['context'])
+        hud_owned = 'owned_hudless' in plan['context']
+        if (plan['policy'] == HUD_POLICY) != hud_owned:
+            raise Refusal('pending HUD ownership policy mismatch')
         action = plan['action']
         if action not in ('install', 'uninstall') or plan['prune'] != (plan['context']['directories'] if action == 'uninstall' else []):
             raise Refusal('pending transaction policy mismatch')
         if plan['state'] != (plan['context'] if action == 'install' else None):
             raise Refusal('pending state policy mismatch')
         allowed = {safe_path(dest, name): expected for name, expected in plan['context']['files'].items()}
+        previous = plan.get('previous')
+        prior_files = {}
+        if previous is not None:
+            if action != 'install' or self.validate_state(root, previous) != (ini, dest):
+                raise Refusal('pending update policy mismatch')
+            if any(previous[key] != plan['context'][key] for key in ('root', 'ini', 'dest', 'original')):
+                raise Refusal('pending update changed original context')
+            if not set(previous['directories']) <= set(plan['context']['directories']):
+                raise Refusal('pending update dropped directory ownership')
+            if 'owned_hudless' in previous and previous['owned_hudless'] != plan['context'].get('owned_hudless'):
+                raise Refusal('pending update changed HUD ownership baseline')
+            prior_files = {safe_path(dest, name): expected for name, expected in previous['files'].items()}
         operations = []
         seen = set()
         for operation in plan['operations']:
@@ -331,10 +410,19 @@ class Engine:
                 raise Refusal('duplicate pending operation policy')
             seen.add(path)
             if path == ini:
-                expected = configure(before) if action == 'install' else restore_config(before, decoded(plan['context']['original']))
+                if action == 'install':
+                    acquiring_hud = hud_owned and (previous is None or 'owned_hudless' not in previous)
+                    if acquiring_hud and decoded(plan['context']['owned_hudless']) != before:
+                        raise Refusal('pending HUD acquisition baseline mismatch')
+                    keys = PROVIDER_KEYS if previous is None else ()
+                    expected = configure(before, keys + (HUDLESS_KEY if acquiring_hud else ()))
+                else:
+                    expected = restore_owned_config(before, plan['context'])
                 if after != expected:
-                    raise Refusal('pending INI write violates two-key policy')
-            elif path not in allowed or (action == 'install' and (before is not None or after is None or digest(after) != allowed[path])) or (action == 'uninstall' and (after is not None or before is None or digest(before) != allowed[path])):
+                    raise Refusal('pending INI write violates activation policy')
+            elif path not in allowed or (action == 'install' and (
+                    after is None or digest(after) != allowed[path] or
+                    (before is not None and digest(before) != prior_files.get(path)))) or (action == 'uninstall' and (after is not None or before is None or digest(before) != allowed[path])):
                 raise Refusal('pending file write violates addon-only policy')
             before_mode = operation.get('before_mode')
             if before is not None and (type(before_mode) is not int or not 0 <= before_mode <= 0o7777):
@@ -348,6 +436,9 @@ class Engine:
             if current not in (before, after):
                 raise Refusal('foreign edit conflicts with pending transaction')
             operations.append((operation, path, current, after))
+        if previous is not None and any(path not in seen and prior_files.get(path) != expected
+                                        for path, expected in allowed.items()):
+            raise Refusal('pending update dropped file ownership')
         # Preflight every operation before changing anything. Never blindly replay.
         for index, (operation, path, current, after) in enumerate(operations):
             path = safe_path(root, operation['path'])
@@ -418,6 +509,7 @@ class Engine:
                 if dest.exists():
                     raise Refusal('foreign addon directory')
             operations = []
+            previous = copy.deepcopy(state)
             def change(path, after, mode=0o644):
                 before = file_bytes(path)
                 if before != after:
@@ -427,7 +519,7 @@ class Engine:
             if action == 'uninstall':
                 assert state is not None
                 current = ini.read_bytes()
-                restored = restore_config(current, decoded(state['original']))
+                restored = restore_owned_config(current, state)
                 change(ini, restored, stat.S_IMODE(ini.stat().st_mode))
                 for name, expected in state['files'].items():
                     path = safe_path(dest, name)
@@ -440,10 +532,16 @@ class Engine:
                 after_state = None
             else:
                 payload = self.payload()
+                files = dict(state['files']) if state else {}
                 for name, content in payload.items():
                     path = safe_path(dest, name)
-                    if file_bytes(path) is None:
+                    before = file_bytes(path)
+                    if state and name not in state['files'] and before is not None:
+                        raise Refusal('foreign file collides with addon update')
+                    if before is None or (state and digest(before) == state['files'].get(name)
+                                          and stat.S_IMODE(path.stat().st_mode) == 0o644):
                         change(path, content)
+                        files[name] = digest(content)
                 if state is None:
                     directories = set()
                     for operation in operations:
@@ -457,10 +555,42 @@ class Engine:
                              'directories': sorted(directories),
                              'provenance': self.manifest['downloads']['addon']}
                     change(ini, configure(ini.read_bytes()), stat.S_IMODE(ini.stat().st_mode))
+                else:
+                    # Preserve the original INI baseline and modified payload claims;
+                    # never relabel an unchanged old DLL as a new-release DLL.
+                    state = copy.deepcopy(state)
+                    state['files'] = files
+                    current_desc = self.manifest['downloads']['addon']
+                    prior = state.get('previous_provenance', [])
+                    if state['provenance'] != current_desc and state['provenance'] not in prior:
+                        prior = [*prior, state['provenance']]
+                    state['provenance'] = current_desc
+                    expected = {item['path']: item['sha256'] for item in current_desc['members'].values()}
+                    if files != expected:
+                        state['previous_provenance'] = [item for item in prior if any(
+                            files.get(name) == value and expected.get(name) != value
+                            for name, value in recorded_files(item).items())]
+                    else:
+                        state.pop('previous_provenance', None)
+                    directories = set(state['directories'])
+                    for operation in operations:
+                        path = safe_path(root, operation['path']).parent
+                        while path != root and not path.exists():
+                            directories.add(str(path.relative_to(root)))
+                            path = path.parent
+                    state['directories'] = sorted(directories)
+                if self.manifest.get('activation_policy') == HUD_POLICY and 'owned_hudless' not in state:
+                    # Acquire only this newly required key at today's displaced value.
+                    state['owned_hudless'] = encoded(ini.read_bytes())
+                    keys = PROVIDER_KEYS + HUDLESS_KEY if previous is None else HUDLESS_KEY
+                    operations[:] = [op for op in operations if op['path'] != str(ini.relative_to(root))]
+                    change(ini, configure(ini.read_bytes(), keys), stat.S_IMODE(ini.stat().st_mode))
                 after_state, prune = state, []
             plan = {'schema': 1, 'root': str(root), 'operations': operations,
-                    'policy': 'anr-fg-two-keys-v1', 'action': action, 'context': state,
+                    'policy': HUD_POLICY if 'owned_hudless' in state else LEGACY_POLICY, 'action': action, 'context': state,
                     'prune': prune, 'state': after_state}
+            if action == 'install' and previous is not None:
+                plan['previous'] = previous
             atomic(pending_path, json.dumps(plan, sort_keys=True).encode())
             self.replay(root, state_path, pending_path, plan)
             print('ANR FG:', action, 'complete')

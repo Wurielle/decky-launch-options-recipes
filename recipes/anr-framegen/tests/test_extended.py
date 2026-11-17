@@ -180,7 +180,7 @@ class Contracts(fixtures.Fixture):
                 self.ini.chmod(0o600)
                 engine.run(action, self.game)
                 self.assertEqual(self.ini.stat().st_mode & 0o777, 0o600)
-                expected = fixtures.runtime().configure(self.original) if action == 'install' else self.original
+                expected = fixtures.runtime().configure(self.original, fixtures.runtime().PROVIDER_KEYS + fixtures.runtime().HUDLESS_KEY) if action == 'install' else self.original
                 self.assertEqual(self.ini.read_bytes(), expected)
                 self.assertFalse(list(engine.cache.glob('*.pending.json')))
 

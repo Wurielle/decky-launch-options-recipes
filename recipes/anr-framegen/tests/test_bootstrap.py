@@ -26,7 +26,7 @@ case "$url" in
     if [[ ${ANR_CORRUPT_SOURCE:-} == manifest ]]; then printf 'bad json' > "$output"; else cp "$ANR_FIXTURE_SCRIPTS/downloads.json" "$output"; fi ;;
   */loader.py)
     if [[ ${ANR_CORRUPT_SOURCE:-} == loader ]]; then printf 'raise RuntimeError("unverified code executed")' > "$output"; else cp "$ANR_FIXTURE_SCRIPTS/loader.py" "$output"; fi ;;
-  */anr-fg-V.B14-addon.zip)
+  */anr-fg-*-addon.zip)
     [[ ${ANR_FAIL_PAYLOAD:-} != 1 ]] || exit 28
     if [[ ${ANR_BLOCK_PAYLOAD:-} == 1 ]]; then printf '%s' "$$" > "$ANR_CURL_PID"; exec sleep 180; fi
     cp "$ANR_TEST_ARCHIVE" "$output" ;;
@@ -55,7 +55,7 @@ class Bootstrap(unittest.TestCase):
         env = dict(os.environ, HOME=str(home), PATH=str(bins) + ':' + os.environ['PATH'],
                    ANR_TRANSPORT_LOG=str(root / 'transport.log'), ANR_MASK_LOG=str(root / 'mask.log'),
                    ANR_CURL_PID=str(root / 'curl.pid'), ANR_FIXTURE_SCRIPTS=str(scripts),
-                   ANR_TEST_ARCHIVE=os.environ.get('ANR_TEST_ARCHIVE', str(Path(os.environ['TMPDIR']) / 'anr-fg-V.B14-addon.zip')))
+                   ANR_TEST_ARCHIVE=os.environ.get('ANR_TEST_ARCHIVE', str(Path(os.environ['TMPDIR']) / 'anr-fg-V.B19-addon.zip')))
         return root, scripts, home, game, env
 
     def invoke(self, scripts, game, env, action='install', check=True):

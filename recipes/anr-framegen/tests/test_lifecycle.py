@@ -9,7 +9,7 @@ import unittest
 import zipfile
 
 RECIPE = Path(__file__).resolve().parents[1]
-ARCHIVE = Path(os.environ.get('ANR_TEST_ARCHIVE', Path(os.environ['TMPDIR']) / 'anr-fg-V.B14-addon.zip'))
+ARCHIVE = Path(os.environ.get('ANR_TEST_ARCHIVE', Path(os.environ['TMPDIR']) / 'anr-fg-V.B19-addon.zip'))
 from functools import cache
 
 
@@ -175,7 +175,7 @@ class Lifecycle(Fixture):
         engine.run('install', self.game)
         installed = self.ini.read_bytes()
         self.assertEqual(installed.count(b'[FrameGen]'), 0, 'reuse the existing spaced section')
-        self.assertIn(b'FGNvngxReplacement=Apex Neural Rendering FG\n[Other]', installed)
+        self.assertIn(b'FGNvngxReplacement=Apex Neural Rendering FG\nDisableHudless=false\n[Other]', installed)
         engine.run('install', self.game)
         self.ini.write_bytes(installed.replace(b'X=1', b'X=2'))
         engine.run('uninstall', self.game)
