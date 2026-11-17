@@ -7,7 +7,12 @@ const group = 'DLOR OptiScaler'
 const install = remoteScript('dlor-optiscaler', 'install')
 const uninstall = remoteScript('dlor-optiscaler', 'uninstall')
 
-// The core always uses the official nightly and the declared DXGI proxy.
+// DLO collects dropdown assignments before running this pre-launch command.
+const installCommand = `export WINEDLLOVERRIDES="\${WINEDLLOVERRIDES:+$WINEDLLOVERRIDES;}\${DLOR_OPTISCALER_PROXY:-dxgi}=n,b" && SteamDeck=0 ${install}`
+const proxyValueId = 'dlor-optiscaler-proxy'
+const proxyChoices = ['dxgi', 'winmm', 'd3d12', 'dbghelp', 'version', 'wininet', 'winhttp'] as const
+
+// The core always uses the official nightly and the selected DLL proxy.
 // OptiPatcher is mandatory in the main install; profiles only select files.
 function choices(option: string, name: string, variable: string, values: readonly (string | { value: string, label: string })[]): LaunchOption[] {
     return [null, ...values].map((choice): LaunchOption => {
@@ -41,7 +46,7 @@ const recipe = {
         // Reuse the old toggle ID for None so re-import clears its OFF uninstaller.
         ...[
             { id: 'dlor-optiscaler', name: 'None', command: '' },
-            { id: 'dlor-optiscaler-install', name: 'Install', command: `WINEDLLOVERRIDES="dxgi=n,b" SteamDeck=0 ${install}` },
+            { id: 'dlor-optiscaler-install', name: 'Install', command: installCommand },
             { id: 'dlor-optiscaler-uninstall', name: 'Uninstall', command: uninstall },
         ].map((action): LaunchOption => ({
             id: action.id,
@@ -52,6 +57,17 @@ const recipe = {
             valueId: 'dlor-optiscaler',
             valueName: action.name,
             ...(action.id === 'dlor-optiscaler' ? { fallbackValue: true } : {}),
+        })),
+        ...[null, ...proxyChoices].map((proxy): LaunchOption => ({
+            id: `${proxyValueId}-${proxy ?? 'none'}`,
+            group,
+            name: 'Proxy',
+            on: proxy === null ? '' : `DLOR_OPTISCALER_PROXY="${proxy}"`,
+            off: '',
+            enableGlobally: false,
+            valueId: proxyValueId,
+            valueName: proxy === null ? 'None' : `${proxy}.dll`,
+            ...(proxy === null ? { fallbackValue: true } : {}),
         })),
         // Sources select files, never FSR activation settings or GPU presets.
         ...choices('fsr-override', 'FSR Override', 'DLOR_OPTISCALER_FSR_PROFILE', [

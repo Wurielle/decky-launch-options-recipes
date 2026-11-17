@@ -292,6 +292,8 @@ def apply_install(game, target, files, state_home, *, proxy="dxgi", configuratio
         raise InstallerError("Only Plugins.LoadAsiPlugins may be configured")
     with game_state(game, state_home, asi_only=asi_only) as (root, directory, journal, state):
         relative = Path(target).relative_to(root)
+        if state["files"] and state.get("proxy", proxy) != proxy:
+            raise InstallerError("Uninstall the existing OptiScaler proxy before switching")
         if require_installed:
             path = safe_target(root, (relative / (proxy + ".dll")).as_posix())
             proxy_key = path.relative_to(root).as_posix()
@@ -783,20 +785,22 @@ def cached_package(asset, cache):
         os.close(descriptor)
 
 
-def choose_proxy(target, previous=None):
+def choose_proxy(target, previous=None, *, proxy="dxgi"):
+    if proxy not in PROXIES:
+        raise InstallerError("Unsupported OptiScaler proxy")
     found = []
-    for proxy in PROXIES:
-        path = safe_target(target, proxy + ".dll")
+    for candidate in PROXIES:
+        path = safe_target(target, candidate + ".dll")
         if path.is_file() and identifies_optiscaler(path):
-            found.append(proxy)
+            found.append(candidate)
     if len(found) > 1:
         raise InstallerError("Multiple existing OptiScaler proxies")
-    if found and found != ["dxgi"]:
+    if found and found != [proxy]:
         raise InstallerError("Existing injector uses a different proxy; uninstall it before switching")
-    path = safe_target(target, "dxgi.dll")
-    if path.exists() and not found and previous != "dxgi":
-        raise InstallerError("DXGI proxy is occupied by another file")
-    return "dxgi"
+    path = safe_target(target, proxy + ".dll")
+    if path.exists() and not found and previous != proxy:
+        raise InstallerError(f"{proxy}.dll is occupied by another file")
+    return proxy
 
 
 # Source coordinates select manifest pins, never mutable latest metadata. A member
@@ -890,6 +894,7 @@ def main(argv=None):
         result = uninstall(root, state_home, asi_only=True)
         print("OptiScaler uninstall completed; changed external files preserved:", len(result["preserved"]))
         return 0
+    selected_proxy = os.environ.get("DLOR_OPTISCALER_PROXY") or "dxgi"
     if args.action == "upgrade":
         # Ordinary assignments are visible to both helpers in the stock runner.
         # Main ON already performs the fresh transaction; main OFF must win.
@@ -902,7 +907,10 @@ def main(argv=None):
         with game_state(root, state_home, asi_only=True) as (_, directory, journal, state):
             if not state["files"]:
                 return 0
-            path = safe_target(root, (Path(state.get("target", ".")) / "dxgi.dll").as_posix())
+            selected_proxy = state.get("proxy", "dxgi")
+            if selected_proxy not in PROXIES:
+                raise InstallerError("Unsupported installed OptiScaler proxy")
+            path = safe_target(root, (Path(state.get("target", ".")) / (selected_proxy + ".dll")).as_posix())
             proxy_key = path.relative_to(root).as_posix()
             record = state["files"].get(proxy_key)
             if not record or not path.is_file() or digest(path) != record["installed"]:
@@ -938,7 +946,9 @@ def main(argv=None):
         if proxy_key not in state["files"]:
             previous = None
     target = (root if known == "." else safe_target(root, known)) if known is not None else discover_game_directory(root, game_argv, executable=os.environ.get("DLOR_OPTISCALER_EXECUTABLE"))
-    proxy = choose_proxy(target, previous)
+    if previous is not None and previous != selected_proxy:
+        raise InstallerError("Uninstall the existing OptiScaler proxy before switching")
+    proxy = choose_proxy(target, previous, proxy=selected_proxy)
     cache = home / ".dlor/cache/dlor-optiscaler/artifacts"
     resolution = {"fresh": True} if os.environ.get("DLOR_OPTISCALER_LATEST") == "1" else {}
     asset = resolve_asset("optiscaler/OptiScaler-nightly", "nightly", r"(?i)(?!.*(?:debug|symbols|source)).*optiscaler.*\.7z", cache, **resolution)

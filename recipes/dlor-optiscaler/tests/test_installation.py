@@ -719,7 +719,6 @@ class InstallationTests(unittest.TestCase):
             journal.write_text(json.dumps(legacy_state))
             calls.clear()
             os.environ["DLOR_OPTISCALER_CHANNEL"] = "stable"
-            os.environ["DLOR_OPTISCALER_PROXY"] = "winmm"
             self.installer.main(["install", str(self.game), "--result", str(result)])
             self.assertEqual(calls, [("optiscaler/OptiScaler-nightly", "nightly"), ("optiscaler/OptiPatcher", "stable")])
             self.assertEqual((self.target / "OptiScaler/plugins/OptiPatcher.asi").read_bytes(), plugin.read_bytes())
@@ -736,6 +735,19 @@ class InstallationTests(unittest.TestCase):
             self.assertEqual(calls, [])
             self.assertFalse((self.target / "winmm.dll").exists())
             self.assertEqual((self.target / "dxgi.dll").read_bytes(), b"a different user mod installed later")
+            os.environ["DLOR_OPTISCALER_PROXY"] = "winmm"
+            self.installer.main(["install", str(self.game), "--result", str(result)])
+            self.assertEqual(json.loads(result.read_text())["proxy"], "winmm")
+            self.assertTrue((self.target / "winmm.dll").is_file())
+            os.environ.pop("DLOR_OPTISCALER_PROXY")
+            self.installer.main(["upgrade", str(self.game), "--result", str(result)])
+            self.assertEqual(json.loads(result.read_text())["proxy"], "winmm")
+            with self.assertRaisesRegex(self.installer.InstallerError, "before switching"):
+                self.installer.main(["install", str(self.game)])
+            self.installer.main(["uninstall", str(self.game)])
+            self.assertFalse((self.target / "winmm.dll").exists())
+            self.assertEqual((self.target / "dxgi.dll").read_bytes(), b"a different user mod installed later")
+
 
     def test_owned_plugin_settings_restore_without_losing_other_user_edits(self):
         ini = self.target / "OptiScaler.ini"
