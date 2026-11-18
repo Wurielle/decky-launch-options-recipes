@@ -820,7 +820,7 @@ os.execv('/usr/bin/sha256sum', ['sha256sum', *sys.argv[1:]])
         dll_options = [option for option in recipe['launchOptions'] if option.get('valueId') == 'dlor-optiscaler-proxy']
         self.assertEqual([choice['valueName'] for choice in dll_options], ['None', *[f'{proxy}.dll' for proxy in proxies]])
         self.assertEqual([choice['valueName'] for choice in dll_options if choice.get('fallbackValue')], ['None'])
-        self.assertTrue(all(choice['name'] == 'Proxy' and choice['off'] == '' for choice in dll_options))
+        self.assertTrue(all(choice['name'] == 'OptiScaler Proxy' and choice['off'] == '' for choice in dll_options))
         self.assertEqual([choice['on'] for choice in dll_options], ['', *[f'DLOR_OPTISCALER_PROXY="{proxy}"' for proxy in proxies]])
         for option in recipe['launchOptions']:
             for key in ('on', 'off'):
