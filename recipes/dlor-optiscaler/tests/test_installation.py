@@ -80,6 +80,151 @@ class InstallationTests(unittest.TestCase):
         self.assertEqual(components[0]["tag"], "v0.42")
         self.assertEqual(set(libraries), {"amdxc64.dll", "amdxcffx64.dll"})
 
+    def test_cli_switches_owned_proxy_and_uninstalls_without_losing_user_edits(self):
+        core = self.directory / "core"
+        (core / "OptiScaler").mkdir(parents=True)
+        (core / "OptiScaler.dll").write_bytes(b"synthetic core")
+        original = b"[Plugins]\nLoadAsiPlugins=false\n[User]\nValue=keep\n"
+        ini = self.target / "OptiScaler.ini"
+        ini.write_bytes(original)
+        (core / "OptiScaler.ini").write_bytes(original)
+        acquisition = types.SimpleNamespace(resolve_asset=lambda *a, **kw: {"tag": "fixture"})
+        discovery = types.SimpleNamespace(discover_game_directory=lambda *a, **kw: self.target)
+        with patch.dict(sys.modules, artifacts=acquisition, game_discovery=discovery), patch.object(self.installer, "cached_package", return_value=core), patch.object(self.installer, "optional_components", return_value=({}, {}, {}, [])), patch.dict(os.environ, {"HOME": str(self.directory), "DLOR_OPTISCALER_PROXY": "dxgi"}):
+            self.installer.main(["install", str(self.game)])
+            (self.target / "dxgi.dll").rename(self.target / "DXGI.DLL")
+            journal = next((self.directory / ".dlor/state/dlor-optiscaler").glob("*/state.json"))
+            state = json.loads(journal.read_bytes())
+            old_key = (self.target / "dxgi.dll").relative_to(self.game).as_posix()
+            state["files"][old_key.replace("dxgi.dll", "DXGI.DLL")] = state["files"].pop(old_key)
+            journal.write_text(json.dumps(state))
+            ini.write_bytes(ini.read_bytes() + b"Extra=user-added\n")
+            for proxy in ("winmm", "winmm", "d3d12", "dbghelp", "version", "wininet", "winhttp", "dxgi"):
+                os.environ["DLOR_OPTISCALER_PROXY"] = proxy
+                self.installer.main(["install", str(self.game)])
+                self.assertEqual([p.name.casefold() for p in self.target.iterdir() if p.suffix.casefold() == ".dll"], [proxy + ".dll"])
+                state = json.loads(journal.read_bytes())
+                self.assertEqual(state["proxy"], proxy)
+                self.assertIn((self.target / (proxy + ".dll")).relative_to(self.game).as_posix(), state["files"])
+            self.installer.main(["uninstall", str(self.game)])
+        self.assertEqual(ini.read_bytes(), original + b"Extra=user-added\n")
+        self.assertFalse(any(p.suffix.casefold() == ".dll" for p in self.target.iterdir()))
+        self.assertEqual(json.loads(journal.read_bytes())["files"], {})
+
+    def test_cli_proxy_guard_survives_off_and_foreign_destination_during_acquisition(self):
+        state_home = self.directory / ".dlor/state/dlor-optiscaler"
+        self.installer.apply_install(self.game, self.target, self.files({"dxgi.dll": b"owned core"}), state_home)
+        core = self.directory / "core"
+        (core / "OptiScaler").mkdir(parents=True)
+        (core / "OptiScaler.dll").write_bytes(b"new synthetic core")
+        (core / "OptiScaler.ini").write_bytes(b"[Plugins]\nLoadAsiPlugins=false\n")
+        foreign = self.target / "winmm.dll"
+        snapshots = {}
+        acquisition = types.SimpleNamespace(resolve_asset=lambda *a, **kw: {"tag": "fixture"})
+        discovery = types.SimpleNamespace(discover_game_directory=lambda *a, **kw: self.target)
+        def concurrent_off(asset, cache):
+            self.assertEqual(self.installer.main(["uninstall", str(self.game)]), 0)
+            foreign.write_bytes(b"foreign DLL installed after OFF")
+            journal = next(state_home.glob("*/state.json"))
+            snapshots.update(journal=journal, state=journal.read_bytes(), game={
+                p.relative_to(self.game).as_posix(): p.read_bytes()
+                for p in self.game.rglob("*") if p.is_file()})
+            return core
+        with patch.dict(sys.modules, artifacts=acquisition, game_discovery=discovery), patch.object(self.installer, "cached_package", side_effect=concurrent_off), patch.object(self.installer, "optional_components", return_value=({}, {}, {}, [])), patch.dict(os.environ, {"HOME": str(self.directory), "DLOR_OPTISCALER_PROXY": "winmm"}):
+            with self.assertRaisesRegex(self.installer.InstallerError, "occupied by another file"):
+                self.installer.main(["install", str(self.game)])
+        self.assertEqual(foreign.read_bytes(), b"foreign DLL installed after OFF")
+        self.assertEqual(snapshots["journal"].read_bytes(), snapshots["state"])
+        self.assertEqual({p.relative_to(self.game).as_posix(): p.read_bytes()
+                          for p in self.game.rglob("*") if p.is_file()}, snapshots["game"])
+        self.assertEqual(json.loads(snapshots["state"])["files"], {})
+
+    def test_proxy_switch_refuses_unsafe_old_or_new_dll_without_changes(self):
+        for conflict in ("changed-old", "missing-old", "foreign-new", "equal-new", "symlink-new", "ambiguous-new", "original-backup"):
+            with self.subTest(conflict=conflict):
+                target = self.target / conflict
+                target.mkdir()
+                state_home = self.state / conflict
+                old = target / "dxgi.dll"
+                if conflict == "original-backup":
+                    old.write_bytes(b"original user DLL")
+                with patch.object(self.installer, "identifies_optiscaler", return_value=conflict == "original-backup"):
+                    self.installer.apply_install(self.game, target, self.files({"dxgi.dll": b"synthetic core"}), state_home)
+                new = target / "winmm.dll"
+                if conflict == "changed-old":
+                    old.write_bytes(b"changed by user")
+                elif conflict == "missing-old":
+                    old.unlink()
+                elif conflict in ("foreign-new", "equal-new"):
+                    new.write_bytes(b"foreign mod" if conflict == "foreign-new" else b"synthetic core")
+                elif conflict == "symlink-new":
+                    new.symlink_to(old)
+                elif conflict == "ambiguous-new":
+                    new.write_bytes(b"foreign mod")
+                    (target / "WINMM.DLL").write_bytes(b"another mod")
+                before = {p.name: p.read_bytes() for p in target.iterdir()}
+                journal = next(state_home.glob("*/state.json"))
+                journal_before = journal.read_bytes()
+                with self.assertRaises(self.installer.InstallerError):
+                    self.installer.apply_install(self.game, target, self.files({"winmm.dll": b"synthetic core"}), state_home, proxy="winmm")
+                self.assertEqual({p.name: p.read_bytes() for p in target.iterdir()}, before)
+                self.assertEqual(journal.read_bytes(), journal_before)
+
+    def test_proxy_switch_conflicting_retirement_removes_new_injector_and_preserves_old_edit(self):
+        self.installer.apply_install(self.game, self.target, self.files({"dxgi.dll": b"owned core"}), self.state)
+        old = self.target / "dxgi.dll"
+        new = self.target / "winmm.dll"
+        journal = next(self.state.glob("*/state.json"))
+        before = json.loads(journal.read_bytes())
+        old_key = old.relative_to(self.game).as_posix()
+        new_key = new.relative_to(self.game).as_posix()
+        save = self.installer.save_state
+        events = []
+        def edit_old_after_new_write(path, state):
+            save(path, state)
+            if state.get("transaction") and new.exists() and not events:
+                old.write_bytes(b"foreign edited old injector")
+                events.append("old edited after new injector write")
+        with patch.object(self.installer, "save_state", side_effect=edit_old_after_new_write):
+            with self.assertRaises(self.installer.InstallerError):
+                self.installer.apply_install(self.game, self.target, self.files({"winmm.dll": b"new core"}), self.state, proxy="winmm")
+        self.assertEqual(events, ["old edited after new injector write"])
+        self.assertEqual(old.read_bytes(), b"foreign edited old injector")
+        self.assertFalse(new.exists(), "A refused switch must not leave two injectors")
+        pending = json.loads(journal.read_bytes())
+        self.assertEqual(pending["transaction"]["before"], before)
+        self.assertEqual(pending["transaction"]["changes"][new_key]["previous"], None)
+        old_hash = pending["transaction"]["changes"][old_key]["previous"]
+        self.assertEqual((journal.parent / "backups" / old_hash).read_bytes(), b"owned core")
+        evidence = journal.read_bytes()
+        with self.assertRaisesRegex(self.installer.InstallerError, "conflicts with a changed file"):
+            with self.installer.game_state(self.game, self.state):
+                self.fail("Recovery must not overwrite the foreign old-proxy edit")
+        self.assertEqual(journal.read_bytes(), evidence)
+        self.assertEqual(old.read_bytes(), b"foreign edited old injector")
+        self.assertFalse(new.exists())
+
+    def test_proxy_switch_failure_rolls_back_previous_proxy_and_journal(self):
+        old = self.target / "dxgi.dll"
+        self.installer.apply_install(self.game, self.target, self.files({"dxgi.dll": b"synthetic core"}), self.state)
+        journal = next(self.state.glob("*/state.json"))
+        before = journal.read_bytes()
+        remove = self.installer.remove_owned
+        def interrupt(path):
+            remove(path)
+            if path == old:
+                raise OSError("interrupted after old proxy removal")
+        with patch.object(self.installer, "remove_owned", side_effect=interrupt):
+            with self.assertRaisesRegex(OSError, "after old proxy removal"):
+                self.installer.apply_install(self.game, self.target, self.files({"winmm.dll": b"synthetic core"}), self.state, proxy="winmm")
+        self.assertEqual(old.read_bytes(), b"synthetic core")
+        self.assertFalse((self.target / "winmm.dll").exists())
+        self.assertEqual(journal.read_bytes(), before)
+        self.installer.apply_install(self.game, self.target, self.files({"winmm.dll": b"synthetic core"}), self.state, proxy="winmm")
+        self.assertFalse(old.exists())
+        self.installer.uninstall(self.game, self.state)
+        self.assertFalse((self.target / "winmm.dll").exists())
+
     def test_upgrade_commit_guard_refuses_after_concurrent_off(self):
         files = self.files({"dxgi.dll": b"synthetic core"})
         with self.assertRaisesRegex(self.installer.InstallerError, "no longer installed"):
@@ -742,7 +887,7 @@ class InstallationTests(unittest.TestCase):
             os.environ.pop("DLOR_OPTISCALER_PROXY")
             self.installer.main(["upgrade", str(self.game), "--result", str(result)])
             self.assertEqual(json.loads(result.read_text())["proxy"], "winmm")
-            with self.assertRaisesRegex(self.installer.InstallerError, "before switching"):
+            with self.assertRaisesRegex(self.installer.InstallerError, "occupied by another file"):
                 self.installer.main(["install", str(self.game)])
             self.installer.main(["uninstall", str(self.game)])
             self.assertFalse((self.target / "winmm.dll").exists())
