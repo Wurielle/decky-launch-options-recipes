@@ -91,15 +91,24 @@ class Actions(unittest.TestCase):
                 self.assertEqual(variables, {})
 
     def test_actual_consumer_orders_dlor_actions_around_core_and_nightly(self):
+        self.assert_action_order('dlor-' + VALUE_ID,
+                                 [option for option in self.installer['launchOptions']
+                                  if option.get('valueId') == 'dlor-' + VALUE_ID])
+
+    def test_actual_consumer_orders_standalone_actions_around_core_and_nightly(self):
+        self.assert_action_order(VALUE_ID, self.options)
+
+    def assert_action_order(self, value_id, anr_options):
         consumer = self.actual_consumer()
-        home = Path(self.temporary.name) / 'dlor-consumer-home'
+        home = Path(self.temporary.name) / (value_id + '-consumer-home')
         home.mkdir()
         runpy.run_path(str(ROOT / 'scripts/runner_test_support.py'))['install_runner'](home)
         runner = str(home / '.dlor/run')
+        core_options = [option for option in self.installer['launchOptions']
+                        if option.get('valueId') == 'dlor-optiscaler'
+                        or option['id'] == 'dlor-optiscaler-nightly-upgrade']
         # Reverse source order to prove priority controls the command chain.
-        options = [option for option in reversed(self.installer['launchOptions'])
-                   if option.get('valueId') in ('dlor-optiscaler', 'dlor-' + VALUE_ID)
-                   or option['id'] == 'dlor-optiscaler-nightly-upgrade']
+        options = list(reversed(core_options + list(anr_options)))
         for core in (None, 'install', 'uninstall'):
             for selected in (None, 'none', 'install', 'uninstall'):
                 for nightly in (False, True):
@@ -108,7 +117,7 @@ class Actions(unittest.TestCase):
                         if core:
                             state['dlor-optiscaler-' + core] = True
                         if selected:
-                            state['dlor-' + VALUE_ID + '-' + selected] = True
+                            state[value_id + '-' + selected] = True
                         state['dlor-optiscaler-nightly-upgrade'] = nightly
                         settings = {'launchOptions': options, 'profiles': {'123': {
                             'state': state, 'originalLaunchOptions': '%command%'}}}

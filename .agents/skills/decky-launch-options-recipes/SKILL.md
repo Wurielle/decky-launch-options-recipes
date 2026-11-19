@@ -74,7 +74,7 @@ Use these fields according to the local `LaunchOption` type:
 - `on`: Launch option string applied when enabled.
 - `off`: Launch option string applied when disabled. Use `''` when no disabled command is needed.
 - `enableGlobally`: Whether the option is enabled by default for all games.
-- `priority`: Prefix order, highest first. Order dependent wrappers so installation runs before an update that relies on its files.
+- `priority`: Prefix order, highest first; omitted priority is `0`. Give another launch option's plugin/add-on Install a **negative** priority lower than its main installer so it runs afterward, including on first launch. Use `-2` when a host update already uses `-1`; use lower values for further dependencies. Apply this to standalone and copied controls, and verify through the actual consumer with reversed import/source order rather than relying on equal-priority tie order. Choose Uninstall ordering separately: if add-on removal needs the host's files/configuration, use a higher priority so removal precedes host uninstall. Keep None/deselection inert.
 - `valueId`: Shared dropdown identifier.
 - `valueName`: Dropdown choice label.
 - `fallbackValue`: Mark the default dropdown choice.

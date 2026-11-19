@@ -19,6 +19,9 @@ const launchOptions: LaunchOption[] = actionValues.map((action): LaunchOption =>
     on: action.command,
     off: '',
     enableGlobally: false,
+    // Core installers default to 0; nightly upgrades use -1. Install ANR last,
+    // but remove it before the core can delete its required OptiScaler.ini.
+    priority: action.id === 'uninstall' ? 1 : -2,
     valueId: 'optiscaler-framegen-anr',
     valueName: action.name,
     ...(action.id === 'none' ? {fallbackValue: true} : {}),
