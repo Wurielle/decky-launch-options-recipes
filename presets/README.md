@@ -28,6 +28,7 @@ The preset references the following controls from `dlor-optiscaler`:
 - DX11 upscaler: FidelityFX / FSR4 (`ffx_12`, DX11on12).
 - DX12 upscaler: FidelityFX / FSR4 (`ffx`).
 - Vulkan upscaler: FidelityFX / FSR4 (`ffx_12`, VKon12).
+- FSR4 preset: Performance (`3`).
 - VSync: On.
 - FrameGen input: Nvngx DLSSG (`nvngxfg`).
 - FrameGen: On.

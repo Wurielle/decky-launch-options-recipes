@@ -1,7 +1,7 @@
 {
     "id": "steam-deck",
     "name": "Steam Deck",
-    "description": "OptiScaler with AMD SDK FidelityFX upscaling, VSync, and Nvngx DLSSG input to XeFG output.",
+    "description": "OptiScaler with FSR4 (Performance) + XeFG (x2).",
     "launchOptions": [
         {
             "recipeId": "dlor-optiscaler",
@@ -22,6 +22,10 @@
         {
             "recipeId": "dlor-optiscaler",
             "launchOptionId": "dlor-optiscaler-upscaler-vulkan-ffx-12"
+        },
+        {
+            "recipeId": "dlor-optiscaler",
+            "launchOptionId": "dlor-optiscaler-fsr4-preset-3"
         },
         {
             "recipeId": "dlor-optiscaler",
