@@ -258,6 +258,22 @@ class DiscoveryTests(unittest.TestCase):
         self.assertEqual(discovery.discover_game_directory(selected, [str(launched)]), main.parent)
         self.assertEqual(discovery.discover_game_directory(selected, [], executable=str(launched)), main.parent)
 
+    def test_shared_raw_section_bytes_do_not_hide_renderer(self):
+        for second_offset in (0x700, 0x720):
+            with self.subTest(second_offset=second_offset):
+                data = bytearray(synthetic_pe(("KERNEL32.dll", "vulkan-1.dll")))
+                struct.pack_into("<H", data, 0x86, 3)
+                struct.pack_into("<I", data, 0x188 + 8, 0x500)
+                struct.pack_into("<I", data, 0x188 + 16, 0x500)
+                # Separate debug RVAs share all or part of the same file bytes,
+                # as seen in real executables; the import mapping stays unique.
+                for index, (address, offset) in enumerate(((0x2000, 0x700), (0x3000, second_offset)), 1):
+                    struct.pack_into("<8sIIIIIIHHI", data, 0x188 + index * 40,
+                                     b".debug\0\0", 0x80, address, 0x80, offset, 0, 0, 0, 0, 0x42000040)
+                game = self.file(f"shared-{second_offset}/Binaries/renderer.exe", bytes(data))
+                self.assertEqual(discovery._pe_imports(game), {"kernel32.dll", "vulkan-1.dll"})
+                self.assertEqual(discovery.discover_game_directory(game.parent.parent, []), game.parent)
+
     def test_malformed_pe_metadata_never_counts_as_renderer(self):
         cases = {"truncated": synthetic_pe()[:300], "plain-text": b"d3d12.dll"}
         for label, offset, fmt, value in (
@@ -279,7 +295,10 @@ class DiscoveryTests(unittest.TestCase):
         overlap = bytearray(synthetic_pe())
         struct.pack_into("<H", overlap, 0x86, 2)
         struct.pack_into("<8sIIIIIIHHI", overlap, 0x1B0, b".bad\0\0\0\0", 10, 0x1000, 10, 0x600, 0, 0, 0, 0, 0x40000040)
-        cases["partially-overlapping-sections"] = bytes(overlap)
+        cases["partially-overlapping-section-rvas"] = bytes(overlap)
+        raw_alias = bytearray(overlap)
+        struct.pack_into("<I", raw_alias, 0x1B0 + 20, 0x200)
+        cases["overlapping-section-rvas-with-shared-raw-bytes"] = bytes(raw_alias)
         wrapped = bytearray(synthetic_pe())
         struct.pack_into("<I", wrapped, 0x188 + 12, 0xFFFFFF00)
         struct.pack_into("<I", wrapped, 0x98 + 120, 0xFFFFFF00)

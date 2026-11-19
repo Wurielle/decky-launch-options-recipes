@@ -136,9 +136,16 @@ class Actions(unittest.TestCase):
                         for recipe, action in helpers:
                             expected += [runner, recipe, action, REVISION, '--']
                         expected += ['/harmless-game', 'literal argument']
-                        self.assertEqual(final, expected)
-                        self.assertEqual(variables, {'WINEDLLOVERRIDES': 'dxgi=n,b', 'SteamDeck': '0'}
-                                         if core == 'install' else {})
+                        shell = consumer.get_shell_command_log_details(final)
+                        if core == 'install':
+                            self.assertIsNotNone(shell)
+                            self.assertEqual(shell['pre_commands'], [
+                                'export WINEDLLOVERRIDES="${WINEDLLOVERRIDES:+$WINEDLLOVERRIDES;}${DLOR_OPTISCALER_PROXY:-dxgi}=n,b"'])
+                            self.assertEqual(shell['final_args'], expected)
+                        else:
+                            self.assertIsNone(shell)
+                            self.assertEqual(final, expected)
+                        self.assertEqual(variables, {'SteamDeck': '0'} if core == 'install' else {})
 
 
 if __name__ == '__main__':

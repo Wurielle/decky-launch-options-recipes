@@ -284,7 +284,7 @@ def restore_settings(data, settings):
     return edit_ini(data, changes, restoring=True)
 
 
-def apply_install(game, target, files, state_home, *, proxy="dxgi", configuration=None, relative_to_root=False, components=None, asi_only=False, explicit_overrides=None, expected_configuration_data=None, require_installed=False):
+def apply_install(game, target, files, state_home, *, proxy="dxgi", configuration=None, relative_to_root=False, components=None, asi_only=False, explicit_overrides=None, expected_configuration_data=None, require_installed=False, guard_proxy=False):
     explicit_overrides = explicit_overrides or {}
     if any(key not in (configuration or {}) or (configuration or {})[key] != value for key, value in explicit_overrides.items()):
         raise InstallerError("Explicit override does not match requested configuration")
@@ -292,6 +292,19 @@ def apply_install(game, target, files, state_home, *, proxy="dxgi", configuratio
         raise InstallerError("Only Plugins.LoadAsiPlugins may be configured")
     with game_state(game, state_home, asi_only=asi_only) as (root, directory, journal, state):
         relative = Path(target).relative_to(root)
+        previous_proxy = managed_proxy(root, state)
+        retiring_proxy = None
+        if state["files"] and state.get("proxy", proxy) != proxy:
+            if previous_proxy is None:
+                raise InstallerError("Proxy switching requires an unchanged DLOR-owned proxy")
+            old_path = safe_target(root, (Path(state["target"]) / (previous_proxy + ".dll")).as_posix())
+            retiring_proxy = old_path.relative_to(root).as_posix()
+            if state["files"][retiring_proxy]["original"] is not None:
+                raise InstallerError("Uninstall before switching a proxy with an original DLL backup")
+        if guard_proxy or (state["files"] and state.get("proxy", proxy) != proxy):
+            # CLI eligibility must survive ownership changes during acquisition;
+            # direct callers retain the generic original-backup contract.
+            choose_proxy(target, previous_proxy, proxy=proxy)
         if require_installed:
             path = safe_target(root, (relative / (proxy + ".dll")).as_posix())
             proxy_key = path.relative_to(root).as_posix()
@@ -438,6 +451,11 @@ def apply_install(game, target, files, state_home, *, proxy="dxgi", configuratio
             for key, path, record in stale:
                 current = digest(path) if path.exists() else None
                 if current not in (None, record["installed"], record.get("pending")):
+                    if key == retiring_proxy:
+                        # Retirement is mandatory for a switch. Existing rollback
+                        # removes the new injector first and retains the journal
+                        # if this foreign old-proxy edit blocks full recovery.
+                        raise InstallerError("Previous proxy changed during switching")
                     print("Preserving externally changed stale file:", key)
                     continue
                 if record["original"]:
@@ -783,20 +801,32 @@ def cached_package(asset, cache):
         os.close(descriptor)
 
 
-def choose_proxy(target, previous=None):
+def managed_proxy(root, state):
+    """Bind remembered selection to the current unchanged owned DLL."""
+    previous = state.get("proxy")
+    if previous not in PROXIES or not state["files"]:
+        return None
+    path = safe_target(root, (Path(state.get("target", ".")) / (previous + ".dll")).as_posix())
+    record = state["files"].get(path.relative_to(root).as_posix())
+    return previous if record and path.is_file() and digest(path) == record["installed"] else None
+
+
+def choose_proxy(target, previous=None, *, proxy="dxgi"):
+    if proxy not in PROXIES:
+        raise InstallerError("Unsupported OptiScaler proxy")
     found = []
-    for proxy in PROXIES:
-        path = safe_target(target, proxy + ".dll")
+    for candidate in PROXIES:
+        path = safe_target(target, candidate + ".dll")
         if path.is_file() and identifies_optiscaler(path):
-            found.append(proxy)
+            found.append(candidate)
     if len(found) > 1:
         raise InstallerError("Multiple existing OptiScaler proxies")
-    if found and found != ["dxgi"]:
-        raise InstallerError("Existing injector uses a different proxy; uninstall it before switching")
-    path = safe_target(target, "dxgi.dll")
-    if path.exists() and not found and previous != "dxgi":
-        raise InstallerError("DXGI proxy is occupied by another file")
-    return "dxgi"
+    if found and found[0] not in (proxy, previous):
+        raise InstallerError("Existing injector uses a different unmanaged proxy; uninstall it before switching")
+    path = safe_target(target, proxy + ".dll")
+    if path.exists() and previous != proxy and (previous is not None or proxy not in found):
+        raise InstallerError(f"{proxy}.dll is occupied by another file")
+    return proxy
 
 
 # Source coordinates select manifest pins, never mutable latest metadata. A member
@@ -890,6 +920,7 @@ def main(argv=None):
         result = uninstall(root, state_home, asi_only=True)
         print("OptiScaler uninstall completed; changed external files preserved:", len(result["preserved"]))
         return 0
+    selected_proxy = os.environ.get("DLOR_OPTISCALER_PROXY") or "dxgi"
     if args.action == "upgrade":
         # Ordinary assignments are visible to both helpers in the stock runner.
         # Main ON already performs the fresh transaction; main OFF must win.
@@ -902,7 +933,10 @@ def main(argv=None):
         with game_state(root, state_home, asi_only=True) as (_, directory, journal, state):
             if not state["files"]:
                 return 0
-            path = safe_target(root, (Path(state.get("target", ".")) / "dxgi.dll").as_posix())
+            selected_proxy = state.get("proxy", "dxgi")
+            if selected_proxy not in PROXIES:
+                raise InstallerError("Unsupported installed OptiScaler proxy")
+            path = safe_target(root, (Path(state.get("target", ".")) / (selected_proxy + ".dll")).as_posix())
             proxy_key = path.relative_to(root).as_posix()
             record = state["files"].get(proxy_key)
             if not record or not path.is_file() or digest(path) != record["installed"]:
@@ -932,13 +966,12 @@ def main(argv=None):
         if not isinstance(game_argv, list) or any(not isinstance(value, str) for value in game_argv):
             raise InstallerError("Invalid game argument handoff")
     with game_state(root, state_home, asi_only=True) as (_, directory, journal, state):
-        previous = state.get("proxy")
+        previous = managed_proxy(root, state)
         known = state.get("target") if state["files"] else None
-        proxy_key = (Path(state.get("target", ".")) / (str(previous) + ".dll")).as_posix()
-        if proxy_key not in state["files"]:
-            previous = None
+        if state["files"] and state.get("proxy", selected_proxy) != selected_proxy and previous is None:
+            raise InstallerError("Proxy switching requires an unchanged DLOR-owned proxy")
     target = (root if known == "." else safe_target(root, known)) if known is not None else discover_game_directory(root, game_argv, executable=os.environ.get("DLOR_OPTISCALER_EXECUTABLE"))
-    proxy = choose_proxy(target, previous)
+    proxy = choose_proxy(target, previous, proxy=selected_proxy)
     cache = home / ".dlor/cache/dlor-optiscaler/artifacts"
     resolution = {"fresh": True} if os.environ.get("DLOR_OPTISCALER_LATEST") == "1" else {}
     asset = resolve_asset("optiscaler/OptiScaler-nightly", "nightly", r"(?i)(?!.*(?:debug|symbols|source)).*optiscaler.*\.7z", cache, **resolution)
@@ -960,7 +993,7 @@ def main(argv=None):
     plan = build_plan(root, target, core, proxy=proxy, plugins=plugins, extra_libraries=libraries, configuration_data=effective)
     plan["settings"].update(settings)
     plan["settings"].update(overrides)
-    result = apply_install(root, target, plan["files"], state_home, proxy=proxy, configuration=plan["settings"], relative_to_root=True, components=[asset, *components], asi_only=True, explicit_overrides=overrides, expected_configuration_data=effective, require_installed=args.action == "upgrade")
+    result = apply_install(root, target, plan["files"], state_home, proxy=proxy, configuration=plan["settings"], relative_to_root=True, components=[asset, *components], asi_only=True, explicit_overrides=overrides, expected_configuration_data=effective, require_installed=args.action == "upgrade", guard_proxy=True)
     if args.result:
         atomic_write(args.result, (json.dumps(result) + "\n").encode())
     print("OptiScaler installed:", asset["tag"], "proxy", proxy)

@@ -167,7 +167,7 @@ class SettingsTests(unittest.TestCase):
         originals = [option for option in self.options if option.get('valueId') != 'optiscaler']
         originals += [{**option, 'priority': 1 if option['valueName'] == 'Uninstall' else -2}
                       for option in self.anr_options]
-        native_ids = {'dlor-optiscaler', 'dlor-optiscaler-fsr-override'}
+        native_ids = {'dlor-optiscaler', 'dlor-optiscaler-proxy', 'dlor-optiscaler-fsr-override'}
         imported = [option for option in self.installer_options if option.get('valueId') not in native_ids]
         expected = [{**option, 'id': 'dlor-' + option['id'], 'group': 'DLOR OptiScaler',
                      **({'valueId': 'dlor-' + option['valueId']} if 'valueId' in option else {})}
