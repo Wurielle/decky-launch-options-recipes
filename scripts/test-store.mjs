@@ -25,6 +25,7 @@ function fixture(t, {environmentVariableMerges} = {}) {
         writeFileSync(path.join(compiled, 'recipes', source.replace(/\.ts$/, '.js')), `
             import {remoteScript} from '${helper}'
             export default {
+                id: '${name.toLowerCase()}',
                 name: '${name}',
                 launchOptions: [{id: '${name.toLowerCase()}', on: remoteScript('example', 'install')}],
                 ${name === 'Alpha' && environmentVariableMerges !== undefined ? `environmentVariableMerges: ${JSON.stringify(environmentVariableMerges)},` : ''}
@@ -75,10 +76,40 @@ test('store contains only metadata while recipes retain their order and commit p
     assert.equal(store.type, 'github')
     assert.deepEqual(store.github, {repository: 'Wurielle/decky-launch-options-recipes', branch: 'dev'})
     assert.deepEqual(recipes.map(recipe => recipe.name), ['Beta', 'Alpha'])
+    assert.deepEqual(recipes.map(recipe => recipe.id), ['beta', 'alpha'])
     assert.equal(recipes[0].launchOptions[0].on, `~/.dlor/run example install ${revision} -- %command%`)
     const original = project.read('store.json')
     assert.equal(project.build().status, 0)
     assert.equal(project.read('store.json'), original)
+})
+
+test('maintained recipes declare unique stable IDs independent of their display names', async () => {
+    const {existsSync, readdirSync} = await import('node:fs')
+    const sources = readdirSync(path.join(root, 'recipes'), {withFileTypes: true})
+        .filter(entry => entry.isFile()
+            ? entry.name.endsWith('.ts') && entry.name !== 'index.ts'
+            : entry.isDirectory() && entry.name !== 'shared'
+                && existsSync(path.join(root, 'recipes', entry.name, 'index.ts')))
+        .map(entry => entry.isDirectory() ? `${entry.name}/index` : entry.name.replace(/\.ts$/, ''))
+    const result = spawnSync(process.execPath, ['--input-type=module', '-e', `
+        const recipes = await Promise.all(${JSON.stringify(sources)}.map(async (source) =>
+            (await import('./.generated/recipes-build/recipes/' + source + '.js')).default))
+        console.log(JSON.stringify(recipes))
+    `], {
+        cwd: root,
+        env: {...process.env, RECIPE_REPOSITORY_OWNER: 'Wurielle',
+            RECIPE_REPOSITORY_NAME: 'decky-launch-options-recipes', RECIPE_COMMIT_SHA: revision},
+        encoding: 'utf8',
+    })
+    assert.equal(result.status, 0, result.stderr)
+    const recipes = JSON.parse(result.stdout)
+    const ids = recipes.map((recipe, index) => {
+        assert.equal(recipe.id, sources[index].replace(/\/index$/, ''), sources[index])
+        assert.match(recipe.id, /^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+        return recipe.id
+    })
+    assert.ok(ids.length > 0)
+    assert.equal(new Set(ids).size, ids.length)
 })
 
 test('recipe merge lists preserve IDs, delimiters, and build-time placeholders alongside legacy recipes', (t) => {

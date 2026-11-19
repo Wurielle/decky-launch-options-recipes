@@ -529,6 +529,7 @@ const launchOptions: LaunchOption[] = [
 ]
 
 const recipe = {
+    id: 'optiscaler',
     "name": "OptiScaler",
     launchOptions,
 } satisfies Recipe

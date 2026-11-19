@@ -83,6 +83,7 @@ const sizeOptions: LaunchOption[] = [
 ]
 
 const recipe = {
+    id: 'non-steam',
     name: 'Non-Steam',
     launchOptions: [...scalingOptions, ...sizeOptions],
 } satisfies Recipe

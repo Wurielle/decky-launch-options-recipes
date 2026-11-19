@@ -8,8 +8,11 @@ on:
       - 'scripts/test-runner.py'
       - 'scripts/runner_test_support.py'
       - 'scripts/test-log-retention.py'
-      - 'scripts/test-script-logging.py'
-      - 'scripts/test-non-steam.py'
+      - 'scripts/script_logging_test_support.py'
+      - 'recipes/reframework/**'
+      - 'recipes/optiscaler/**'
+      - 'recipes/dlor-optiscaler/scripts/**'
+      - 'recipes.json'
       - 'recipes/non-steam/**'
       - '.github/workflows/test-runner.yml'
   push:
@@ -20,8 +23,11 @@ on:
       - 'scripts/test-runner.py'
       - 'scripts/runner_test_support.py'
       - 'scripts/test-log-retention.py'
-      - 'scripts/test-script-logging.py'
-      - 'scripts/test-non-steam.py'
+      - 'scripts/script_logging_test_support.py'
+      - 'recipes/reframework/**'
+      - 'recipes/optiscaler/**'
+      - 'recipes/dlor-optiscaler/scripts/**'
+      - 'recipes.json'
       - 'recipes/non-steam/**'
       - '.github/workflows/test-runner.yml'
 
@@ -40,9 +46,11 @@ jobs:
         run: python3 scripts/test-runner.py -v
       - name: Test log retention
         run: python3 scripts/test-log-retention.py -v
-      - name: Test script logging and launch continuation
-        run: python3 scripts/test-script-logging.py -v
+      - name: Test REFramework logging and launch continuation
+        run: python3 -I -B -m unittest discover -s recipes/reframework/tests -p test_logging.py -v
+      - name: Test OptiScaler logging and launch continuation
+        run: python3 -I -B -m unittest discover -s recipes/optiscaler/tests -p test_logging.py -v
       - name: Test Non-Steam window helper
         run: |
           bash -n recipes/non-steam/scripts/resize-window.sh
-          python3 scripts/test-non-steam.py -v
+          python3 -I -B -m unittest discover -s recipes/non-steam/tests -v

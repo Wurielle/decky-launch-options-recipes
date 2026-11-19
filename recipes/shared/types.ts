@@ -18,6 +18,7 @@ export interface EnvironmentVariableMerge {
 }
 
 export interface Recipe {
+    id: string;
     name: string;
     launchOptions: LaunchOption[];
     environmentVariableMerges?: EnvironmentVariableMerge[];

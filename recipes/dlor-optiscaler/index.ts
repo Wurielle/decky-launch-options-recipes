@@ -41,6 +41,7 @@ const optimizedProfiles = [
 })))
 
 const recipe = {
+    id: 'dlor-optiscaler',
     name: group,
     environmentVariableMerges: [wineDllOverridesMerge],
     launchOptions: [

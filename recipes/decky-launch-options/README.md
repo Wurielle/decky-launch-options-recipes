@@ -65,6 +65,6 @@ be reviewed and tested locally without publishing or deploying it.
 Offline validation:
 
 ```sh
-python3 scripts/test-dlo-auto-update.py
+python3 -I -B -m unittest discover -s recipes/decky-launch-options/tests -v
 python3 scripts/test-log-retention.py
 ```

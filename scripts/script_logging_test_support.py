@@ -1,33 +1,31 @@
-"""Offline logging and launch-continuation checks for downloaded recipe scripts."""
+"""Shared offline logging fixtures and assertions; recipe suites own test cases."""
 
 import json
 import os
 from pathlib import Path
+import runpy
 import shlex
-import shutil
 import subprocess
-import sys
 import tempfile
 import unittest
-from runner_test_support import install_runner
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPTS = {
-    "reframework-update": ROOT / "recipes/reframework/scripts/update.sh",
-    "reframework-uninstall": ROOT / "recipes/reframework/scripts/uninstall.sh",
-    "optiscaler-update-nightly": ROOT / "recipes/optiscaler/scripts/update-nightly.sh",
-}
+install_runner = runpy.run_path(str(ROOT / "scripts/runner_test_support.py"))["install_runner"]
 
 
-class ScriptLoggingTests(unittest.TestCase):
+class ScriptLoggingFixture(unittest.TestCase):
+    script_sources: dict[str, Path]
+    launch_cases: list[tuple[str, str, str]]
+    option_ids: list[str]
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="recipe-logging-")
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
         # Test the same LF script contents served by GitHub from Windows checkouts.
         self.scripts = {}
-        for name, source in SCRIPTS.items():
+        for name, source in self.script_sources.items():
             script = self.root / f"{name}.sh"
             script.write_text(source.read_text())
             self.scripts[name] = script
@@ -38,45 +36,14 @@ class ScriptLoggingTests(unittest.TestCase):
         self.bin.mkdir()
         self.game = self.root / "Steam game"
         self.game.mkdir()
-        (self.game / "OptiScaler.ini").write_text("user config")
-        (self.game / "dxgi.dll").write_text("original")
-        (self.game / "dinput8.dll").write_text("original")
         self.env = dict(os.environ, HOME=str(self.home),
-                        PATH=f"{self.bin}:{os.environ['PATH']}",
-                        REFRAMEWORK_CACHE_DIR=str(self.root / "reframework-cache"),
-                        OPTISCALER_CACHE_DIR=str(self.root / "optiscaler-cache"))
+                        PATH=f"{self.bin}:{os.environ['PATH']}")
         self.env["SYSTEM_PATH"] = self.env["PATH"]
 
     def tool(self, name, body):
         path = self.bin / name
         path.write_text("#!/usr/bin/env bash\n" + body + "\n")
         path.chmod(0o755)
-
-    def verified_nightly_logging_fixture(self):
-        # Isolate host cleanup/logging from binary acquisition while retaining
-        # the real manifest -> loader -> verified-module trust chain.
-        runtime = self.root / "recipes/dlor-optiscaler/scripts"
-        runtime.mkdir(parents=True)
-        source = ROOT / "recipes/dlor-optiscaler/scripts"
-        for name in ("loader.py", "artifacts.py", "game_discovery.py",
-                     "update_optiscaler_config.py", "nightly.py", "downloads.json",
-                     "update-source-hashes.py"):
-            shutil.copyfile(source / name, runtime / name)
-        (runtime / "installer.py").write_text('''import os
-
-def main(argv=None):
-    assert not os.environ.get('LD_PRELOAD'), 'host module inherited preload'
-    assert not os.environ.get('LD_LIBRARY_PATH'), 'host module inherited Steam libraries'
-    assert not os.environ.get('STEAM_RUNTIME', '').startswith('/'), 'host module inherited Steam runtime'
-    print('Upgraded: synthetic logging fixture')
-    return 0
-''')
-        entry = self.root / "recipes/optiscaler/scripts"
-        entry.mkdir(parents=True)
-        subprocess.run([sys.executable, "-I", "-B", str(runtime / "update-source-hashes.py")],
-                       capture_output=True, text=True, check=True)
-        self.scripts["optiscaler-update-nightly"].write_bytes((entry / "update-nightly.sh").read_bytes())
-        self.env.update(TEST_NIGHTLY_RUNTIME=str(runtime), DLOR_SCRIPT_REVISION="a" * 40)
 
     def run_script(self, name, *args, stdin=False):
         command = ["bash", "-s", "--"] if stdin else ["bash", str(self.scripts[name])]
@@ -90,8 +57,8 @@ def main(argv=None):
         self.assertEqual(len(logs), count)
         return logs[-1].read_text()
 
-    def test_help_logs_stdout_and_uses_separate_timestamped_files(self):
-        for name in SCRIPTS:
+    def check_help_logging(self):
+        for name in self.scripts:
             with self.subTest(script=name):
                 for count in (1, 2):
                     result = self.run_script(name, "--help")
@@ -100,8 +67,8 @@ def main(argv=None):
                     self.assertIn("Usage:", log)
                     self.assertIn("finished with exit status 0", log)
 
-    def test_validation_errors_are_logged_when_piped_into_bash(self):
-        for name in SCRIPTS:
+    def check_validation_logging(self):
+        for name in self.scripts:
             with self.subTest(script=name):
                 result = self.run_script(name, self.root / "missing", stdin=True)
                 self.assertEqual(result.returncode, 1, result.stderr)
@@ -110,59 +77,36 @@ def main(argv=None):
                 self.assertIn("missing", log)
                 self.assertIn("finished with exit status 1", log)
 
-    def test_logging_setup_failure_does_not_stop_scripts(self):
+    def check_logging_setup_failure(self):
         (self.home / ".dlor/logs").write_text("blocks log directory creation")
-        for name in SCRIPTS:
+        for name in self.scripts:
             with self.subTest(script=name):
                 result = self.run_script(name, "--help")
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertIn("could not enable logging", result.stderr)
                 self.assertIn("Usage:", result.stdout)
 
-    def test_log_write_failure_does_not_stop_output_or_commands(self):
+    def check_log_write_failure(self):
         # Exercise GNU tee's real write-error handling without filling the disk.
         self.tool("tee", 'exec /usr/bin/tee "$@" /dev/full')
-        for name in SCRIPTS:
+        for name in self.scripts:
             with self.subTest(script=name):
                 result = self.run_script(name, "--help")
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertIn("/dev/full", result.stderr)
                 self.assertIn("finished with exit status 0", self.log(name))
 
-    def test_unexpected_failure_logs_status_and_cleanup_errors(self):
-        self.tool("curl", '''
-if [[ "$*" == *url_effective* ]]; then
-    printf 'https://github.com/praydog/REFramework-nightly/releases/tag/test'
-else
-    echo 'artifact download failed' >&2
-    exit 22
-fi''')
-        self.tool("unzip", "exit 0")
-        self.tool("rm", "echo 'cleanup failed' >&2; exit 9")
-        result = self.run_script("reframework-update", self.game)
-        self.assertEqual(result.returncode, 22, result.stderr)
-        log = self.log("reframework-update")
-        self.assertIn("artifact download failed", log)
-        self.assertIn("reframework/update line", log)
-        self.assertIn("cleanup failed", log)
-        self.assertIn("finished with exit status 22", log)
-
-    def test_uninstaller_success_is_logged(self):
-        result = self.run_script("reframework-uninstall", self.game)
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertFalse((self.game / "dinput8.dll").exists())
-        self.assertIn("Uninstalled:", self.log("reframework-uninstall"))
-
-    def test_runner_survives_decky_launch_options_token_classification(self):
+    def check_runner_token_classification(self):
         # Compatibility with the deployed Launch Options parser: it classifies
         # every token before %command%, including the quoted bash -c body.
         recipes = json.loads((ROOT / "recipes.json").read_text())
+        found = set()
         for recipe in recipes:
             self.assertTrue({"name", "launchOptions"} <= set(recipe))
             for option in recipe["launchOptions"]:
-                if option["id"] not in ("reframework-install-update", "reframework-uninstall",
-                                        "optiscaler-nightly-upgrade"):
+                if option["id"] not in self.option_ids:
                     continue
+                found.add(option["id"])
                 with self.subTest(option=option["id"]):
                     tokens = shlex.split(option["on"])
                     prefix, environment = [], {}
@@ -181,9 +125,9 @@ fi''')
                     self.assertRegex(prefix[2], r"^[a-z0-9-]+$")
                     self.assertRegex(prefix[3], r"^[a-f0-9]{40}$")
                     self.assertEqual(prefix[4], "--")
+        self.assertEqual(found, set(self.option_ids))
 
-    def test_host_tools_escape_steam_libraries_but_game_keeps_its_environment(self):
-        self.verified_nightly_logging_fixture()
+    def check_host_tools_environment(self, curl_body, cached_files):
         recipes = json.loads((ROOT / "recipes.json").read_text())
         options = {o["id"]: o for r in recipes for o in r["launchOptions"]}
         runtime = self.root / "Steam runtime"
@@ -198,39 +142,16 @@ fi''')
                         LD_PRELOAD="/test/steam/gameoverlayrenderer.so",
                         SYSTEM_PATH=self.env["PATH"], SYSTEM_LD_LIBRARY_PATH="")
         self.tool("unzip", "exit 0")
-        self.tool("curl", '''
-if [[ -n "${LD_LIBRARY_PATH:-}" || -n "${LD_PRELOAD:-}" ]]; then
-    echo "curl: Steam libcurl does not provide CURL_OPENSSL_4" >&2
-    exit 1
-fi
-if [[ "$*" == *raw.githubusercontent.com* ]]; then
-    url="${@: -1}"
-    while [[ "$1" != --output && "$1" != -o ]]; do shift; done
-    name="${url##*/}"
-    if [[ "$url" == */recipes/dlor-optiscaler/scripts/* && -f "$TEST_NIGHTLY_RUNTIME/$name" ]]; then
-        cat "$TEST_NIGHTLY_RUNTIME/$name" > "$2"
-    else
-        cat "$TEST_RECIPE_SCRIPT" > "$2"
-    fi
-elif [[ "$*" == *url_effective* ]]; then
-    printf 'https://github.com/praydog/REFramework-nightly/releases/tag/test'
-else
-    printf '%s' '[{"draft":false,"tag_name":"test","assets":[{"name":"OptiScaler_test.7z"}]}]'
-fi''')
-        for cache, relative in (("reframework-cache", "test/dinput8.dll"),
-                                ("optiscaler-cache", "test/files/OptiScaler.dll")):
-            dll = self.root / cache / relative
+        self.tool("curl", curl_body)
+        for relative in cached_files:
+            dll = self.root / relative
             dll.parent.mkdir(parents=True)
             dll.write_text("cached release")
         marker = self.root / "game-environment.json"
         game = shlex.join(["python3", "-c",
                            "import json, os, pathlib; pathlib.Path(os.environ['TEST_GAME_MARKER']).write_text(json.dumps({key: os.environ.get(key) for key in ['LD_LIBRARY_PATH', 'LD_PRELOAD', 'STEAM_RUNTIME']}))"])
         self.env["TEST_GAME_MARKER"] = str(marker)
-        for name, option, success in [
-            ("reframework-update", "reframework-install-update", "Installed:"),
-            ("reframework-uninstall", "reframework-uninstall", "Uninstalled:"),
-            ("optiscaler-update-nightly", "optiscaler-nightly-upgrade", "Upgraded:"),
-        ]:
+        for name, option, success in self.launch_cases:
             with self.subTest(script=name):
                 self.env["TEST_RECIPE_SCRIPT"] = str(self.scripts[name])
                 marker.unlink(missing_ok=True)
@@ -249,8 +170,7 @@ fi''')
 
                 # Older imported wrappers can still pipe directly into bash -s.
                 # The script must clean its own environment before any tools run.
-                if name == "reframework-uninstall":
-                    (self.game / "dinput8.dll").write_text("original")
+                self.prepare_direct_run(name)
                 result = self.run_script(name, self.game, stdin=True)
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
                 log = self.log(name, count=2)
@@ -258,7 +178,10 @@ fi''')
                 self.assertNotIn("CURL_OPENSSL_4", log)
                 self.assertNotIn("ld.so", log)
 
-    def test_launch_wrappers_continue_after_real_script_failures(self):
+    def prepare_direct_run(self, name):
+        """Recipe suites may restore inputs consumed by their first invocation."""
+
+    def check_launch_failure_continuation(self, verified_source_path=""):
         recipes = json.loads((ROOT / "recipes.json").read_text())
         options = {o["id"]: o for r in recipes for o in r["launchOptions"]}
         runtime = self.root / "Steam runtime"
@@ -266,7 +189,8 @@ fi''')
         switch = runtime / "scripts/switch-runtime.sh"
         switch.write_text('#!/usr/bin/env bash\nshift 2\nexec "$@"\n')
         switch.chmod(0o755)
-        self.env.update(STEAM_RUNTIME=str(runtime), STEAM_COMPAT_INSTALL_PATH=str(self.game))
+        self.env.update(STEAM_RUNTIME=str(runtime), STEAM_COMPAT_INSTALL_PATH=str(self.game),
+                        TEST_VERIFIED_SOURCE_PATH=verified_source_path)
         self.tool("unzip", "exit 0")
         self.tool("rm", "echo 'uninstall failed' >&2; exit 9")
         arguments = ["path with spaces", 'with "quotes"', "$literal"]
@@ -274,15 +198,11 @@ fi''')
         game = shlex.join(["python3", "-c",
                            "import json, pathlib, sys; pathlib.Path(sys.argv[1]).write_text(json.dumps(sys.argv[2:]))",
                            str(marker), *arguments])
-        for name, option in [
-            ("reframework-update", "reframework-install-update"),
-            ("reframework-uninstall", "reframework-uninstall"),
-            ("optiscaler-update-nightly", "optiscaler-nightly-upgrade"),
-        ]:
+        for name, option, _ in self.launch_cases:
             with self.subTest(script=name):
                 marker.unlink(missing_ok=True)
                 self.tool("curl", f'''
-if [[ "$*" == */recipes/dlor-optiscaler/scripts/* ]]; then
+if [[ -n "$TEST_VERIFIED_SOURCE_PATH" && "$*" == *"$TEST_VERIFIED_SOURCE_PATH"* ]]; then
     echo 'verified source download failed' >&2
     exit 22
 elif [[ "$*" == *raw.githubusercontent.com* ]]; then
@@ -300,7 +220,3 @@ fi''')
                 self.assertIn("failed", log)
                 self.assertIn("finished with exit status", log)
                 self.assertNotIn("finished with exit status 0", log)
-
-
-if __name__ == "__main__":
-    unittest.main()

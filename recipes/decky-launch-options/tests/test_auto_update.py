@@ -16,10 +16,12 @@ import unittest
 from unittest.mock import Mock, patch
 import zipfile
 
-from runner_test_support import install_runner
+import runpy
+
+install_runner = runpy.run_path(str(Path(__file__).resolve().parents[3] / 'scripts/runner_test_support.py'))['install_runner']
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[3]
 SCRIPT = ROOT / 'recipes/decky-launch-options/scripts/auto-update.sh'
 updater = types.ModuleType('dlo_auto_update')
 exec(compile(SCRIPT.read_text().split("<<'PYTHON'\n", 1)[1].rsplit('\nPYTHON', 1)[0],

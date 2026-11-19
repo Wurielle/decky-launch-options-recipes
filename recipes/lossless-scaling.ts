@@ -1,6 +1,7 @@
 import type { Recipe } from './shared/types.js'
 
 const recipe = {
+    id: 'lossless-scaling',
     "name": "Lossless Scaling",
     "launchOptions": [
         {
