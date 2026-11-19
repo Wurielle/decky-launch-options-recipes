@@ -1,17 +1,10 @@
 name: Build recipe catalogs
 
 on:
+  # Every branch needs its own store metadata, even for preset or docs changes.
   push:
     branches:
       - '**'
-    paths:
-      - 'recipes/**'
-      - 'scripts/build-recipes.ts'
-      - 'scripts/test-store.mjs'
-      - 'store.config.ts'
-      - 'tsconfig.recipes.json'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
   pull_request:
     branches:
       - '**'
