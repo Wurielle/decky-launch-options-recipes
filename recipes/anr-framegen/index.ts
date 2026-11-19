@@ -28,7 +28,7 @@ const launchOptions: LaunchOption[] = actionValues.map((action): LaunchOption =>
 }))
 
 const recipe = {
-    id: 'anr-framegen',
+    id: 'optiscaler-framegen-anr',
     name: 'OptiScaler FrameGen ANR',
     launchOptions,
 } satisfies Recipe

@@ -215,7 +215,15 @@ subshell keeps the locale, glob settings, and temporary variables local to clean
 
 ## ID Convention
 
-Define IDs as stable paths through a control's logical scope:
+Recipe IDs follow the full semantic **host → feature → component** hierarchy,
+using explicit, stable lowercase hyphen-case tokens. Do not derive them from
+physical filenames/directories or display-label word order. For example,
+OptiScaler ANR FrameGen has recipe `id: 'optiscaler-framegen-anr'` even though its
+source, scripts, and tests live under `recipes/anr-framegen/`. Keep those physical
+paths and runner arguments independent from recipe identity. Test maintained
+recipe IDs against explicit semantic expectations, not directory-slug equality.
+
+Define launch-option IDs as stable paths through a control's logical scope:
 
 `<namespace>[-<feature-or-operation>][-<subsystem-or-target>][-<setting>]`
 
