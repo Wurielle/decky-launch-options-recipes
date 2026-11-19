@@ -56,7 +56,7 @@ def main(argv=None):
     if len(argv) < 2:
         print('fixture usage: ACTION GAME_ROOT', file=sys.stderr)
         return 2
-    record = {'argv': argv, 'env': {k: v for k, v in os.environ.items() if k in ('STEAM_RUNTIME', 'LD_LIBRARY_PATH', 'LD_PRELOAD', 'PATH', 'PYTHONHOME', 'PYTHONPATH', 'WINEDLLOVERRIDES', 'SteamDeck', 'work', 'status', 'entry_name', 'helper_pid', 'logger_pid', 'merged', 'console_out', 'console_err')}, 'isolated': sys.flags.isolated,
+    record = {'argv': argv, 'env': {k: v for k, v in os.environ.items() if k in ('STEAM_RUNTIME', 'LD_LIBRARY_PATH', 'LD_PRELOAD', 'PATH', 'PYTHONHOME', 'PYTHONPATH', 'WINEDLLOVERRIDES', 'DLOR_OPTISCALER_PROXY', 'SteamDeck', 'work', 'status', 'entry_name', 'helper_pid', 'logger_pid', 'merged', 'console_out', 'console_err')}, 'isolated': sys.flags.isolated,
               'bytecode': sys.dont_write_bytecode}
     pathlib.Path(os.environ['FIXTURE_TRACE']).write_text(json.dumps(record))
     print('fixture installer output', flush=True)
@@ -371,7 +371,7 @@ os.execv('/usr/bin/{tool}', ['{tool}', *sys.argv[1:]])
     def game_command(self, *extra):
         output = self.root / 'game-result.json'
         code = ("import json, os, pathlib, sys; "
-                "pathlib.Path(sys.argv[1]).write_text(json.dumps({'argv': sys.argv[2:], 'env': {k: v for k, v in os.environ.items() if k in ('STEAM_RUNTIME', 'LD_LIBRARY_PATH', 'LD_PRELOAD', 'PATH', 'PYTHONHOME', 'PYTHONPATH', 'WINEDLLOVERRIDES', 'SteamDeck', 'work', 'status', 'entry_name', 'helper_pid', 'logger_pid', 'merged', 'console_out', 'console_err', 's', 'REPLY', 'p', 'f', 'COPROC', 'COPROC_PID', 'ORIGINAL_TEST_VALUE', 'DLOR_SCRIPT_REVISION', 'DLOR_REPOSITORY')}})); "
+                "pathlib.Path(sys.argv[1]).write_text(json.dumps({'argv': sys.argv[2:], 'env': {k: v for k, v in os.environ.items() if k in ('STEAM_RUNTIME', 'LD_LIBRARY_PATH', 'LD_PRELOAD', 'PATH', 'PYTHONHOME', 'PYTHONPATH', 'WINEDLLOVERRIDES', 'DLOR_OPTISCALER_PROXY', 'SteamDeck', 'work', 'status', 'entry_name', 'helper_pid', 'logger_pid', 'merged', 'console_out', 'console_err', 's', 'REPLY', 'p', 'f', 'COPROC', 'COPROC_PID', 'ORIGINAL_TEST_VALUE', 'DLOR_SCRIPT_REVISION', 'DLOR_REPOSITORY')}})); "
                 "print('GAMEPLAY-SENTINEL', flush=True); sys.exit(23)")
         return [sys.executable, '-I', '-B', '-c', code, str(output), *extra]
 
@@ -505,24 +505,32 @@ os.execv('/usr/bin/{tool}', ['{tool}', *sys.argv[1:]])
         runpy.run_path(str(SCRIPTS.parents[2] / 'scripts/runner_test_support.py'))['install_runner'](self.home)
         recipe = self.compiled_recipe()
         self.env['SteamDeck'] = '1'
-        for enabled, action in ((True, 'install'), (False, 'uninstall')):
-            with self.subTest(enabled=enabled):
-                expected = (('WINEDLLOVERRIDES="dxgi=n,b" SteamDeck=0 ' if enabled else '')
-                            + f'~/.dlor/run dlor-optiscaler {action} {REVISION} -- %command%')
-                choice = next(option for option in recipe['launchOptions'] if option['id'] == 'dlor-optiscaler-' + action)
-                self.assertEqual(choice['on'], expected)
-                self.assertEqual(choice['off'], '')
+        for action, proxy in (('install', 'none'), ('install', 'winmm'), ('uninstall', 'winmm'), ('none', 'winmm')):
+            enabled = action == 'install'
+            with self.subTest(action=action, proxy=proxy):
+                self.trace.unlink(missing_ok=True)
+                state = {'dlor-optiscaler-proxy-' + proxy: True}
                 self.env.pop('DLOR_SCRIPT_REVISION', None)
-                final, env, variables = self.consumer_launch(recipe, self.game_command('quoted " café path'), action)
-                self.assertEqual(final[:5], [str(self.home / '.dlor/run'), 'dlor-optiscaler', action, REVISION, '--'])
+                final, env, variables = self.consumer_launch(
+                    recipe, self.game_command('quoted " café path'), action, state=state)
+                shell = self.actual_consumer().get_shell_command_log_details(final)
+                if action != 'none':
+                    command = shell['final_args'] if shell else final
+                    self.assertEqual(command[:5], [str(self.home / '.dlor/run'), 'dlor-optiscaler', action, REVISION, '--'])
                 result = subprocess.run(final, env=env, capture_output=True, text=True, timeout=20)
                 self.assertEqual(result.returncode, 23, result.stdout + result.stderr)
-                self.assertEqual(json.loads(self.trace.read_text())['argv'], [action, str(self.game)])
+                if action == 'none':
+                    self.assertFalse(self.trace.exists())
+                else:
+                    trace = json.loads(self.trace.read_text())
+                    self.assertEqual(trace['argv'], [action, str(self.game)])
+                    self.assertEqual(trace['env'].get('DLOR_OPTISCALER_PROXY'), None if proxy == 'none' else proxy)
                 observed = json.loads((self.root / 'game-result.json').read_text())
                 self.assertEqual(observed['argv'], ['quoted " café path', '--original-arg'])
                 self.assertEqual(observed['env']['SteamDeck'], '0' if enabled else '1')
                 if enabled:
-                    self.assertEqual(variables['WINEDLLOVERRIDES'], 'dxgi=n,b')
+                    dll = 'dxgi' if proxy == 'none' else proxy
+                    self.assertEqual(observed['env']['WINEDLLOVERRIDES'], f'{dll}=n,b')
                     self.assertEqual(variables['SteamDeck'], '0')
                 else:
                     self.assertNotIn('WINEDLLOVERRIDES', variables)
@@ -701,7 +709,8 @@ os.execv('/usr/bin/sha256sum', ['sha256sum', *sys.argv[1:]])
                 self.trace.unlink(missing_ok=True)
                 helper_trace.unlink(missing_ok=True)
                 final, env, variables = self.consumer_launch(recipe, game, 'install' if enabled else 'uninstall', helpers)
-                self.assertEqual(final[:2], [str(self.home / '.dlor/run'), 'fixture'])
+                shell = self.actual_consumer().get_shell_command_log_details(final)
+                self.assertEqual((shell['final_args'] if shell else final)[:2], [str(self.home / '.dlor/run'), 'fixture'])
                 self.assertNotIn('--wrapper', final)
                 result = subprocess.run(final, env=env, capture_output=True, text=True, timeout=25)
                 self.assertEqual(result.returncode, 23, result.stdout + result.stderr)
@@ -796,20 +805,24 @@ os.execv('/usr/bin/sha256sum', ['sha256sum', *sys.argv[1:]])
         recipe = self.compiled_recipe()
         self.assertEqual(recipe['name'], 'DLOR OptiScaler')
         actions = [option for option in recipe['launchOptions'] if option.get('valueId') == 'dlor-optiscaler']
+        proxies = ('dxgi', 'winmm', 'd3d12', 'dbghelp', 'version', 'wininet', 'winhttp')
         self.assertEqual([option['valueName'] for option in actions], ['None', 'Install', 'Uninstall'])
         self.assertTrue(all(option['off'] == '' and not option['enableGlobally'] and 'group' not in option for option in actions))
         self.assertEqual([option['valueName'] for option in actions if option.get('fallbackValue')], ['None'])
         self.assertEqual(actions[0]['on'], '')
         consumer = self.actual_consumer()
-        for action in ('install', 'uninstall'):
-            option = next(option['on'] for option in actions if option['id'] == 'dlor-optiscaler-' + action)
-            self.assertLess(len(option), 150)
-            parsed = consumer.parse_launch_option(option)
-            expected = {'WINEDLLOVERRIDES': 'dxgi=n,b', 'SteamDeck': '0'} if action == 'install' else {}
-            self.assertEqual(parsed['env_vars'], expected)
+        for choice, action in zip(actions[1:], ('install', 'uninstall')):
+            parsed = consumer.parse_launch_option(choice['on'])
+            self.assertEqual(parsed['env_vars'], {'SteamDeck': '0'} if action == 'install' else {})
             self.assertEqual(parsed['prefix'], ['~/.dlor/run', 'dlor-optiscaler', action, REVISION, '--'])
-            self.assertEqual(parsed['pre_commands'], [])
+            self.assertEqual(len(parsed['pre_commands']), int(action == 'install'))
             self.assertEqual(parsed['suffix'], [])
+        dll_options = [option for option in recipe['launchOptions'] if option.get('valueId') == 'dlor-optiscaler-proxy']
+        self.assertEqual([choice['valueName'] for choice in dll_options], ['None', *[f'{proxy}.dll' for proxy in proxies]])
+        self.assertEqual([choice['valueName'] for choice in dll_options if choice.get('fallbackValue')], ['None'])
+        self.assertTrue(all(choice['name'] == 'OptiScaler Proxy' and choice['off'] == '' for choice in dll_options))
+        self.assertTrue(all(choice.get('group', '') == actions[0].get('group', '') for choice in dll_options))
+        self.assertEqual([choice['on'] for choice in dll_options], ['', *[f'DLOR_OPTISCALER_PROXY="{proxy}"' for proxy in proxies]])
         for option in recipe['launchOptions']:
             for key in ('on', 'off'):
                 parsed = consumer.parse_launch_option(option[key])
@@ -1001,8 +1014,8 @@ os.execv('/usr/bin/sha256sum', ['sha256sum', *sys.argv[1:]])
                     self.assertIn('continuing game launch', result.stderr)
                     observed = json.loads((self.root / 'game-result.json').read_text())
                     self.assertEqual(observed['argv'], ['fallback arg', '--original-arg'])
-                    self.assertEqual(observed['env']['WINEDLLOVERRIDES'], 'dxgi=n,b' if enabled else 'ambient=n')
-                    self.assertEqual('WINEDLLOVERRIDES' in variables, enabled)
+                    self.assertEqual(observed['env']['WINEDLLOVERRIDES'], 'ambient=n;dxgi=n,b' if enabled else 'ambient=n')
+                    self.assertNotIn('WINEDLLOVERRIDES', variables)
                     self.assertEqual(list(self.root.glob('dlor-script.*.sh')), [])
 
     def test_module_transfer_failure_never_publishes_partial_or_executes_source(self):

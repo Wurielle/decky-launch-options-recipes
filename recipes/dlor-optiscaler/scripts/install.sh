@@ -55,9 +55,9 @@ finish_log() {
     exec {console_out}>&- {console_err}>&-
 }
 
-BUNDLE_REVISION=5f06e9a5b4473db890a8e07684467719bc10bb93
+BUNDLE_REVISION=b5a16d83277c71bc5ba04b92b039daf15c0c5c67
 BUNDLE_REPOSITORY=Wurielle/decky-launch-options-recipes
-MANIFEST_SHA256=b593e5299182d2fccc9b7dffceeb164e963bce13f10849e5c3539ec20cce8201
+MANIFEST_SHA256=762aa913131d5fc138b13fa582fafcb4185954bf88da8e3d3daa77f95c772436
 
 run_loader() (
     umask 077
