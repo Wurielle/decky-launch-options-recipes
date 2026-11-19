@@ -1,5 +1,6 @@
 [
   {
+    "id": "optiscaler",
     "name": "OptiScaler",
     "launchOptions": [
       {
@@ -37,7 +38,7 @@
         "id": "optiscaler-nightly-upgrade",
         "group": "OptiScaler",
         "name": "OptiScaler Nightly Upgrade",
-        "on": "~/.dlor/run optiscaler update-nightly ee0664c264af132aecfeca294374d667a6caaf2d -- %command%",
+        "on": "~/.dlor/run optiscaler update-nightly f1c1f9550de8fe681f31e699cef3204de8350486 -- %command%",
         "off": "",
         "enableGlobally": false,
         "priority": -1
@@ -1689,6 +1690,7 @@
     ]
   },
   {
+    "id": "lossless-scaling",
     "name": "Lossless Scaling",
     "launchOptions": [
       {
@@ -1701,6 +1703,7 @@
     ]
   },
   {
+    "id": "mangohud",
     "name": "MangoHud",
     "launchOptions": [
       {
@@ -1933,6 +1936,7 @@
     ]
   },
   {
+    "id": "proton",
     "name": "Proton",
     "launchOptions": [
       {
@@ -2142,6 +2146,7 @@
     ]
   },
   {
+    "id": "wine",
     "name": "Wine",
     "launchOptions": [
       {
@@ -3557,6 +3562,7 @@
     ]
   },
   {
+    "id": "reframework",
     "name": "REFramework",
     "launchOptions": [
       {
@@ -3574,7 +3580,7 @@
         "id": "reframework-install-update",
         "group": "REFramework",
         "name": "REFramework",
-        "on": "WINEDLLOVERRIDES=\"dinput8.dll=n,b\" ~/.dlor/run reframework update ee0664c264af132aecfeca294374d667a6caaf2d -- %command%",
+        "on": "WINEDLLOVERRIDES=\"dinput8.dll=n,b\" ~/.dlor/run reframework update f1c1f9550de8fe681f31e699cef3204de8350486 -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "reframework",
@@ -3584,7 +3590,7 @@
         "id": "reframework-uninstall",
         "group": "REFramework",
         "name": "REFramework",
-        "on": "~/.dlor/run reframework uninstall ee0664c264af132aecfeca294374d667a6caaf2d -- %command%",
+        "on": "~/.dlor/run reframework uninstall f1c1f9550de8fe681f31e699cef3204de8350486 -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "reframework",
@@ -3600,6 +3606,7 @@
     ]
   },
   {
+    "id": "anr-framegen",
     "name": "OptiScaler FrameGen ANR",
     "launchOptions": [
       {
@@ -3618,7 +3625,7 @@
         "id": "optiscaler-framegen-anr-install",
         "group": "OptiScaler",
         "name": "OptiScaler FrameGen ANR",
-        "on": "~/.dlor/run anr-framegen install ee0664c264af132aecfeca294374d667a6caaf2d -- %command%",
+        "on": "~/.dlor/run anr-framegen install f1c1f9550de8fe681f31e699cef3204de8350486 -- %command%",
         "off": "",
         "enableGlobally": false,
         "priority": -2,
@@ -3629,7 +3636,7 @@
         "id": "optiscaler-framegen-anr-uninstall",
         "group": "OptiScaler",
         "name": "OptiScaler FrameGen ANR",
-        "on": "~/.dlor/run anr-framegen uninstall ee0664c264af132aecfeca294374d667a6caaf2d -- %command%",
+        "on": "~/.dlor/run anr-framegen uninstall f1c1f9550de8fe681f31e699cef3204de8350486 -- %command%",
         "off": "",
         "enableGlobally": false,
         "priority": 1,
@@ -3639,6 +3646,7 @@
     ]
   },
   {
+    "id": "decky-launch-options",
     "name": "Decky Launch Options",
     "launchOptions": [
       {
@@ -3657,7 +3665,7 @@
         "id": "decky-launch-options-auto-update-regular",
         "group": "",
         "name": "Auto Update Decky Launch Options",
-        "on": "DLO_UPDATE_VARIANT=\"regular\" ~/.dlor/run decky-launch-options auto-update ee0664c264af132aecfeca294374d667a6caaf2d -- %command%",
+        "on": "DLO_UPDATE_VARIANT=\"regular\" ~/.dlor/run decky-launch-options auto-update f1c1f9550de8fe681f31e699cef3204de8350486 -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "decky-launch-options-auto-update",
@@ -3668,7 +3676,7 @@
         "id": "decky-launch-options-auto-update-with-store",
         "group": "",
         "name": "Auto Update Decky Launch Options",
-        "on": "DLO_UPDATE_VARIANT=\"with-store\" ~/.dlor/run decky-launch-options auto-update ee0664c264af132aecfeca294374d667a6caaf2d -- %command%",
+        "on": "DLO_UPDATE_VARIANT=\"with-store\" ~/.dlor/run decky-launch-options auto-update f1c1f9550de8fe681f31e699cef3204de8350486 -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "decky-launch-options-auto-update",
@@ -3678,6 +3686,7 @@
     ]
   },
   {
+    "id": "dlor-optiscaler",
     "name": "DLOR OptiScaler",
     "environmentVariableMerges": [
       {
@@ -3700,7 +3709,7 @@
       {
         "id": "dlor-optiscaler-install",
         "name": "DLOR OptiScaler",
-        "on": "export WINEDLLOVERRIDES=\"${WINEDLLOVERRIDES:+$WINEDLLOVERRIDES;}${DLOR_OPTISCALER_PROXY:-dxgi}=n,b\" && SteamDeck=0 ~/.dlor/run dlor-optiscaler install ee0664c264af132aecfeca294374d667a6caaf2d -- %command%",
+        "on": "export WINEDLLOVERRIDES=\"${WINEDLLOVERRIDES:+$WINEDLLOVERRIDES;}${DLOR_OPTISCALER_PROXY:-dxgi}=n,b\" && SteamDeck=0 ~/.dlor/run dlor-optiscaler install f1c1f9550de8fe681f31e699cef3204de8350486 -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "dlor-optiscaler",
@@ -3709,7 +3718,7 @@
       {
         "id": "dlor-optiscaler-uninstall",
         "name": "DLOR OptiScaler",
-        "on": "~/.dlor/run dlor-optiscaler uninstall ee0664c264af132aecfeca294374d667a6caaf2d -- %command%",
+        "on": "~/.dlor/run dlor-optiscaler uninstall f1c1f9550de8fe681f31e699cef3204de8350486 -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "dlor-optiscaler",
@@ -3903,7 +3912,7 @@
         "id": "dlor-optiscaler-nightly-upgrade",
         "group": "DLOR OptiScaler",
         "name": "OptiScaler Nightly Upgrade",
-        "on": "~/.dlor/run optiscaler update-nightly ee0664c264af132aecfeca294374d667a6caaf2d -- %command%",
+        "on": "~/.dlor/run optiscaler update-nightly f1c1f9550de8fe681f31e699cef3204de8350486 -- %command%",
         "off": "",
         "enableGlobally": false,
         "priority": -1
@@ -5568,7 +5577,7 @@
         "id": "dlor-optiscaler-framegen-anr-install",
         "group": "DLOR OptiScaler",
         "name": "OptiScaler FrameGen ANR",
-        "on": "~/.dlor/run anr-framegen install ee0664c264af132aecfeca294374d667a6caaf2d -- %command%",
+        "on": "~/.dlor/run anr-framegen install f1c1f9550de8fe681f31e699cef3204de8350486 -- %command%",
         "off": "",
         "enableGlobally": false,
         "priority": -2,
@@ -5579,7 +5588,7 @@
         "id": "dlor-optiscaler-framegen-anr-uninstall",
         "group": "DLOR OptiScaler",
         "name": "OptiScaler FrameGen ANR",
-        "on": "~/.dlor/run anr-framegen uninstall ee0664c264af132aecfeca294374d667a6caaf2d -- %command%",
+        "on": "~/.dlor/run anr-framegen uninstall f1c1f9550de8fe681f31e699cef3204de8350486 -- %command%",
         "off": "",
         "enableGlobally": false,
         "priority": 1,
@@ -5589,6 +5598,7 @@
     ]
   },
   {
+    "id": "non-steam",
     "name": "Non-Steam",
     "launchOptions": [
       {
@@ -5757,7 +5767,7 @@
         "id": "non-steam-app-size-fullscreen",
         "group": "Non-Steam",
         "name": "App Size",
-        "on": "DLOR_NON_STEAM_APP_SIZE=\"fullscreen\" GDK_BACKEND=\"x11\" QT_QPA_PLATFORM=\"xcb\" MOZ_ENABLE_WAYLAND=\"0\" ~/.dlor/run non-steam resize-window ee0664c264af132aecfeca294374d667a6caaf2d -- %command%",
+        "on": "DLOR_NON_STEAM_APP_SIZE=\"fullscreen\" GDK_BACKEND=\"x11\" QT_QPA_PLATFORM=\"xcb\" MOZ_ENABLE_WAYLAND=\"0\" ~/.dlor/run non-steam resize-window f1c1f9550de8fe681f31e699cef3204de8350486 -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "non-steam-app-size",
@@ -5767,7 +5777,7 @@
         "id": "non-steam-app-size-windowed-1280x720",
         "group": "Non-Steam",
         "name": "App Size",
-        "on": "DLOR_NON_STEAM_APP_SIZE=\"1280x720\" GDK_BACKEND=\"x11\" QT_QPA_PLATFORM=\"xcb\" MOZ_ENABLE_WAYLAND=\"0\" ~/.dlor/run non-steam resize-window ee0664c264af132aecfeca294374d667a6caaf2d -- %command%",
+        "on": "DLOR_NON_STEAM_APP_SIZE=\"1280x720\" GDK_BACKEND=\"x11\" QT_QPA_PLATFORM=\"xcb\" MOZ_ENABLE_WAYLAND=\"0\" ~/.dlor/run non-steam resize-window f1c1f9550de8fe681f31e699cef3204de8350486 -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "non-steam-app-size",
@@ -5777,7 +5787,7 @@
         "id": "non-steam-app-size-windowed-1280x800",
         "group": "Non-Steam",
         "name": "App Size",
-        "on": "DLOR_NON_STEAM_APP_SIZE=\"1280x800\" GDK_BACKEND=\"x11\" QT_QPA_PLATFORM=\"xcb\" MOZ_ENABLE_WAYLAND=\"0\" ~/.dlor/run non-steam resize-window ee0664c264af132aecfeca294374d667a6caaf2d -- %command%",
+        "on": "DLOR_NON_STEAM_APP_SIZE=\"1280x800\" GDK_BACKEND=\"x11\" QT_QPA_PLATFORM=\"xcb\" MOZ_ENABLE_WAYLAND=\"0\" ~/.dlor/run non-steam resize-window f1c1f9550de8fe681f31e699cef3204de8350486 -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "non-steam-app-size",
@@ -5787,7 +5797,7 @@
         "id": "non-steam-app-size-windowed-1920x1080",
         "group": "Non-Steam",
         "name": "App Size",
-        "on": "DLOR_NON_STEAM_APP_SIZE=\"1920x1080\" GDK_BACKEND=\"x11\" QT_QPA_PLATFORM=\"xcb\" MOZ_ENABLE_WAYLAND=\"0\" ~/.dlor/run non-steam resize-window ee0664c264af132aecfeca294374d667a6caaf2d -- %command%",
+        "on": "DLOR_NON_STEAM_APP_SIZE=\"1920x1080\" GDK_BACKEND=\"x11\" QT_QPA_PLATFORM=\"xcb\" MOZ_ENABLE_WAYLAND=\"0\" ~/.dlor/run non-steam resize-window f1c1f9550de8fe681f31e699cef3204de8350486 -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "non-steam-app-size",
@@ -5797,7 +5807,7 @@
         "id": "non-steam-app-size-windowed-1920x1200",
         "group": "Non-Steam",
         "name": "App Size",
-        "on": "DLOR_NON_STEAM_APP_SIZE=\"1920x1200\" GDK_BACKEND=\"x11\" QT_QPA_PLATFORM=\"xcb\" MOZ_ENABLE_WAYLAND=\"0\" ~/.dlor/run non-steam resize-window ee0664c264af132aecfeca294374d667a6caaf2d -- %command%",
+        "on": "DLOR_NON_STEAM_APP_SIZE=\"1920x1200\" GDK_BACKEND=\"x11\" QT_QPA_PLATFORM=\"xcb\" MOZ_ENABLE_WAYLAND=\"0\" ~/.dlor/run non-steam resize-window f1c1f9550de8fe681f31e699cef3204de8350486 -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "non-steam-app-size",
@@ -5807,7 +5817,7 @@
         "id": "non-steam-app-size-windowed-2560x1440",
         "group": "Non-Steam",
         "name": "App Size",
-        "on": "DLOR_NON_STEAM_APP_SIZE=\"2560x1440\" GDK_BACKEND=\"x11\" QT_QPA_PLATFORM=\"xcb\" MOZ_ENABLE_WAYLAND=\"0\" ~/.dlor/run non-steam resize-window ee0664c264af132aecfeca294374d667a6caaf2d -- %command%",
+        "on": "DLOR_NON_STEAM_APP_SIZE=\"2560x1440\" GDK_BACKEND=\"x11\" QT_QPA_PLATFORM=\"xcb\" MOZ_ENABLE_WAYLAND=\"0\" ~/.dlor/run non-steam resize-window f1c1f9550de8fe681f31e699cef3204de8350486 -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "non-steam-app-size",
@@ -5817,7 +5827,7 @@
         "id": "non-steam-app-size-windowed-2560x1600",
         "group": "Non-Steam",
         "name": "App Size",
-        "on": "DLOR_NON_STEAM_APP_SIZE=\"2560x1600\" GDK_BACKEND=\"x11\" QT_QPA_PLATFORM=\"xcb\" MOZ_ENABLE_WAYLAND=\"0\" ~/.dlor/run non-steam resize-window ee0664c264af132aecfeca294374d667a6caaf2d -- %command%",
+        "on": "DLOR_NON_STEAM_APP_SIZE=\"2560x1600\" GDK_BACKEND=\"x11\" QT_QPA_PLATFORM=\"xcb\" MOZ_ENABLE_WAYLAND=\"0\" ~/.dlor/run non-steam resize-window f1c1f9550de8fe681f31e699cef3204de8350486 -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "non-steam-app-size",
@@ -5827,7 +5837,7 @@
         "id": "non-steam-app-size-windowed-3840x2160",
         "group": "Non-Steam",
         "name": "App Size",
-        "on": "DLOR_NON_STEAM_APP_SIZE=\"3840x2160\" GDK_BACKEND=\"x11\" QT_QPA_PLATFORM=\"xcb\" MOZ_ENABLE_WAYLAND=\"0\" ~/.dlor/run non-steam resize-window ee0664c264af132aecfeca294374d667a6caaf2d -- %command%",
+        "on": "DLOR_NON_STEAM_APP_SIZE=\"3840x2160\" GDK_BACKEND=\"x11\" QT_QPA_PLATFORM=\"xcb\" MOZ_ENABLE_WAYLAND=\"0\" ~/.dlor/run non-steam resize-window f1c1f9550de8fe681f31e699cef3204de8350486 -- %command%",
         "off": "",
         "enableGlobally": false,
         "valueId": "non-steam-app-size",
