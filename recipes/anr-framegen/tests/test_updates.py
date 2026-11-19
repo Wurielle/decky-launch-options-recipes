@@ -9,11 +9,15 @@ import test_lifecycle as fixtures
 OLD_ARCHIVE = Path(os.environ.get('ANR_TEST_PREVIOUS_ARCHIVE', Path(os.environ['TMPDIR']) / 'anr-fg-V.B14-addon.zip'))
 
 
+def previous_addon():
+    return json.loads((Path(__file__).parent / 'fixtures/vb14-addon.json').read_bytes())
+
+
 class Updates(fixtures.Fixture):
     def old_engine(self):
         engine = self.engine()
         manifest = copy.deepcopy(engine.manifest)
-        manifest['downloads']['addon'] = manifest['downloads'].pop('regression_vb14')
+        manifest['downloads']['addon'] = previous_addon()
         # Published legacy runtime owned only the two provider selectors.
         manifest.pop('activation_policy', None)
         return fixtures.runtime().Engine(self.home, manifest, fetch=lambda _: OLD_ARCHIVE.read_bytes())
@@ -85,7 +89,7 @@ class Updates(fixtures.Fixture):
         self.assertEqual(provider.stat().st_mode & 0o777, 0o600)
         self.assertEqual(config.read_bytes(), edited_config)
         journal = json.loads(next(engine.cache.glob('*.json')).read_bytes())
-        self.assertEqual(journal['previous_provenance'], [engine.manifest['downloads']['regression_vb14']])
+        self.assertEqual(journal['previous_provenance'], [previous_addon()])
         for name in ('dlssg/nr_fg.ini', 'dlssg/nvngx_dlssg.dll'):
             self.assertEqual(journal['files'][name], next(v['sha256'] for v in journal['previous_provenance'][0]['members'].values() if v['path'] == name))
         engine.payload = lambda: self.fail('OFF may not unpack payloads')
@@ -98,7 +102,7 @@ class Updates(fixtures.Fixture):
     def test_update_new_member_collision_refuses_even_identical_foreign_bytes(self):
         self.old_engine().run('install', self.game)
         engine = self.engine()
-        new_members = set(engine.payload()) - set(v['path'] for v in engine.manifest['downloads']['regression_vb14']['members'].values())
+        new_members = set(engine.payload()) - set(v['path'] for v in previous_addon()['members'].values())
         foreign_name = sorted(new_members)[0]
         foreign = self.game / 'custom/Apex Neural Rendering FG' / foreign_name
         foreign.parent.mkdir(parents=True)
@@ -191,7 +195,7 @@ class Updates(fixtures.Fixture):
     def test_recorded_prior_release_removal_does_not_require_manifest_history(self):
         self.old_engine().run('install', self.game)
         engine = self.engine()
-        engine.manifest['downloads'].pop('regression_vb14')
+        self.assertEqual(set(engine.manifest['downloads']), {'addon'})
         engine.fetch = lambda _: self.fail('OFF must not fetch archive or history')
         engine.run('uninstall', self.game)
         self.assertEqual(self.ini.read_bytes(), self.original)
@@ -200,7 +204,7 @@ class Updates(fixtures.Fixture):
     def test_recorded_prior_release_update_does_not_require_manifest_history(self):
         self.old_engine().run('install', self.game)
         engine = self.engine()
-        engine.manifest['downloads'].pop('regression_vb14')
+        self.assertEqual(set(engine.manifest['downloads']), {'addon'})
         engine.run('install', self.game)
         self.assertEqual((self.game / 'custom/Apex Neural Rendering FG/dlssg/nvngx_dlssg.dll').read_bytes(), engine.payload()['dlssg/nvngx_dlssg.dll'])
         engine.run('uninstall', self.game)

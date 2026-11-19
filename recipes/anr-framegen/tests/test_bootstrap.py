@@ -36,6 +36,11 @@ esac
 
 
 class Bootstrap(unittest.TestCase):
+    def test_runtime_manifest_contains_only_current_download(self):
+        manifest = json.loads((SCRIPTS / 'downloads.json').read_bytes())
+        self.assertEqual(set(manifest['downloads']), {'addon'})
+        self.assertNotIn('FG-V.B14', json.dumps(manifest))
+
     def fixture(self):
         temporary = tempfile.TemporaryDirectory(dir=os.environ['TMPDIR'])
         self.addCleanup(temporary.cleanup)
