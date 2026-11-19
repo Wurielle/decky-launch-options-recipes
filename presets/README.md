@@ -23,7 +23,7 @@ Source: [`steam/1903340/steam-deck.json`](steam/1903340/steam-deck.json).
 
 The preset references the following controls from `dlor-optiscaler`:
 
-- Install.
+- OptiScaler Install.
 - FSR Override: AMD SDK.
 - DX11 upscaler: FidelityFX / FSR4 (`ffx_12`, DX11on12).
 - DX12 upscaler: FidelityFX / FSR4 (`ffx`).
