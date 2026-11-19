@@ -103,21 +103,8 @@ test('maintained recipes declare unique stable IDs independent of their display 
     })
     assert.equal(result.status, 0, result.stderr)
     const recipes = JSON.parse(result.stdout)
-    const expectedIds = {
-        'anr-framegen/index': 'optiscaler-framegen-anr',
-        'decky-launch-options/index': 'decky-launch-options',
-        'dlor-optiscaler/index': 'dlor-optiscaler',
-        'lossless-scaling': 'lossless-scaling',
-        'mangohud': 'mangohud',
-        'non-steam/index': 'non-steam',
-        'optiscaler/index': 'optiscaler',
-        'proton': 'proton',
-        'reframework/index': 'reframework',
-        'wine': 'wine',
-    }
-    assert.deepEqual([...sources].sort(), Object.keys(expectedIds).sort())
     const ids = recipes.map((recipe, index) => {
-        assert.equal(recipe.id, expectedIds[sources[index]], sources[index])
+        assert.equal(recipe.id, sources[index].replace(/\/index$/, ''), sources[index])
         assert.match(recipe.id, /^[a-z0-9]+(?:-[a-z0-9]+)*$/)
         return recipe.id
     })

@@ -215,13 +215,16 @@ subshell keeps the locale, glob settings, and temporary variables local to clean
 
 ## ID Convention
 
-Recipe IDs follow the full semantic **host → feature → component** hierarchy,
-using explicit, stable lowercase hyphen-case tokens. Do not derive them from
-physical filenames/directories or display-label word order. For example,
-OptiScaler ANR FrameGen has recipe `id: 'optiscaler-framegen-anr'` even though its
-source, scripts, and tests live under `recipes/anr-framegen/`. Keep those physical
-paths and runner arguments independent from recipe identity. Test maintained
-recipe IDs against explicit semantic expectations, not directory-slug equality.
+Use the recipe's physical folder name as its explicit recipe `id`, or the
+filename stem for a top-level `.ts` recipe. For example,
+`recipes/anr-framegen/index.ts` uses recipe `id: 'anr-framegen'`. Test recipe IDs
+against their source-folder/filename identity, not display-label wording.
+
+Recipe IDs and launch-option IDs follow different conventions: the ANR recipe's
+dropdown remains `valueId: 'optiscaler-framegen-anr'` with
+`optiscaler-framegen-anr-*` choices. Launch-option IDs follow the full semantic
+host → feature → component hierarchy. Keep physical paths, runner arguments,
+caches and runtime state unchanged when only UI control identities differ.
 
 Define launch-option IDs as stable paths through a control's logical scope:
 

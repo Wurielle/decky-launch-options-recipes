@@ -23,7 +23,7 @@ This repository packages launch option recipes for the Decky Launch Options plug
 
 Use TypeScript ESM style and match nearby files. Recipe files and directories use hyphen-case names, for example `lossless-scaling.ts` or `reframework/index.ts`. Import the shared type from `./shared/types.js` in top-level files or `../shared/types.js` in directory indexes. Prefer 4-space indentation in recipe objects, trailing commas, and explicit `satisfies Recipe`.
 
-Each recipe must declare an explicit, unique, stable hyphen-case `id`, separate from its display `name`. Order its semantic hierarchy from host to feature to component, not by physical directory name or label word order: OptiScaler ANR FrameGen uses `optiscaler-framegen-anr` even though its source lives under `recipes/anr-framegen/`. Preserve recipe IDs across display-name changes.
+Each recipe must declare an explicit, unique, stable hyphen-case `id`, separate from its display `name`. Use its folder name (or filename stem for a top-level recipe): `recipes/anr-framegen/index.ts` uses recipe ID `anr-framegen`. Launch-option IDs remain semantic, so this recipe's dropdown uses `optiscaler-framegen-anr` and `optiscaler-framegen-anr-*` choices. Preserve recipe IDs across display-name changes.
 
 Launch option IDs should be stable and hyphen-case. A regular option usually uses the feature name only, such as `mangohud`. Dropdown values should include the tool, modified option/config, and value, for example `mangohud-config-preset-1` or `mangohud-config-fps-limit-60`.
 
