@@ -5,6 +5,11 @@ The directory supplies the Steam App ID; the filename matches the preset's
 stable `id`. The `name` is the display label and `description` explains the
 configuration.
 
+Use the literal `*` app directory (`presets/steam/*/<preset-id>.json`) for
+presets available to all Steam apps. Consumers should combine these with an
+app's specific presets. Availability does not mean automatic or global
+activation; the user still chooses a preset for the current app.
+
 Each entry in `launchOptions` pairs a `recipeId` with a `launchOptionId` from
 that recipe. Reference the specific choice ID for a dropdown, not its shared
 `valueId`. Do not duplicate recipe commands or include repository URLs,
