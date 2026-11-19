@@ -16,7 +16,12 @@ complete preset application.
 These are preset source files. Preset discovery, a generated preset catalog,
 and application in DLO are not implemented by adding these files.
 
-## Clair Obscur: Expedition 33 — Steam Deck
+## Example: Clair Obscur: Expedition 33 — Steam Deck
+
+This is a single worked example of the preset format, not a catalog of games
+or presets. Keep this README focused on format and contribution guidance;
+do not add a section or repeat the selected options here for every new game
+or preset. Add new presets as JSON files in the appropriate app directory.
 
 Steam App ID: [1903340](https://store.steampowered.com/app/1903340/).
 Source: [`steam/1903340/steam-deck.json`](steam/1903340/steam-deck.json).
