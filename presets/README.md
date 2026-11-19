@@ -30,8 +30,8 @@ The preset references the following controls from `dlor-optiscaler`:
 - Vulkan upscaler: FidelityFX / FSR4 (`ffx_12`, VKon12).
 - FSR4 preset: Performance (`3`).
 - VSync: On.
-- FrameGen input: Nvngx DLSSG (`nvngxfg`).
 - FrameGen: On.
+- FrameGen input: Nvngx DLSSG (`nvngxfg`).
 - FrameGen output: XeFG (`xefg`).
 
 The AMD SDK source supplies the files; the three upscaler selections configure
