@@ -1,0 +1,147 @@
+{
+  "schema": 1,
+  "activation_policy": "anr-fg-three-keys-v1",
+  "downloads": {
+    "addon": {
+      "repository": "apex-compute/ANR",
+      "tag": "FG-V.B19",
+      "asset": "anr-fg-V.B19-addon.zip",
+      "url": "https://github.com/apex-compute/ANR/releases/download/FG-V.B19/anr-fg-V.B19-addon.zip",
+      "size": 3418118,
+      "sha256": "70107373e0f9744875fcbb7f46133432202ce7f132fdfff14259b8a85fba3f13",
+      "code_revision": "cee1e1a4846021c336acbeee4dc9d204bd21df2d",
+      "asset_id": 756985115,
+      "published_at": "2026-11-17T00:20:54Z",
+      "members": {
+        "Apex Neural Rendering FG/dlssg/adapters/pack.nrx": {
+          "path": "dlssg/adapters/pack.nrx",
+          "size": 35375,
+          "sha256": "20c034b695f1d8fcce32d8e0738680fa4a039bd1aa0c41ca49939e3c894d9744"
+        },
+        "Apex Neural Rendering FG/dlssg/kernels/pack.nrx": {
+          "path": "dlssg/kernels/pack.nrx",
+          "size": 287700,
+          "sha256": "52d63f8ad6e38fa9e1aebc2161650d35f063370b3ea0e8808500ce69d839cc2f"
+        },
+        "Apex Neural Rendering FG/dlssg/kernels-portable/pack.nrx": {
+          "path": "dlssg/kernels-portable/pack.nrx",
+          "size": 426537,
+          "sha256": "3214a8ff605bf269a4d17a8ba83487ba00425f578ef2c2d4da2fbc5f71cd85ff"
+        },
+        "Apex Neural Rendering FG/dlssg/nr_fg.ini": {
+          "path": "dlssg/nr_fg.ini",
+          "size": 603,
+          "sha256": "68bc047729ecd40558a328b7a56510569ff71d6259eb932f6f18f513226f93d3"
+        },
+        "Apex Neural Rendering FG/dlssg/nvngx_dlssg.dll": {
+          "path": "dlssg/nvngx_dlssg.dll",
+          "size": 3684832,
+          "sha256": "194e03a2a1b30a6079e6e229bd514a35ca5ef0b3d736347b440cfd00e9860e27"
+        },
+        "Apex Neural Rendering FG/dlssg/path_table.json": {
+          "path": "dlssg/path_table.json",
+          "size": 9514,
+          "sha256": "82992baaf5d2f0af85cec8f8ced8cbfd5d5d7626b99c1a29f3799964f2fb4452"
+        },
+        "Apex Neural Rendering FG/dlssg/programs/fg-lite-3840x2160-coopmat-nvidia-blackwell-pq10/pack.nrx": {
+          "path": "dlssg/programs/fg-lite-3840x2160-coopmat-nvidia-blackwell-pq10/pack.nrx",
+          "size": 45332,
+          "sha256": "83f05fdebe59467e0ed4e85b4777b0bd646232623ca03b8057ba8527a2fd9671"
+        },
+        "Apex Neural Rendering FG/dlssg/programs/fg-lite-3840x2160-coopmat-nvidia-blackwell-srgb8/pack.nrx": {
+          "path": "dlssg/programs/fg-lite-3840x2160-coopmat-nvidia-blackwell-srgb8/pack.nrx",
+          "size": 42991,
+          "sha256": "4bae89c91e8f372da1432f0aa0b42b88608c2cc616db06eaf256a5acbb407ba8"
+        },
+        "Apex Neural Rendering FG/dlssg/programs/fg-lite-any-coopmat-nvidia-blackwell-pq10/pack.nrx": {
+          "path": "dlssg/programs/fg-lite-any-coopmat-nvidia-blackwell-pq10/pack.nrx",
+          "size": 94351,
+          "sha256": "5fd83071cb83c596dd51db675521dc5ae667237a7d479660014bed8ca54e7a4c"
+        },
+        "Apex Neural Rendering FG/dlssg/programs/fg-lite-any-coopmat-nvidia-blackwell-srgb8/pack.nrx": {
+          "path": "dlssg/programs/fg-lite-any-coopmat-nvidia-blackwell-srgb8/pack.nrx",
+          "size": 92111,
+          "sha256": "a202e4aeb646ae3b2b7bbef4a2a25f4fb3830049b6f4dd2e4a1464641ae3714c"
+        },
+        "Apex Neural Rendering FG/dlssg/programs/fg-lite-any-coopmat-pq10/pack.nrx": {
+          "path": "dlssg/programs/fg-lite-any-coopmat-pq10/pack.nrx",
+          "size": 93900,
+          "sha256": "db074df27e3468471f22c8bf895e08d42cc094bc317e9f25fb85ccddfdb999a2"
+        },
+        "Apex Neural Rendering FG/dlssg/programs/fg-lite-any-coopmat-srgb8/pack.nrx": {
+          "path": "dlssg/programs/fg-lite-any-coopmat-srgb8/pack.nrx",
+          "size": 91677,
+          "sha256": "cb2a0980c6eeb4428b00942a3f37a6f691be3bd5f353f97e144c27094f005def"
+        },
+        "Apex Neural Rendering FG/dlssg/programs/fg-lite-any-dp4a-pq10/pack.nrx": {
+          "path": "dlssg/programs/fg-lite-any-dp4a-pq10/pack.nrx",
+          "size": 81428,
+          "sha256": "64d3d6376456811b6bdd9774bfd7863af8b43ff4336b13a50c6fc03de916dc7e"
+        },
+        "Apex Neural Rendering FG/dlssg/programs/fg-lite-any-dp4a-srgb8/pack.nrx": {
+          "path": "dlssg/programs/fg-lite-any-dp4a-srgb8/pack.nrx",
+          "size": 79020,
+          "sha256": "2b9a3cd500246c40cf1a4604ab0f6c19d666c09ed59ebbec29ea9d8f3838aea7"
+        },
+        "Apex Neural Rendering FG/dlssg/programs/fg-lite-any-packed-pq10/pack.nrx": {
+          "path": "dlssg/programs/fg-lite-any-packed-pq10/pack.nrx",
+          "size": 64591,
+          "sha256": "ee3fcc13a2862ed55fe2993c1d9e06cd4d13495f7a5ecf9d66b6ff071ed886db"
+        },
+        "Apex Neural Rendering FG/dlssg/programs/fg-lite-any-packed-srgb8/pack.nrx": {
+          "path": "dlssg/programs/fg-lite-any-packed-srgb8/pack.nrx",
+          "size": 62374,
+          "sha256": "8f80cadf7c46adab11d3523d31b5db69f78b32d0f42ab2ce701c6ec73580855f"
+        },
+        "Apex Neural Rendering FG/dlssg/programs/fg-lite-any-portable-linalg-pq10/pack.nrx": {
+          "path": "dlssg/programs/fg-lite-any-portable-linalg-pq10/pack.nrx",
+          "size": 85260,
+          "sha256": "f3a4af5bc2e84805e3112705cc57096181e8eaf8bd394b7a1e397c4ead5ae7fd"
+        },
+        "Apex Neural Rendering FG/dlssg/programs/fg-lite-any-portable-linalg-srgb8/pack.nrx": {
+          "path": "dlssg/programs/fg-lite-any-portable-linalg-srgb8/pack.nrx",
+          "size": 82908,
+          "sha256": "8f4bfb45f64b3ea4e262620aef60782f6204da6930d05b5b0c36e4c5c97db1ad"
+        },
+        "Apex Neural Rendering FG/dlssg/programs/fg-lite-any-portable-pq10/pack.nrx": {
+          "path": "dlssg/programs/fg-lite-any-portable-pq10/pack.nrx",
+          "size": 66743,
+          "sha256": "aed2004ca34c33ee28c5f91e83569dd5aa246284d363f08cb7ba12700cc36891"
+        },
+        "Apex Neural Rendering FG/dlssg/programs/fg-lite-any-portable-srgb8/pack.nrx": {
+          "path": "dlssg/programs/fg-lite-any-portable-srgb8/pack.nrx",
+          "size": 64512,
+          "sha256": "4957dac1fa83cadb96743e05646a8e1e08cfc08b3e2ad27d1640a588f9e5d43d"
+        },
+        "Apex Neural Rendering FG/dlssg/programs/fg-lite-any-portable-xmx-pq10/pack.nrx": {
+          "path": "dlssg/programs/fg-lite-any-portable-xmx-pq10/pack.nrx",
+          "size": 90682,
+          "sha256": "f5f3a3afc8a6a0a4acfe2943511444eaeca1b1ae68b96d85e7a8d38ed9f30cea"
+        },
+        "Apex Neural Rendering FG/dlssg/programs/fg-lite-any-portable-xmx-srgb8/pack.nrx": {
+          "path": "dlssg/programs/fg-lite-any-portable-xmx-srgb8/pack.nrx",
+          "size": 88268,
+          "sha256": "f744f66f6785c633657a2c66e8c09d9fde739f4199e401469543549b2e9e520b"
+        },
+        "Apex Neural Rendering FG/dlssg/size_table.json": {
+          "path": "dlssg/size_table.json",
+          "size": 958,
+          "sha256": "7c602f6709e14bbf972250d47b8b3dc55ce4dafd803723561120097e644e5478"
+        },
+        "README.txt": {
+          "path": "README.txt",
+          "size": 992,
+          "sha256": "6efc6063cfb7a7736a8ae6191340d147403b26fa28f9bf6fd171cb531a94b514"
+        },
+        "nr_fg_package.json": {
+          "path": "nr_fg_package.json",
+          "size": 1139,
+          "sha256": "7f0270668ab599b985c823367589084d5fcd938333295abd39ce6cc62b484f58"
+        }
+      }
+    }
+  },
+  "runtime": {
+    "loader.py": "725a50c47c50963f12d8ef39cfc875574c27f0cdb57f3e065e710e42e30389ce"
+  }
+}

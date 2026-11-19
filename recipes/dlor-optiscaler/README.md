@@ -4,6 +4,17 @@ A self-contained OptiScaler installer recipe. No OptiScaler, driver, SDK, or plu
 
 ## Options
 
+The **OptiScaler FrameGen ANR** dropdown is also available in the **DLOR OptiScaler**
+group with **None / Install / Uninstall** choices. Select **Install** for both DLOR
+OptiScaler and ANR to prepare the core before the add-on; an enabled Nightly Upgrade
+also runs before ANR. When removing both, ANR Uninstall runs first so it can restore
+its settings before core removal. None and deselection are inert. The copied
+dropdown uses `dlor-optiscaler-framegen-anr` and choice IDs ending in `-none`,
+`-install`, and `-uninstall`, independently of the standalone recipe. Both controls
+manage the same per-game add-on; select actions through one of them. See the
+[ANR instructions](../anr-framegen/README.md) for game-side frame generation and
+compatibility requirements.
+
 Nightly configuration controls, including FSR4 model/GPU support and XeFG/DLSSG MFG, are available in the separate [OptiScaler settings recipe](../optiscaler/README.md). Import the wanted settings alongside this installer, not the separate fgmod launcher. The existing Nightly Upgrade option is compatible and explicitly opts the core into latest resolution. Unselected dropdowns preserve the INI; selected settings are explicit environment overrides.
 
 - **DLOR OptiScaler:** an ungrouped action dropdown with **None** (default), **Install**, and **Uninstall**. Install and Uninstall run on each launch while selected. Choosing None stops helper execution without uninstalling. The legacy `dlor-optiscaler` ID belongs to None so re-importing clears the old automatic OFF uninstaller.

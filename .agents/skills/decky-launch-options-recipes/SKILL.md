@@ -74,7 +74,13 @@ Use these fields according to the local `LaunchOption` type:
 - `on`: Launch option string applied when enabled.
 - `off`: Launch option string applied when disabled. Use `''` when no disabled command is needed.
 - `enableGlobally`: Whether the option is enabled by default for all games.
-- `priority`: Prefix order, highest first. Order dependent wrappers so installation runs before an update that relies on its files.
+- `priority`: Prefix order, highest first; omitted priority is `0`. Use finite integer tiers for installation:
+  - Main installers: `>= 0`. Larger values run prerequisite installers earlier.
+  - Main nightly/upgrades: `-1`.
+  - Dependent plugins/add-ons: `<= -2`. Lower values run deeper dependencies later, after their hosts are prepared, including on first launch.
+  - These ranges are open-ended; never serialize literal `Infinity` or `-Infinity`. Choose values within each tier according to dependencies, not arbitrarily.
+  - Apply the convention to standalone and copied controls. Verify through the actual consumer with reversed import/source order rather than relying on equal-priority tie order.
+  - Choose Uninstall ordering separately: if add-on removal needs the host's files/configuration, use a higher priority so removal precedes host uninstall. Installation tiers must not reverse safe teardown order. Keep None/deselection inert.
 - `valueId`: Shared dropdown identifier.
 - `valueName`: Dropdown choice label.
 - `fallbackValue`: Mark the default dropdown choice.
@@ -217,6 +223,8 @@ Define IDs as stable paths through a control's logical scope:
 - Keep the complete base identical in a dropdown's `valueId` and choice IDs. Put only choice-specific information in the suffix. Check that the resulting IDs are unique and that unrelated controls do not share a `valueId`.
 - When importing options into another recipe as independent controls, copy them with the destination `group` and a destination namespace on **both** `id` and any existing `valueId`, for example `<destination>-<source-id>`. Changing only `group` leaves identities shared and can overwrite controls or link dropdowns. Preserve source objects and leave `valueId` absent on regular options.
 - Preserve existing IDs that meet these rules. Flag missing logical scope, ambiguous or colliding identities, inconsistent family structure, and mismatched dropdown bases. Label differences alone do not justify renaming. Honor explicit user-requested naming changes; when correcting existing IDs, regenerate the catalog and explain that saved controls with old IDs need replacement because re-importing a new ID does not update or delete the old one.
+- Model installation/removal as an ordered **None / Install / Uninstall** dropdown, not a Boolean toggle with uninstall in `off`. None is inert and the only fallback; all choices have empty `off` and `enableGlobally: false`. Put each action's runner call only in its own `on` field. Deselecting an action must not uninstall anything.
+- OptiScaler ANR FrameGen uses `valueId: 'optiscaler-framegen-anr'` and exactly `optiscaler-framegen-anr-none`, `optiscaler-framegen-anr-install`, and `optiscaler-framegen-anr-uninstall`. Verify exact IDs, ordering, defaults and selected/deselected behavior through the real consumer; retain this user-defined hierarchy when refreshing shared guidance.
 
 ## Dropdown Defaults
 
