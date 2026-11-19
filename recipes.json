@@ -3639,7 +3639,6 @@
       },
       {
         "id": "dlor-optiscaler-proxy-none",
-        "group": "DLOR OptiScaler",
         "name": "OptiScaler Proxy",
         "on": "",
         "off": "",
@@ -3650,7 +3649,6 @@
       },
       {
         "id": "dlor-optiscaler-proxy-dxgi",
-        "group": "DLOR OptiScaler",
         "name": "OptiScaler Proxy",
         "on": "DLOR_OPTISCALER_PROXY=\"dxgi\"",
         "off": "",
@@ -3660,7 +3658,6 @@
       },
       {
         "id": "dlor-optiscaler-proxy-winmm",
-        "group": "DLOR OptiScaler",
         "name": "OptiScaler Proxy",
         "on": "DLOR_OPTISCALER_PROXY=\"winmm\"",
         "off": "",
@@ -3670,7 +3667,6 @@
       },
       {
         "id": "dlor-optiscaler-proxy-d3d12",
-        "group": "DLOR OptiScaler",
         "name": "OptiScaler Proxy",
         "on": "DLOR_OPTISCALER_PROXY=\"d3d12\"",
         "off": "",
@@ -3680,7 +3676,6 @@
       },
       {
         "id": "dlor-optiscaler-proxy-dbghelp",
-        "group": "DLOR OptiScaler",
         "name": "OptiScaler Proxy",
         "on": "DLOR_OPTISCALER_PROXY=\"dbghelp\"",
         "off": "",
@@ -3690,7 +3685,6 @@
       },
       {
         "id": "dlor-optiscaler-proxy-version",
-        "group": "DLOR OptiScaler",
         "name": "OptiScaler Proxy",
         "on": "DLOR_OPTISCALER_PROXY=\"version\"",
         "off": "",
@@ -3700,7 +3694,6 @@
       },
       {
         "id": "dlor-optiscaler-proxy-wininet",
-        "group": "DLOR OptiScaler",
         "name": "OptiScaler Proxy",
         "on": "DLOR_OPTISCALER_PROXY=\"wininet\"",
         "off": "",
@@ -3710,7 +3703,6 @@
       },
       {
         "id": "dlor-optiscaler-proxy-winhttp",
-        "group": "DLOR OptiScaler",
         "name": "OptiScaler Proxy",
         "on": "DLOR_OPTISCALER_PROXY=\"winhttp\"",
         "off": "",

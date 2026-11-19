@@ -60,7 +60,6 @@ const recipe = {
         })),
         ...[null, ...proxyChoices].map((proxy): LaunchOption => ({
             id: `${proxyValueId}-${proxy ?? 'none'}`,
-            group,
             name: 'OptiScaler Proxy',
             on: proxy === null ? '' : `DLOR_OPTISCALER_PROXY="${proxy}"`,
             off: '',
