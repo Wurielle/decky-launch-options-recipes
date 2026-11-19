@@ -9,6 +9,7 @@ const variants = [
 ] as const
 
 const recipe = {
+    id: 'decky-launch-options',
     name: 'Decky Launch Options',
     launchOptions: variants.map((variant): LaunchOption => ({
         id: `decky-launch-options-auto-update-${variant.id}`,

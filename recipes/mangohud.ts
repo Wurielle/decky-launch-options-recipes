@@ -104,6 +104,7 @@ const launchOptions: LaunchOption[] = [
 ]
 
 const recipe = {
+    id: 'mangohud',
     "name": "MangoHud",
     launchOptions,
     environmentVariableMerges: [

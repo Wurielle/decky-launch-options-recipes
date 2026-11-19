@@ -19,13 +19,15 @@ Use this skill to add or update recipes for the Decky Launch Options plugin.
 2. Create or update one recipe source under `recipes/`.
    - Use either `recipes/<name>.ts` or `recipes/<name>/index.ts`. Use the directory form when the recipe has supporting files such as scripts.
    - Use a hyphen-case file or directory name, such as `tool-name.ts` or `tool-name/index.ts`.
-   - Export exactly one default object satisfying `Recipe`.
+   - Export exactly one default object satisfying `Recipe`. Give the recipe its own explicit, unique, stable hyphen-case `id`; keep it unchanged when the display `name` changes.
+   - Keep recipe-specific Python tests under `recipes/<name>/tests/`, with repository paths derived from the new location. Update CI and documented discovery commands after moving tests, and verify nonempty collection.
    - Import the type with the existing repo style, commonly:
 
 ```ts
 import type { Recipe } from './shared/types.js'
 
 const recipe = {
+    id: 'tool-name',
     name: 'Tool Name',
     launchOptions: [
         {
@@ -112,6 +114,7 @@ resolve conflicting settings or deduplicate entries.
 import type { Recipe } from './shared/types.js'
 
 const recipe = {
+    id: 'example-tool',
     name: 'Example Tool',
     launchOptions: [
         {id: 'example-tool-overlay', on: 'TOOL_CONFIG="overlay=1"'},
@@ -212,7 +215,18 @@ subshell keeps the locale, glob settings, and temporary variables local to clean
 
 ## ID Convention
 
-Define IDs as stable paths through a control's logical scope:
+Use the recipe's physical folder name as its explicit recipe `id`, or the
+filename stem for a top-level `.ts` recipe. For example,
+`recipes/anr-framegen/index.ts` uses recipe `id: 'anr-framegen'`. Test recipe IDs
+against their source-folder/filename identity, not display-label wording.
+
+Recipe IDs and launch-option IDs follow different conventions: the ANR recipe's
+dropdown remains `valueId: 'optiscaler-framegen-anr'` with
+`optiscaler-framegen-anr-*` choices. Launch-option IDs follow the full semantic
+host → feature → component hierarchy. Keep physical paths, runner arguments,
+caches and runtime state unchanged when only UI control identities differ.
+
+Define launch-option IDs as stable paths through a control's logical scope:
 
 `<namespace>[-<feature-or-operation>][-<subsystem-or-target>][-<setting>]`
 

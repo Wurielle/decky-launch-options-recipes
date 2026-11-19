@@ -15,7 +15,8 @@ source to a different file hosted anywhere so you can easily create your own set
 > review yourself.
 
 Recipe sources live in either `recipes/<name>.ts` or `recipes/<name>/index.ts`, and each source exports exactly one typed
-recipe. The directory form can keep supporting files beside the recipe. `recipes.json` is generated from those sources
+recipe with an explicit, stable, unique hyphen-case `id` (for example, `lossless-scaling`).
+Keep this identity unchanged when renaming its display name. The directory form can keep supporting files beside the recipe. `recipes.json` is generated from those sources
 automatically, so there is no registry file to maintain. Shared recipe code and types live in `recipes/shared/`, which
 the generator never treats as a recipe source.
 
@@ -67,6 +68,7 @@ Here's what the generated recipes look like:
 ```json
 [
   {
+    "id": "optiscaler",
     "name": "OptiScaler",
     "launchOptions": [
       {
@@ -96,6 +98,7 @@ Here's what the generated recipes look like:
     ]
   },
   {
+    "id": "lossless-scaling",
     "name": "Lossless Scaling",
     "launchOptions": [
       {
@@ -131,6 +134,20 @@ I welcome contributions!
 If you want to create a recipe, add either `recipes/<my-recipe-name>.ts` or `recipes/<my-recipe-name>/index.ts`. Export a
 single object that satisfies the `Recipe` type. Use the directory form when the recipe has supporting files such as
 scripts.
+
+### Recipe tests
+
+Keep recipe-specific tests under `recipes/<name>/tests/`. Run discovery from the
+repository root; shared runner, generator, and plugin suites remain under `scripts/`.
+
+```sh
+python3 -I -B -m unittest discover -s recipes/decky-launch-options/tests -v
+python3 -I -B -m unittest discover -s recipes/non-steam/tests -v
+python3 -I -B -m unittest discover -s recipes/optiscaler/tests -v
+python3 -I -B -m unittest discover -s recipes/reframework/tests -v
+```
+
+The OptiScaler settings tests require Node and the pinned pnpm on `PATH`.
 
 ### Remote script launcher
 

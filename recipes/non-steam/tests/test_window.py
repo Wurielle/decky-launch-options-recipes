@@ -12,10 +12,12 @@ import types
 import unittest
 from unittest.mock import Mock, patch
 
-from runner_test_support import install_runner
+import runpy
+
+install_runner = runpy.run_path(str(Path(__file__).resolve().parents[3] / 'scripts/runner_test_support.py'))['install_runner']
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[3]
 SCRIPT = ROOT / 'recipes/non-steam/scripts/resize-window.sh'
 window = types.ModuleType('non_steam_window')
 exec(compile(SCRIPT.read_text().split("<<'PY'\n", 1)[1].rsplit('\nPY', 1)[0], str(SCRIPT), 'exec'), window.__dict__)

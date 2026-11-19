@@ -1,4 +1,4 @@
-"""Offline integration checks: python3 scripts/test-optiscaler-nightly.py.
+"""Offline integration checks: python3 -I -B -m unittest discover -s recipes/optiscaler/tests -v.
 
 Requires Bash and Python 3. Synthetic ZIP bytes and an HTTP boundary fixture
 exercise the physical updater; no live networking or DLL execution occurs.
@@ -20,10 +20,12 @@ import shlex
 import subprocess
 import tempfile
 import unittest
-from runner_test_support import install_runner
+import runpy
+
+install_runner = runpy.run_path(str(Path(__file__).resolve().parents[3] / 'scripts/runner_test_support.py'))['install_runner']
 
 
-SCRIPT = Path(__file__).resolve().parents[1] / "recipes/optiscaler/scripts/update-nightly.sh"
+SCRIPT = Path(__file__).resolve().parents[1] / "scripts/update-nightly.sh"
 
 
 class NightlyUpgradeTests(unittest.TestCase):

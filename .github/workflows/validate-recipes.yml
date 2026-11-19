@@ -8,7 +8,6 @@ on:
       - 'recipes/**'
       - 'scripts/build-recipes.ts'
       - 'scripts/test-store.mjs'
-      - 'scripts/test-dlo-auto-update.py'
       - 'store.config.ts'
       - 'tsconfig.recipes.json'
       - 'package.json'
@@ -20,7 +19,6 @@ on:
       - 'recipes/**'
       - 'scripts/build-recipes.ts'
       - 'scripts/test-store.mjs'
-      - 'scripts/test-dlo-auto-update.py'
       - 'store.config.ts'
       - 'tsconfig.recipes.json'
       - 'package.json'
@@ -61,7 +59,7 @@ jobs:
       - name: Test DLO auto updater offline
         run: |
           bash -n recipes/decky-launch-options/scripts/auto-update.sh
-          python3 scripts/test-dlo-auto-update.py
+          python3 -I -B -m unittest discover -s recipes/decky-launch-options/tests -v
           python3 scripts/test-log-retention.py
 
       - name: Build recipes.json and store.json
