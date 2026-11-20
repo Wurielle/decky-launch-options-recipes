@@ -1,8 +1,8 @@
 {
-    "id": "fsr4-xefg",
-    "name": "FSR4 + XeFG",
+    "id": "fsr4-xefg-dlss-input",
+    "name": "FSR4 + XeFG (DLSS input)",
     "author": "Wurielle",
-    "description": "OptiScaler with FSR4 + XeFG.",
+    "description": "OptiScaler with FSR4 + XeFG (DLSS input).",
     "notes": [
         "Do not use in Multiplayer games with Anti-Cheat",
         "Requires to enable DLSS Upscaling in game",
