@@ -5,7 +5,7 @@
     "description": "OptiScaler with FSR4.",
     "notes": [
         "Do not use in a Multiplayer game with Anti-Cheat protection",
-        "Requires to enable DLSS Upscaling in game"
+        "Requires to enable any upscaling in game"
     ],
     "launchOptions": [
         {
