@@ -6,7 +6,7 @@
     "notes": [
         "Do not use in a Multiplayer game with Anti-Cheat protection",
         "Requires to enable any upscaling in game",
-        "Requires to enable FSR 3.1 Frame Generation in game"
+        "Requires to enable FSR 3.1 or FSR 3.0 Frame Generation in game"
     ],
     "launchOptions": [
         {
