@@ -4,6 +4,7 @@
     "author": "Wurielle",
     "description": "OptiScaler with FSR4 + XeFG.",
     "notes": [
+        "Do not use in Multiplayer games with Anti-Cheat",
         "Requires to enable DLSS Upscaling in game",
         "Requires to enable DLSS Frame Generation in game"
     ],
