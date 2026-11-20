@@ -1,7 +1,12 @@
 {
     "id": "fsr4-xefg",
     "name": "FSR4 + XeFG",
+    "author": "Wurielle",
     "description": "OptiScaler with FSR4 + XeFG.",
+    "notes": [
+        "Requires to enable DLSS Upscaling in game",
+        "Requires to enable DLSS Frame Generation in game"
+    ],
     "launchOptions": [
         {
             "recipeId": "dlor-optiscaler",

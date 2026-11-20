@@ -5,6 +5,12 @@ The directory supplies the Steam App ID; the filename matches the preset's
 stable `id`. The `name` is the display label and `description` explains the
 configuration.
 
+`author` is required and contains the author's GitHub username, without an
+`@` prefix or profile URL. It is attribution, not recipe-resolution context
+or verified authorship. `notes` is optional and, when present, is an array
+of strings for prerequisites or other usage guidance. Keep notes as literal
+JSON strings; no TypeScript source or shared notes module is required.
+
 Use the literal `*` app directory (`presets/steam/*/<preset-id>.json`) for
 presets available to all Steam apps. Consumers should combine these with an
 app's specific presets. Availability does not mean automatic or global
@@ -12,8 +18,9 @@ activation; the user still chooses a preset for the current app.
 
 Each entry in `launchOptions` pairs a `recipeId` with a `launchOptionId` from
 that recipe. Reference the specific choice ID for a dropdown, not its shared
-`valueId`. Do not duplicate recipe commands or include repository URLs,
-usernames, or store identifiers. The consumer retains the originating store
+`valueId`. Do not duplicate recipe commands or embed repository URLs,
+owner usernames, or store identifiers for resolving references. The `author`
+username is attribution only. The consumer retains the originating store
 and uses it to resolve recipe references. Missing options can prompt a recipe
 import or re-import; a still-missing reference must not be treated as a
 complete preset application.
