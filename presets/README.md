@@ -48,7 +48,7 @@ The preset references the following controls from `dlor-optiscaler`:
 - FSR4 preset: Performance (`3`).
 - VSync: On.
 - FrameGen: On.
-- FrameGen input: Nvngx DLSSG (`nvngxfg`).
+- FrameGen input: DLSSG via Streamline (`dlssg`).
 - FrameGen output: XeFG (`xefg`).
 
 The AMD SDK source supplies the files; the three upscaler selections configure
