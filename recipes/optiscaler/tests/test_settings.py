@@ -25,7 +25,8 @@ class SettingsTests(unittest.TestCase):
                        cwd=ROOT, env=environment, capture_output=True, text=True, check=True)
         module = (ROOT / ".generated/recipes-build/recipes/optiscaler/index.js").as_uri()
         result = subprocess.run(["node", "--input-type=module", "-e",
-                                 "const {default: recipe} = await import(process.argv[1]); "
+                                 "const {createOptiScalerOptions} = await import(process.argv[1]); "
+                                 "const recipe = {launchOptions: createOptiScalerOptions('10')}; "
                                  "const {default: installer} = await import(new URL('../dlor-optiscaler/index.js', process.argv[1])); "
                                  "const {default: anr} = await import(new URL('../anr-framegen/index.js', process.argv[1])); "
                                  "console.log(JSON.stringify([recipe, installer, anr]));", module],

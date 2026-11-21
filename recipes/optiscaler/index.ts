@@ -9,6 +9,16 @@ type OptiScalerDropdownValue = {
     value: string | number | boolean
 }
 
+type OptiScalerVersion = '0.9' | '10'
+
+const legacyNukems = {id: 'nukems', name: 'Nukem FG', value: 'nukems'}
+
+const upscalerValues = (version: OptiScalerVersion, values: readonly OptiScalerDropdownValue[]) => values.map(value => ({
+    ...value,
+    value: version === '0.9' && value.value === 'ffx' ? 'fsr31'
+        : version === '0.9' && value.value === 'ffx_12' ? 'fsr31_12' : value.value,
+}))
+
 const optiScalerGroup = 'OptiScaler'
 const optiScalerEnv = (option: string, value: string | number | boolean) => `OptiScaler_${option}="${value}"`
 
@@ -313,7 +323,7 @@ const fsr4PresetValues = [
     {id: '5', name: 'Ultra Performance', value: 5},
 ] as const
 
-// The updater accepts normalized section names, keeping V-Sync shell-safe.
+// Legacy fgmod normalizes V-Sync only in its unprefixed Section_Key path.
 const vsyncValues = [
     {id: 'none', name: 'None', value: null, override: null},
     {id: 'auto', name: 'Auto', value: 'auto', override: 'auto'},
@@ -321,11 +331,13 @@ const vsyncValues = [
     {id: 'off', name: 'Off', value: false, override: true},
 ] as const
 
-const vsyncOptions: LaunchOption[] = vsyncValues.map((value): LaunchOption => ({
+const vsyncOptions = (version: OptiScalerVersion): LaunchOption[] => vsyncValues.map((value): LaunchOption => ({
     id: `optiscaler-vsync-${value.id}`,
     group: optiScalerGroup,
     name: 'OptiScaler VSync',
-    on: value.value === null ? '' : `${optiScalerEnv('VSync_OverrideVsync', value.override)} ${optiScalerEnv('VSync_ForceVsync', value.value)}`,
+    on: value.value === null ? '' : version === '0.9'
+        ? `VSync_OverrideVsync="${value.override}" VSync_ForceVsync="${value.value}"`
+        : `${optiScalerEnv('VSync_OverrideVsync', value.override)} ${optiScalerEnv('VSync_ForceVsync', value.value)}`,
     off: '',
     enableGlobally: false,
     valueId: 'optiscaler-vsync',
@@ -371,7 +383,8 @@ const dynamicMfgOptions: LaunchOption[] = ([
     `optiscaler-framegen-${id}`, `OptiScaler FrameGen ${name}`, `optiscaler-framegen-${id}`, setting, booleanValues,
 ))
 
-const launchOptions: LaunchOption[] = [
+// Configuration dialects are independent of recipe IDs and installer selection.
+export const createOptiScalerOptions = (version: OptiScalerVersion): LaunchOption[] => [
     // Keep the legacy ID on None so re-importing clears the old OFF uninstaller.
     ...[
         {id: 'optiscaler', name: 'None', command: ''},
@@ -424,14 +437,16 @@ const launchOptions: LaunchOption[] = [
         'OptiScaler FrameGen Input',
         'optiscaler-framegen-input',
         'FrameGen_FGInput',
-        frameGenInputValues,
+        version === '10' ? frameGenInputValues
+            : [...frameGenInputValues.filter(value => value.id !== 'nvngxfg' && value.id !== 'xefg'), legacyNukems],
     ),
     ...optiScalerDropdown(
         'optiscaler-framegen-output',
         'OptiScaler FrameGen Output',
         'optiscaler-framegen-output',
         'FrameGen_FGOutput',
-        frameGenOutputValues,
+        version === '10' ? frameGenOutputValues
+            : [...frameGenOutputValues.filter(value => value.id !== 'dlssg' && value.id !== 'reprojection'), legacyNukems],
     ),
     ...optiScalerDropdown(
         'optiscaler-framerate-limit',
@@ -461,21 +476,21 @@ const launchOptions: LaunchOption[] = [
         'OptiScaler Upscaler (Dx11)',
         'optiscaler-upscaler-dx11',
         'Upscalers_Dx11Upscaler',
-        dx11UpscalerValues,
+        upscalerValues(version, dx11UpscalerValues),
     ),
     ...optiScalerDropdown(
         'optiscaler-upscaler-dx12',
         'OptiScaler Upscaler (Dx12)',
         'optiscaler-upscaler-dx12',
         'Upscalers_Dx12Upscaler',
-        dx12UpscalerValues,
+        upscalerValues(version, dx12UpscalerValues),
     ),
     ...optiScalerDropdown(
         'optiscaler-upscaler-vulkan',
         'OptiScaler Upscaler (Vulkan)',
         'optiscaler-upscaler-vulkan',
         'Upscalers_VulkanUpscaler',
-        vulkanUpscalerValues,
+        upscalerValues(version, vulkanUpscalerValues),
     ),
     ...optiScalerDropdown(
         'optiscaler-fsr4-preset',
@@ -484,7 +499,7 @@ const launchOptions: LaunchOption[] = [
         'FSR_Fsr4Preset',
         fsr4PresetValues,
     ),
-    ...optiScalerDropdown(
+    ...(version === '10' ? optiScalerDropdown(
         'optiscaler-fsr4-gpu-support-override',
         'OptiScaler FSR4 GPU Support Override',
         'optiscaler-fsr4-gpu-support-override',
@@ -497,8 +512,8 @@ const launchOptions: LaunchOption[] = [
             {id: '3', name: 'INT8-2', value: 3},
             {id: '4', name: 'INT8 Lite', value: 4},
         ],
-    ),
-    ...optiScalerDropdown(
+    ) : []),
+    ...(version === '10' ? optiScalerDropdown(
         'optiscaler-fsr4-model',
         'OptiScaler FSR4 Model',
         'optiscaler-fsr4-model',
@@ -510,10 +525,10 @@ const launchOptions: LaunchOption[] = [
             {id: '2', name: 'INT8 RDNA2', value: 2},
             {id: '3', name: 'INT8 Lite', value: 3},
         ],
-    ),
-    ...mfgOptions,
-    ...dynamicMfgOptions,
-    ...optiScalerDropdown(
+    ) : []),
+    ...mfgOptions.filter(option => version === '10' || option.valueId === 'optiscaler-framegen-xefg-mfg-multiplier'),
+    ...(version === '10' ? dynamicMfgOptions : []),
+    ...(version === '10' ? optiScalerDropdown(
         'optiscaler-framegen-xefg-dynamic-mfg-target-rounding',
         'OptiScaler FrameGen XeFG Dynamic MFG Target Rounding',
         'optiscaler-framegen-xefg-dynamic-mfg-target-rounding',
@@ -524,14 +539,14 @@ const launchOptions: LaunchOption[] = [
             {id: '1', name: 'Around target', value: 1},
             {id: '2', name: 'At least target', value: 2},
         ],
-    ),
-    ...vsyncOptions,
+    ) : []),
+    ...vsyncOptions(version),
 ]
 
 const recipe = {
     id: 'optiscaler',
     "name": "OptiScaler",
-    launchOptions,
+    launchOptions: createOptiScalerOptions('0.9'),
 } satisfies Recipe
 
 export default recipe

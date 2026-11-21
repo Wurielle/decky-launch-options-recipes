@@ -49,6 +49,11 @@ jobs:
       - name: Test store generation
         run: pnpm test:store
 
+      - name: Test versioned OptiScaler settings
+        run: |
+          python3 -I -B -m unittest discover -s recipes/optiscaler/tests -p test_settings.py -v
+          python3 -I -B -m unittest discover -s recipes/optiscaler/tests -p test_versions.py -v
+
       - name: Test DLO auto updater offline
         run: |
           bash -n recipes/decky-launch-options/scripts/auto-update.sh
