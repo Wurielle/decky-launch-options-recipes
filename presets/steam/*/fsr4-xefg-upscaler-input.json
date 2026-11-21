@@ -1,0 +1,48 @@
+{
+    "id": "fsr4-xefg-upscaler-input",
+    "name": "FSR4 + XeFG (Upscaler input)",
+    "author": "Wurielle",
+    "description": "OptiScaler with FSR4 + XeFG (Upscaler input).",
+    "notes": [
+        "Do not use in a Multiplayer game with Anti-Cheat protection",
+        "Requires to enable any upscaling in game"
+    ],
+    "launchOptions": [
+        {
+            "recipeId": "dlor-optiscaler",
+            "launchOptionId": "dlor-optiscaler-install"
+        },
+        {
+            "recipeId": "dlor-optiscaler",
+            "launchOptionId": "dlor-optiscaler-fsr-override-sdk-amd"
+        },
+        {
+            "recipeId": "dlor-optiscaler",
+            "launchOptionId": "dlor-optiscaler-upscaler-dx11-ffx-12"
+        },
+        {
+            "recipeId": "dlor-optiscaler",
+            "launchOptionId": "dlor-optiscaler-upscaler-dx12-ffx"
+        },
+        {
+            "recipeId": "dlor-optiscaler",
+            "launchOptionId": "dlor-optiscaler-upscaler-vulkan-ffx-12"
+        },
+        {
+            "recipeId": "dlor-optiscaler",
+            "launchOptionId": "dlor-optiscaler-vsync-on"
+        },
+        {
+            "recipeId": "dlor-optiscaler",
+            "launchOptionId": "dlor-optiscaler-framegen"
+        },
+        {
+            "recipeId": "dlor-optiscaler",
+            "launchOptionId": "dlor-optiscaler-framegen-input-upscaler"
+        },
+        {
+            "recipeId": "dlor-optiscaler",
+            "launchOptionId": "dlor-optiscaler-framegen-output-xefg"
+        }
+    ]
+}
