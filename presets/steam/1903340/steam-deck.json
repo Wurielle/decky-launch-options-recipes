@@ -2,7 +2,7 @@
     "id": "steam-deck",
     "name": "Steam Deck",
     "author": "Wurielle",
-    "description": "OptiScaler with FSR4 (Performance) + XeFG (x2).",
+    "description": "OptiScaler with FSR4 (Balanced) + XeFG (x2).",
     "notes": [
         "Requires to enable DLSS Upscaling in game",
         "Requires to enable DLSS Frame Generation in game"
@@ -30,7 +30,7 @@
         },
         {
             "recipeId": "dlor-optiscaler",
-            "launchOptionId": "dlor-optiscaler-fsr4-preset-3"
+            "launchOptionId": "dlor-optiscaler-fsr4-preset-2"
         },
         {
             "recipeId": "dlor-optiscaler",
