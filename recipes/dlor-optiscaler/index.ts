@@ -1,7 +1,7 @@
 import type { LaunchOption, Recipe } from '../shared/types.js'
 import { remoteScript } from '../shared/remote-script.js'
 import { wineDllOverridesMerge } from '../shared/env-variable-merges.js'
-import optiscaler from '../optiscaler/index.js'
+import { createOptiScalerOptions } from '../optiscaler/index.js'
 import anrFramegen from '../anr-framegen/index.js'
 
 const group = 'DLOR OptiScaler'
@@ -77,7 +77,7 @@ const recipe = {
             ...optimizedProfiles,
         ]),
         ...[
-            ...optiscaler.launchOptions.filter(option => option.valueId !== 'optiscaler'),
+            ...createOptiScalerOptions('10').filter(option => option.valueId !== 'optiscaler'),
             // Install after the core and its priority -1 nightly upgrade. Remove
             // ANR before core removal can delete its required OptiScaler.ini.
             ...anrFramegen.launchOptions.map(option => ({
