@@ -93,39 +93,39 @@
     },
     "fsr-zgauthier2000-rx6000": {
       "repository": "zgauthier2000/fsr4-shader-performance-overrides",
-      "tag": "dll-2026-11-05",
-      "name": "fsr4.1.2-cyboman-rx6000-2026-11-05.7z",
-      "url": "https://github.com/zgauthier2000/fsr4-shader-performance-overrides/releases/download/dll-2026-11-05/fsr4.1.2-cyboman-rx6000-2026-11-05.7z",
-      "sha256": "58eb2b04a729460844efeb8d8b21bca67e2fc835c7f2c1ca064d243c0352389d",
-      "size": 9612224,
-      "channel": "tag:dll-2026-11-05"
+      "tag": "dll-2026-11-22",
+      "name": "fsr4.1.2-cyboman-rx6000-2026-11-22.7z",
+      "url": "https://github.com/zgauthier2000/fsr4-shader-performance-overrides/releases/download/dll-2026-11-22/fsr4.1.2-cyboman-rx6000-2026-11-22.7z",
+      "sha256": "4dfb9c0cec1267aae759ed787aaac70d5dd0ef1a8125fcb8cef259bcc24f0181",
+      "size": 9877271,
+      "channel": "tag:dll-2026-11-22"
     },
     "fsr-zgauthier2000-rx7000": {
       "repository": "zgauthier2000/fsr4-shader-performance-overrides",
-      "tag": "dll-2026-11-05",
-      "name": "fsr4.1.2-cyboman-rx7000-2026-11-05.7z",
-      "url": "https://github.com/zgauthier2000/fsr4-shader-performance-overrides/releases/download/dll-2026-11-05/fsr4.1.2-cyboman-rx7000-2026-11-05.7z",
-      "sha256": "182dc6e4e608b584e63ae043f4e0c2455593164ddb989275d895de5bb750ab52",
-      "size": 9422171,
-      "channel": "tag:dll-2026-11-05"
+      "tag": "dll-2026-11-22",
+      "name": "fsr4.1.2-cyboman-rx7000-2026-11-22.7z",
+      "url": "https://github.com/zgauthier2000/fsr4-shader-performance-overrides/releases/download/dll-2026-11-22/fsr4.1.2-cyboman-rx7000-2026-11-22.7z",
+      "sha256": "bcd719dca0bfb791aec8987bad796eceb65fc887b3d1d45a4969d7b55e6f195d",
+      "size": 13284673,
+      "channel": "tag:dll-2026-11-22"
     },
     "fsr-zgauthier2000-igpu-rdna2": {
       "repository": "zgauthier2000/fsr4-shader-performance-overrides",
-      "tag": "dll-2026-11-05",
-      "name": "fsr4.1.2-igpu-cyboman-rdna2-2026-11-05.7z",
-      "url": "https://github.com/zgauthier2000/fsr4-shader-performance-overrides/releases/download/dll-2026-11-05/fsr4.1.2-igpu-cyboman-rdna2-2026-11-05.7z",
-      "sha256": "da7c7681bffe7ac60a01e859d5b107900d963557793ef67ddcfd03a832e1c03f",
-      "size": 9567439,
-      "channel": "tag:dll-2026-11-05"
+      "tag": "dll-2026-11-22",
+      "name": "fsr4.1.2-igpu-cyboman-rdna2-2026-11-22.7z",
+      "url": "https://github.com/zgauthier2000/fsr4-shader-performance-overrides/releases/download/dll-2026-11-22/fsr4.1.2-igpu-cyboman-rdna2-2026-11-22.7z",
+      "sha256": "8dd65d22b20f968f0d6529716cbcd05b12ca93d8e543f1e878fc5e08bbb1099c",
+      "size": 9889144,
+      "channel": "tag:dll-2026-11-22"
     },
     "fsr-zgauthier2000-igpu-rdna3": {
       "repository": "zgauthier2000/fsr4-shader-performance-overrides",
-      "tag": "dll-2026-11-05",
-      "name": "fsr4.1.2-igpu-cyboman-rdna3-2026-11-05.7z",
-      "url": "https://github.com/zgauthier2000/fsr4-shader-performance-overrides/releases/download/dll-2026-11-05/fsr4.1.2-igpu-cyboman-rdna3-2026-11-05.7z",
-      "sha256": "6553cfeaa824fd1fa36985278e5ce835d27bbb758e99a1db5efaf331fe72dc4f",
-      "size": 9553046,
-      "channel": "tag:dll-2026-11-05"
+      "tag": "dll-2026-11-22",
+      "name": "fsr4.1.2-igpu-cyboman-rdna3-2026-11-22.7z",
+      "url": "https://github.com/zgauthier2000/fsr4-shader-performance-overrides/releases/download/dll-2026-11-22/fsr4.1.2-igpu-cyboman-rdna3-2026-11-22.7z",
+      "sha256": "0443047f44cbfb9670dbc719e069df77be37cabcde02b76176d59f682d79091d",
+      "size": 9826318,
+      "channel": "tag:dll-2026-11-22"
     },
     "fsr-sdk-license": {
       "repository": "GPUOpen-LibrariesAndSDKs/FidelityFX-SDK",
@@ -138,17 +138,17 @@
     },
     "fsr-zgauthier2000-license": {
       "repository": "zgauthier2000/fsr4-shader-performance-overrides",
-      "url": "https://raw.githubusercontent.com/zgauthier2000/fsr4-shader-performance-overrides/d1c3b30db656bf6a38634642542ee7736127d211/LICENSE",
+      "url": "https://raw.githubusercontent.com/zgauthier2000/fsr4-shader-performance-overrides/e751c4b98a90979eab0e3b94d54946292d881201/LICENSE",
       "sha256": "edaef632cbb643e4e7a221717a6c441a4c1a7c918e6e4d56debc3d8739b233f6",
       "size": 17984,
-      "tag": "dll-2026-11-05",
+      "tag": "dll-2026-11-22",
       "name": "LICENSE",
-      "channel": "tag:dll-2026-11-05"
+      "channel": "tag:dll-2026-11-22"
     }
   },
   "runtime": {
     "loader.py": "989ccccd9c3590ddf25f7df5480a969b0143c2e1ad7861cd9748f95b993a7193",
-    "installer.py": "589437050682206cc8baea1aea10406989d6b3016a1f4eda32701d780f389bfa",
+    "installer.py": "c8bf0878226ce3b17b79a41f9bdf25ba69ea5fc058a04832bbd8aaa8f89c9c72",
     "artifacts.py": "296c599f8b3f36d12713e753cb44adea86bc24b699ad15661ca9555196c36946",
     "game_discovery.py": "94fe46f3a8279c55ae5205ae0906fa0372b5cd3230c7aaec2834be12bf16350a",
     "update_optiscaler_config.py": "a3e77b1d47bd0a458c3cdf87e360e21f96f4c821ec2d921e31443d2704513006",

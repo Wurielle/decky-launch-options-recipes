@@ -844,7 +844,7 @@ FSR_PROFILES = {
 for family, flavor in (("rx6000", "cyboman-rx6000"), ("rx7000", "cyboman-rx7000"),
                        ("igpu-rdna2", "igpu-cyboman-rdna2"), ("igpu-rdna3", "igpu-cyboman-rdna3")):
     for variant in ("exact", "lossy"):
-        date, version = "2026-11-05", "4.1.2"
+        date, version = "2026-11-22", "4.1.2"
         members = {"amd_fidelityfx_upscaler_dx12.dll": variant + "/amd_fidelityfx_upscaler_dx12.dll",
                    "licenses/fsr-profile/NOTICE.md": "NOTICE.md"}
         if variant != "exact":
@@ -873,7 +873,15 @@ def optional_components(cache, *, profile=None, retained_components=None):
         if retained_components is None:
             asset = resolve_asset(repository, "tag:" + tag, re.escape(name), cache)
         else:
-            matches = [entry for entry in retained_components if entry.get("name") == name and entry.get("repository") == repository and entry.get("fsr_profile") == profile]
+            # Archive basenames include release dates. Retain the same GPU
+            # family's installed archive, not the current acquisition filename.
+            name_pattern = re.escape(name)
+            archive = re.fullmatch(r"fsr[0-9]+(?:\.[0-9]+)*-(.+)-[0-9]{4}-[0-9]{2}-[0-9]{2}\.7z", name)
+            if isinstance(members, dict) and archive:
+                name_pattern = r"fsr[0-9]+(?:\.[0-9]+)*-" + re.escape(archive[1]) + r"-[0-9]{4}-[0-9]{2}-[0-9]{2}\.7z"
+            matches = [entry for entry in retained_components if
+                       re.fullmatch(name_pattern, entry.get("name", "")) and
+                       entry.get("repository") == repository and entry.get("fsr_profile") == profile]
             if len(matches) != 1:
                 raise InstallerError("Incomplete installed FSR profile provenance")
             retained = matches[0]

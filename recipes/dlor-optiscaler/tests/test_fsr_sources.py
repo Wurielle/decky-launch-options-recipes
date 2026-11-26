@@ -86,8 +86,8 @@ class FsrSourceTests(unittest.TestCase):
     def state(self):
         return json.loads(next((self.home / ".dlor/state/dlor-optiscaler").glob("*/state.json")).read_bytes())
 
-    def add_optimized(self, family="igpu-rdna2", variant="exact"):
-        date, version = "2026-11-05", "4.1.2"
+    def add_optimized(self, family="igpu-rdna2", variant="exact", date="2026-11-22"):
+        version = "4.1.2"
         self.add_asset("zgauthier2000/fsr4-shader-performance-overrides", "tag:dll-" + date,
                        "LICENSE", b"synthetic GPL license")
         flavor = family.replace("igpu-", "igpu-cyboman-") if family.startswith("igpu-") else "cyboman-" + family
@@ -110,6 +110,38 @@ class FsrSourceTests(unittest.TestCase):
             path.write_bytes(data)
         self.packages[asset["sha256"]] = directory
         return asset
+
+    def test_optimized_acquisition_pins_match_current_release(self):
+        manifest = json.loads((HERE / "scripts/downloads.json").read_bytes())["downloads"]
+        for family in ("rx6000", "rx7000", "igpu-rdna2", "igpu-rdna3"):
+            for variant in ("exact", "lossy"):
+                with self.subTest(family=family, variant=variant):
+                    profile = f"zgauthier2000-{family}-{variant}"
+                    for repository, tag, name, _ in self.installer.FSR_PROFILES[profile]:
+                        self.assertEqual(tag, "dll-2026-11-22")
+                        matches = [a for a in manifest.values() if
+                                   (a["repository"], a["tag"], a["name"]) == (repository, tag, name)]
+                        self.assertEqual(len(matches), 1)
+                        self.assertEqual(matches[0]["channel"], "tag:" + tag)
+
+    def test_older_date_bearing_archive_is_retained_after_acquisition_pin_refresh(self):
+        for family in ("rx6000", "rx7000", "igpu-rdna2", "igpu-rdna3"):
+            for variant in ("exact", "lossy"):
+                with self.subTest(family=family, variant=variant):
+                    self.add_optimized(family, variant, date="2026-11-05")
+                    profile = f"zgauthier2000-{family}-{variant}"
+                    current = self.installer.FSR_PROFILES[profile]
+                    older = [(repo, "dll-2026-11-05", name.replace("2026-11-22", "2026-11-05"), members)
+                             for repo, tag, name, members in current]
+                    with patch.dict(self.installer.FSR_PROFILES, {profile: older}):
+                        self.assertEqual(self.run_action("install", profile), 0)
+                    before = self.state()["components"][-2:]
+                    for selector in (None, profile):
+                        self.requests.clear()
+                        self.assertEqual(self.run_action("upgrade", selector), 0)
+                        self.assertEqual(self.state()["components"][-2:], before)
+                        self.assertEqual(len(self.requests), 2)
+                    self.assertEqual(self.run_action("uninstall"), 0)
 
     def test_source_names_are_exact(self):
         self.add_optimized()
@@ -154,7 +186,7 @@ class FsrSourceTests(unittest.TestCase):
                     self.assertEqual((self.target / "OptiScaler" / DLL).read_bytes(), ("synthetic optimized " + variant).encode())
                     before = self.state()["components"][-1]
                     self.assertEqual(before["fsr_profile"], profile)
-                    self.assertEqual(before["tag"], "dll-2026-11-05")
+                    self.assertEqual(before["tag"], "dll-2026-11-22")
                     warnings = list(self.target.rglob("WARNING.txt"))
                     self.assertEqual(len(warnings), 0 if variant == "exact" else 1)
                     if warnings:
@@ -285,7 +317,7 @@ class FsrSourceTests(unittest.TestCase):
         self.assertTrue(license_path.is_file(), "Optimized source must include its GPL license")
         self.assertEqual(license_path.read_bytes(), b"synthetic GPL license")
         self.assertEqual([c["name"] for c in self.state()["components"]][-2:],
-                         ["LICENSE", "fsr4.1.2-igpu-cyboman-rdna2-2026-11-05.7z"])
+                         ["LICENSE", "fsr4.1.2-igpu-cyboman-rdna2-2026-11-22.7z"])
         self.run_action("install", "bundled")
         self.assertFalse(license_path.exists())
 
@@ -364,13 +396,17 @@ class FsrSourceTests(unittest.TestCase):
         self.run_action("install", "zgauthier2000-igpu-rdna2-exact")
         journal = next((self.home / ".dlor/state/dlor-optiscaler").glob("*/state.json"))
         original = journal.read_bytes()
-        for corruption in ("missing-license", "member-digest", "mixed-profiles"):
+        for corruption in ("missing-license", "member-digest", "mixed-profiles", "wrong-family", "duplicate-archive"):
             with self.subTest(corruption=corruption):
                 state = json.loads(original)
                 if corruption == "missing-license":
                     state["components"] = [c for c in state["components"] if c["name"] != "LICENSE"]
                 elif corruption == "member-digest":
                     state["components"][-1]["fsr_members"][DLL]["sha256"] = "0" * 64
+                elif corruption == "wrong-family":
+                    state["components"][-1]["name"] = state["components"][-1]["name"].replace("igpu-cyboman-rdna2", "cyboman-rx7000")
+                elif corruption == "duplicate-archive":
+                    state["components"].append(dict(state["components"][-1]))
                 else:
                     state["components"][-2]["fsr_profile"] = "sdk-amd"
                 journal.write_text(json.dumps(state))
